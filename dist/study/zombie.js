@@ -71,3 +71,13 @@ export function zombieLegs(c,g,L,bottom,look){const decay=look.decay??1;if(!deca
  atop(c,()=>{const legs=decay>1?[L.near,L.far]:[L.near];for(const leg of legs){const k=leg.x+leg.foot.knee;
   if(bottom!==4)rip(g,[[k-3,-16],[k-1,-17.5],[k+1,-16],[k+2.5,-17],[k+2,-12.5],[k-1,-12],[k-3,-13]],SKIN_LO);
   g.r(k-.5,-14.5,1.5,1,BLOOD);if(decay>1&&leg===L.near){g.r(leg.x-2,-24,3,2,BLOOD_DK);g.r(leg.x-1.5,-23.5,2,1,BLOOD);}}});}
+
+// Arms held out in front. b is the arm's length axis on screen (shoulder to hand, per unit of arm length);
+// the thickness axis stays perpendicular and full width, so a turned arm never thins out.
+export function zombieReach(x,side,back,quarter,near,G){
+ let [bx,by]=side?[1,0]:quarter?(back?[.7,-.45]:[.7,.38]):back?[0,-.38]:[0,.3];by+=.16;
+ if(!side)bx+=(x<0?1:-1)*(quarter?.06:.1);
+ const d=(near?1:-1)*(G.swing||0)*(G.running?.2:.08)-(side&&!near?.07:0),c=Math.cos(d),s=Math.sin(d);[bx,by]=[bx*c-by*s,bx*s+by*c];
+ const l=Math.hypot(bx,by);return {ax:by/l,ay:-bx/l,bx,by};}
+export function reachPainter(g,x,y,R){const T=([px,py])=>{const u=px-x,v=py-y;return [x+u*R.ax+v*R.bx,y+u*R.ay+v*R.by];};
+ return {p:(pts,col)=>g.p(pts.map(T),col),r:(rx,ry,w,h,col)=>g.p([[rx,ry],[rx+w,ry],[rx+w,ry+h],[rx,ry+h]].map(T),col)};}

@@ -71,3 +71,10 @@ test('every infection choice changes the zombie in every view, survivors ignore 
   if(d<5){const seen=new Set();for(let v=0;v<3;v++)seen.add(Buffer.from(render(d,0,{...Z,eyes:v})).toString('base64'));assert.equal(seen.size,3,`eyes ${d}`);}
   for(const f of[0,4,12]){const a=render(d,f,{...Z,decay:2,wounds:3});for(let x=0;x<160;x++)assert.equal(a[(191*160+x)*4+3],0);for(let y=0;y<192;y++)assert.equal(a[y*160*4+3]+a[(y*160+159)*4+3],0);}
   assert.ok(same(render(d,6,{...Z,gun:'heavy-ar',grenade:'smoke'}),render(d,6,Z)),`gear ${d}`);}});
+test('zombies reach forward and shamble in every view while staying inside the atlas',()=>{const Z={zombie:1,rot:1,decay:1,eyes:0,wounds:0,pack:1},same=(a,b)=>Buffer.from(a).equals(Buffer.from(b));
+ const reach=a=>{let max=0;for(let y=0;y<192;y++)for(let x=0;x<160;x++)if(a[(y*160+x)*4+3]&&y<110)max=Math.max(max,x);return max;};
+ assert.ok(reach(render(0,0,Z))>reach(render(0,0,{pack:1}))+12,'arms out in front in profile');
+ for(let d=0;d<8;d++){const frames=new Set();for(let f=0;f<17;f++){const a=render(d,f,Z);frames.add(Buffer.from(a).toString('base64'));for(let x=0;x<160;x++)assert.equal(a[(191*160+x)*4+3],0);for(let y=0;y<192;y++)assert.equal(a[y*160*4+3]+a[(y*160+159)*4+3],0,`edge ${d}/${f}`);}
+  assert.ok(frames.size>=15,`animated ${d}: ${frames.size}`);assert.ok(!same(render(d,4,Z),render(d,4,{...Z,zombie:0})));}});
+test('zombies move slower than survivors in the room',async()=>{const {StudyModel}=await import('../dist/study/model.js');const run=(zombie,running)=>{const m=new StudyModel();m.zombie=zombie;for(let i=0;i<20;i++)m.update(.05,{x:1,y:0,run:running});return m.x;};
+ assert.ok(run(true,false)<run(false,false));assert.ok(run(true,true)<run(false,true));assert.ok(run(true,true)>run(true,false));});
