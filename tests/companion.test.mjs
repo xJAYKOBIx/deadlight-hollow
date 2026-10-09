@@ -39,7 +39,9 @@ test('the companion walks at your side, then sits and stays put while you walk a
  you.moving=false;run(p,you,1.5);assert.equal(p.mode,'stay');assert.equal(p.state,'sit');const spot=[p.x,p.y];
  // Circle round it, close enough to pat: it stays where it is and turns to watch you.
  you.moving=true;const cx=p.x,cy=p.y;run(p,you,4,i=>{const a=i/60*1.5;you.x=cx+Math.cos(a)*40;you.y=cy+Math.sin(a)*40;you.direction=(Math.round(a/(Math.PI/4))+2)%8;});
- assert.deepEqual([p.x,p.y],spot,'it stays put while you walk around it');assert.equal(p.mode,'stay');
+ assert.deepEqual([p.x,p.y],spot,'it stays put while you walk around it');assert.equal(p.mode,'stay');assert.equal(p.direction,0,'and keeps facing the way it settled');
+ you.moving=false;you.x=p.x-60;you.y=p.y;p.update(1/60,you);assert.equal(p.direction,4,'walk off a little and it looks round at you');assert.equal(p.mode,'stay');you.x=p.x;you.y=p.y+20;
+
  you.moving=false;p.pet();p.update(1/60,you);assert.equal(p.state,'sit');assert.ok(p.happy>0);
  run(p,you,FOLLOW.lie+1,()=>{});assert.notEqual(p.mode,'heel');
  // Walk off past the leash and it gets up and catches up.

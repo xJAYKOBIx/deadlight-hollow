@@ -14,13 +14,13 @@ const K=.55;
 // Body plans. S shoulder height, L half body length, rc/rh chest and hip radius, w body half width,
 // rH head radius, sn snout length, leg leg width, tail style and ear style.
 const PLANS=[[
- {S:23,L:11.5,rc:8.4,rh:7.2,w:4.4,rH:5.6,sn:6.2,snR:.52,leg:3.9,ears:'prick',earH:6.5,tail:'brush',tailL:15,tailR:2.4,fluff:0,scale:1.08},
- {S:22,L:11.5,rc:9,rh:8.2,w:4.8,rH:6,sn:5.2,snR:.62,leg:4.1,ears:'drop',earH:5,tail:'otter',tailL:13,tailR:2.4,fluff:0,scale:1.08},
- {S:14.5,L:8,rc:6.2,rh:5.6,w:3.4,rH:5.2,sn:3.6,snR:.7,leg:3.2,ears:'fold',earH:3.4,tail:'stub',tailL:6,tailR:1.7,fluff:.4,scale:1.12},
- {S:22,L:11.5,rc:8.8,rh:7.4,w:4.6,rH:5.8,sn:5,snR:.58,leg:4,ears:'prick',earH:5,tail:'curl',tailL:14,tailR:2.7,fluff:.8,scale:1.08}
+ {S:23,L:11.5,rc:8.4,rh:7.2,w:4.4,rH:5.6,sn:5.6,snR:.52,leg:3.9,ears:'prick',earH:6.5,tail:'brush',tailL:15,tailR:2.4,fluff:0,scale:1.08},
+ {S:22,L:11.5,rc:9,rh:8.2,w:4.8,rH:6,sn:4.8,snR:.62,leg:4.1,ears:'drop',earH:5,tail:'otter',tailL:13,tailR:2.4,fluff:0,scale:1.08},
+ {S:14.5,L:8,rc:6.2,rh:5.6,w:3.4,rH:5.2,sn:3.2,snR:.7,leg:3.2,ears:'fold',earH:3.4,tail:'stub',tailL:6,tailR:1.7,fluff:.4,scale:1.12},
+ {S:22,L:11.5,rc:8.8,rh:7.4,w:4.6,rH:5.8,sn:4.8,snR:.58,leg:4,ears:'prick',earH:5,tail:'curl',tailL:14,tailR:2.7,fluff:.8,scale:1.08}
 ],[
- {S:12,L:7.5,rc:5,rh:5,w:2.8,rH:5,sn:1.4,snR:.7,leg:2.5,ears:'cat',earH:3.8,tail:'cat',tailL:15,tailR:1.25,fluff:0,scale:1.3},
- {S:12.5,L:7.5,rc:5.8,rh:5.6,w:3.2,rH:5.4,sn:1.2,snR:.7,leg:2.6,ears:'cat',earH:3.6,tail:'plume',tailL:14,tailR:2.2,fluff:1,scale:1.3}
+ {S:12,L:7.5,rc:5,rh:5,w:2.8,rH:5,sn:.6,snR:.7,leg:2.5,ears:'cat',earH:3.8,tail:'cat',tailL:15,tailR:1.25,fluff:0,scale:1.3},
+ {S:12.5,L:7.5,rc:5.8,rh:5.6,w:3.2,rH:5.4,sn:.5,snR:.7,leg:2.6,ears:'cat',earH:3.6,tail:'plume',tailL:14,tailR:2.2,fluff:1,scale:1.3}
 ]];
 // Convex hull of projected points, for ears seen from any side.
 function hull(pts){pts=[...pts].sort((a,b)=>a.x-b.x||a.y-b.y);const cross=(o,a,b)=>(a.x-o.x)*(b.y-o.y)-(a.y-o.y)*(b.x-o.x),lo=[],hi=[];
@@ -121,16 +121,21 @@ export function pet(c,direction=2,frame=0,look={}){
  // Head: skull, cheeks, snout, nose, eyes and ears, ordered by how they face the camera.
  const H=[],rH=P.rH+P.fluff*.3,sf=P.sn,hs=head;
  H.push(ball(hs,rH,coat[1],{sil:1}));if(P.fluff>.6)H.push(ball(V(sk.headF-.5,0,sk.headU-rH*.55),rH*.95,coat[1],{sil:1}));
- H.push(ball({x:hs.x,y:hs.y-.5},rH-.8,coat[2]),ball({x:hs.x,y:hs.y-rH*.45},rH*.45,coat[3]));
+ // Cats get round cheeks either side of a short muzzle, which is most of what makes the face read as a cat.
+ const cheeks=cat?[-1,1].map(s=>V(sk.headF+rH*.28,s*rH*.42,sk.headU-rH*.3)):[];for(const q of cheeks)H.push(ball(q,rH*.52,coat[1],{sil:1}));
+ H.push(ball({x:hs.x,y:hs.y-.5},rH-.8,coat[2]));for(const q of cheeks)H.push(ball({x:q.x,y:q.y-.5},rH*.52-.8,coat[2]));H.push(ball({x:hs.x,y:hs.y-rH*.45},rH*.45,coat[3]));
  const faceW=(marking==='mask')?pale:null;
  if(faceW&&facing(1,0,.1)>-.3){H.push(ball(V(sk.headF+rH*.45,-rH*.35,sk.headU-rH*.2),rH*.42,pale[2]),ball(V(sk.headF+rH*.45,rH*.35,sk.headU-rH*.2),rH*.42,pale[2]));
   for(const s of [-1,1])if(facing(.8,s*.4,.4)>0)H.push(ball(V(sk.headF+rH*.7,s*rH*.38,sk.headU+rH*.42),.75,pale[3]));}
  if(marking==='tabby'&&facing(.4,0,1)>0){const m=V(sk.headF+rH*.25,0,sk.headU+rH*.85);H.push(limb({x:m.x-1.2,y:m.y},{x:m.x-1.2,y:m.y-1.6},.6,coat[0]),limb({x:m.x,y:m.y+.2},{x:m.x,y:m.y-1.8},.6,coat[0]),limb({x:m.x+1.2,y:m.y},{x:m.x+1.2,y:m.y-1.6},.6,coat[0]));}
- // Snout: a short capsule forward and a little down from the skull.
- const snA=V(sk.headF+rH*.55,0,sk.headU-rH*.28),snB=V(sk.headF+rH*.55+sf,0,sk.headU-rH*.42),snR=rH*P.snR;
- const muzzle=(marking==='chest'||marking==='tuxedo'||marking==='mask')?pale:coat,snout=[ball(snA,snR,muzzle[1],{sil:1}),ball(snB,snR*.82,muzzle[1],{sil:1}),limb(snA,snB,snR*1.7,muzzle[1],{sil:1}),
-  limb({x:snA.x,y:snA.y-.4},{x:snB.x,y:snB.y-.4},snR*1.7-1.4,muzzle[2]),ball({x:snB.x,y:snB.y-.4},snR*.82-.7,muzzle[2])];
- const noseP=V(sk.headF+rH*.55+sf+snR*.55,0,sk.headU-rH*.3);
+ // Snout: a tapered muzzle from a broad base at the stop to the nose, so it reads as a wedge from the side and a short, wide muzzle from the front.
+ const f0=sk.headF+rH*(cat?.45:.35),u0=sk.headU-rH*(cat?.3:.3),r0=rH*(cat?.4:.52),f1=sk.headF+rH*(cat?.62:.55)+sf,u1=sk.headU-rH*(cat?.36:.4),r1=rH*P.snR*(cat?.43:.72);
+ const muzzle=(marking==='chest'||marking==='tuxedo'||marking==='mask')?pale:coat,snout=[],chain=[];
+ for(let i=0;i<5;i++){const t=i/4,r=r0+(r1-r0)*Math.pow(t,.8);chain.push({p:V(f0+(f1-f0)*t,0,u0+(u1-u0)*t),r,t});}
+ for(const k of chain)snout.push(ball(k.p,k.r,muzzle[1],{sil:1}));
+ for(const k of chain)snout.push(ball({x:k.p.x,y:k.p.y-.5},Math.max(.5,k.r-.8),muzzle[2]));
+ if(!cat)for(const k of chain)if(k.t>.1&&k.t<.9)snout.push(ball({x:k.p.x,y:k.p.y-k.r*.5},k.r*.3,muzzle[3]));
+ const noseP=V(f1+r1*.55,0,u1+r1*.35);
  const eyes=[];for(const s of [-1,1]){const nf=.78,ns=s*.5,nu=.28,vis=facing(nf,ns,nu);if(vis<.05)continue;const q=V(sk.headF+rH*nf*.95,rH*ns*.95,sk.headU+rH*nu*.8),big=cat?1.35:1.05;
   eyes.push({k:'e',x:q.x,y:q.y,rx:big*(.55+.45*Math.min(1,vis)),ry:big,col:INK},{k:'e',x:q.x,y:q.y,rx:big*.55*(.6+.4*Math.min(1,vis)),ry:big*.7,col:eye},{k:'c',x:q.x+.25,y:q.y-.4,r:.32,col:'#f2efe6'});}
  // Ears.
@@ -141,14 +146,18 @@ export function pet(c,direction=2,frame=0,look={}){
   else if(P.ears==='drop'){const top=at(.3,s*.6,-.2),tip=at(.6,s*1.9,-P.earH);ears.push({side:s,d:top.d+(vis>0?1:-1),shapes:[limb(top,tip,3.4,coat[0],{sil:1}),limb({x:top.x,y:top.y-.3},{x:tip.x,y:tip.y-.3},2.2,coat[1]),{k:'e',x:tip.x,y:tip.y,rx:1.7,ry:1.3,col:coat[1],sil:1}]});}
   else{const b0=at(0,-.9,-.3),b1=at(0,.9,-.3),tip=at(1.6,s*1.2,P.earH*.35);ears.push({side:s,d:tip.d,shapes:[poly([b0,b1,at(-.8,0,P.earH*.6),tip],coat[1],{sil:1}),poly([at(.1,-.5,0),at(.1,.5,0),at(.6,s*.6,P.earH*.4)],coat[0])]});}}
  // Whiskers and the tongue are tiny, but they say "cat" and "happy dog" from across the camp.
- const mouth=[];if(facing(1,0,0)>-.2){mouth.push({k:'e',x:noseP.x,y:noseP.y,rx:cat?.8:1.2,ry:cat?.55:.85,col:cat?PINK:NOSE});
-  if(!cat&&(pose.kind==='run'||pose.kind==='idle'||pose.kind==='sit')){const tq=V(sk.headF+rH*.55+sf*.6,0,sk.headU-rH*.85);mouth.push({k:'e',x:tq.x,y:tq.y+.4,rx:.9,ry:1.1,col:TONGUE});}
-  if(cat)for(const s of [-1,1]){const w0=V(sk.headF+rH*.55+sf,s*snR*.8,sk.headU-rH*.45),w1=V(sk.headF+rH*.4+sf,s*(snR+3),sk.headU-rH*.3);mouth.push(limb(w0,w1,.35,'#e8e4dacc'));}}
+ const mouth=[];if(facing(1,0,0)>-.2){
+  // The tongue hangs under the nose, so it goes down first.
+  if(!cat&&(pose.kind==='run'||pose.kind==='idle'||pose.kind==='sit')){const tq=V(f1-r1*.6,0,u1-r1*1.05);mouth.push({k:'e',x:tq.x,y:tq.y,rx:.85,ry:1.15,col:TONGUE});}
+  const nr=cat?.75:r1*.5+.35;mouth.push({k:'e',x:noseP.x,y:noseP.y,rx:nr,ry:nr*(cat?.7:.75),col:cat?PINK:NOSE});if(!cat)mouth.push({k:'c',x:noseP.x-.3,y:noseP.y-.35,r:.3,col:'#5a5660'});
+  if(cat)for(const s of [-1,1]){const w0=V(f1,s*r1*.8,u1-r1*.2),w1=V(f1-.8,s*(r1+3.2),u1+.2);mouth.push(limb(w0,w1,.35,'#e8e4dacc'));}}
+ // The line of the jaw, on the side you can see.
+ const vs=facing(0,1,0);if(!cat&&Math.abs(vs)>.45){const s=Math.sign(vs),a=V(f1-r1*.2,s*r1*.55,u1-r1*.55),b=V(f0+r0*.25,s*r0*.5,u0-r0*.7);mouth.push(limb(a,b,.5,muzzle[0]));}
  // Head order: far ear, skull, eyes, snout, near ear (or the reverse from behind).
  const headShapes=[...H],headFront=facing(1,0,0)>0;
  const farEars=ears.filter(e=>e.d<hs.d),nearEars=ears.filter(e=>e.d>=hs.d);
  const headGroup=[];for(const e of farEars)group(hs.d-.01,e.shapes);
- group(hs.d+(headFront?.5:-.5),headFront?[...headShapes,...eyes,...snout,...mouth]:[...snout,...mouth,...headShapes,...eyes]);
+ group(hs.d+(headFront?.5:-.5),headFront?[...headShapes,...snout,...eyes,...mouth]:[...snout,...mouth,...headShapes,...eyes]);
  for(const e of nearEars)group(hs.d+(headFront?.6:-.4),e.shapes);
  group(0,[...body,...bodyMark]);group(neckA.d*.6+(headFront?.2:-.2),neck);
  groups.sort((a,b)=>a.depth-b.depth);for(const G of groups)for(const sh of G.shapes)if(sh.k==='e'){sh.rx*=Z;sh.ry*=Z;}

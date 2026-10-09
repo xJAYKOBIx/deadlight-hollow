@@ -1,6 +1,6 @@
 // Your companion's feet: it walks at your side, sits and stays when you stop, and potters about if you stand around.
 import {PET_ANIM} from './pet.js';
-export const FOLLOW={behind:26,side:17,back:3,near:6,walk:136,run:250,runFrom:70,lead:0,leash:72,teleport:320,stuck:2.2,settle:.9,lie:9,
+export const FOLLOW={behind:26,side:17,back:3,near:6,walk:136,run:250,runFrom:70,lead:0,leash:72,watch:52,teleport:320,stuck:2.2,settle:.9,lie:9,
  wander:{first:7,again:30,roam:58,speed:38,sniff:[1.2,2.6],legs:[2,3]},stride:{walk:30,run:58},radius:7};
 const facing=(dx,dy)=>(Math.round(Math.atan2(dy,dx)/(Math.PI/4))+8)%8;
 export class Follower{
@@ -24,8 +24,9 @@ export class Follower{
    if(!this.blocked(nx,ny)){this.x=nx;this.y=ny;this.direction=facing(Math.cos(a),Math.sin(a));this.stuck=0;return step;}}
   this.stuck+=dt;return 0;}
  animate(moved,run){const list=run?PET_ANIM.run:PET_ANIM.walk;this.state=run?'run':'walk';this.phase=(this.phase+moved/FOLLOW.stride[run?'run':'walk'])%1;this.frame=list[Math.floor(this.phase*list.length)];}
- rest(o,lookAt=true){const far=Math.hypot(o.x-this.x,o.y-this.y);if(lookAt&&far>4)this.direction=facing(o.x-this.x,o.y-this.y);
-  if(this.mode==='stay'&&this.stay>FOLLOW.lie&&!this.happy){this.state='lie';this.frame=PET_ANIM.lie[0];}
+ // It keeps whatever way it settled; only when you start to walk off does it sit up and look round at you.
+ rest(o,watch=false){if(watch)this.direction=facing(o.x-this.x,o.y-this.y);
+  if(this.mode==='stay'&&this.stay>FOLLOW.lie&&!this.happy&&!watch){this.state='lie';this.frame=PET_ANIM.lie[0];}
   else if(this.mode==='stay'){this.state='sit';this.frame=PET_ANIM.sit[Math.floor(this.clock*(this.happy?8:2.2))%2];}
   else{this.state='idle';this.frame=PET_ANIM.idle[Math.floor(this.clock*(this.happy?10:4))%4];}}
  // A few slow legs to spots around you, sniffing at each, then back to your side.
@@ -44,7 +45,7 @@ export class Follower{
    if(far>FOLLOW.leash){this.mode='heel';}
    else{this.stay+=dt;const w=FOLLOW.wander;
     if(!o.busy&&!this.happy&&this.ownerStill>w.first&&this.stay>(this.wanders?w.again:w.first)){this.mode='wander';this.wanders++;this.route={left:w.legs[0]+Math.floor(this.rand()*(w.legs[1]-w.legs[0]+1)),to:null,sniff:0};this.nextLeg(o);}
-    else{this.rest(o);return;}}}
+    else{this.rest(o,far>FOLLOW.watch);return;}}}
   if(this.mode==='wander'){
    if(o.moving){this.mode='heel';this.route=null;}
    else{const r=this.route;
