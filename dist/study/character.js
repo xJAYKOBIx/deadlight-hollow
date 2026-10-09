@@ -23,16 +23,21 @@ function leg(g,x,foot,side,near,depth=0,bootG=g){const {p,r}=g,{dx,dy,lift,knee}
  boot(bootG,x+dx,y,side,near);
 }
 // The sleeve bends progressively below the shoulder; forearm and hand move rigidly with the swing.
-function arm(base,x,y,hand,near,short=false){const warp=(px,py)=>{const t=Math.max(0,Math.min(1,(py-y-4)/9));return [px+hand.dx*t,py+hand.dy*t-hand.bend*t*t];};
+// Sleeves: 0 jacket (elbow patch), 1 short, 2 plain long, 3 ribbed hoodie cuff, 4 shirt cuff, 5 bare arm.
+function arm(base,x,y,hand,near,sleeve=0){const warp=(px,py)=>{const t=Math.max(0,Math.min(1,(py-y-4)/9));return [px+hand.dx*t,py+hand.dy*t-hand.bend*t*t];};
  const g={p:(pts,col)=>base.p(pts.map(([a,b])=>warp(a,b)),col),r:(a,b,w,h,col)=>{const [nx,ny]=warp(a,b+h/2);base.r(nx,ny-h/2,w,h,col);}},{p,r}=g;
  p([[x-3,y],[x+2,y-1],[x+4,y+3],[x+4,y+14],[x+2,y+19],[x-3,y+18],[x-5,y+12],[x-5,y+4]],C.ink);
- p([[x-2,y+1],[x+1,y+1],[x+2.5,y+4],[x+2.5,y+12],[x-3,y+13],[x-3,y+5]],near?C.coat:C.coatLo);
- p([[x-2,y+2],[x,y+2],[x,y+5],[x-1,y+12],[x-3,y+11],[x-3,y+5]],near?C.coatHi:C.coatMid);
- r(x-2,y+11,4,2,C.coatLo);r(x-1,y+8,2,2,near?'#4b514f':'#303c40');
+ const bare=sleeve===5;
+ p([[x-2,y+1],[x+1,y+1],[x+2.5,y+4],[x+2.5,y+12],[x-3,y+13],[x-3,y+5]],bare?(near?C.skin:C.skinLo):near?C.coat:C.coatLo);
+ p([[x-2,y+2],[x,y+2],[x,y+5],[x-1,y+12],[x-3,y+11],[x-3,y+5]],bare?(near?C.skinHi:C.skin):near?C.coatHi:C.coatMid);
+ if(sleeve<2){r(x-2,y+11,4,2,C.coatLo);r(x-1,y+8,2,2,near?'#4b514f':'#303c40');}
+ else if(sleeve===2)r(x-2,y+11,4,2,C.coatLo);
+ else if(sleeve===3){r(x-3,y+11,5.5,2.5,C.coatDeep);for(let i=0;i<3;i++)r(x-2.5+i*2,y+11.5,.5,1.5,C.coatLo);}
+ else if(sleeve===4){r(x-3,y+11,5.5,2,near?C.coatLight:C.coatHi);r(x+1,y+11.5,.5,.5,C.coatLo);}
  p([[x-2,y+14],[x+2,y+13],[x+2.5,y+17],[x+.5,y+19],[x-2.5,y+18]],near?C.skin:C.skinLo);
  r(x-1.5,y+14,2,2,near?C.skinHi:C.skin);r(x+.5,y+17,1,1,C.skinLo);
  // Short sleeves end above the elbow; the forearm is bare skin down to the existing hand.
- if(short){p([[x-3,y+7],[x+2.5,y+6.5],[x+2.5,y+13],[x-3,y+14]],near?C.skin:C.skinLo);p([[x-3,y+7],[x-1,y+7],[x-1,y+13],[x-3,y+13.5]],near?C.skinHi:C.skin);r(x-3,y+6,5.5,1,C.coatDeep);}
+ if(sleeve===1){p([[x-3,y+7],[x+2.5,y+6.5],[x+2.5,y+13],[x-3,y+14]],near?C.skin:C.skinLo);p([[x-3,y+7],[x-1,y+7],[x-1,y+13],[x-3,y+13.5]],near?C.skinHi:C.skin);r(x-3,y+6,5.5,1,C.coatDeep);}
 }
 // Frame 0 is idle, 1-8 walk and 9-16 run. Both cycles run contact, down, passing, up for each foot.
 export const WALK_FRAMES=[1,2,3,4,5,6,7,8],RUN_FRAMES=[9,10,11,12,13,14,15,16],FRAME_COUNT=17;
@@ -55,14 +60,26 @@ function backpack(g,back,quarter,side=false){const {p,r}=g;
  r(-9+dx,-43,12,1,C.leatherLight);r(-8+dx,-35,12,9,C.leatherLo);r(-7+dx,-34,10,7,'#694a36');r(-7+dx,-34,10,1,'#826047');
  for(let x of [-7+dx,3+dx]){r(x,-43,2,12,'#352a26');r(x,-42,1,8,C.leatherLight);r(x,-35,2,2,C.metal);r(x+.5,-34.5,1,1,C.leatherLo);}r(-4+dx,-31,4,2,'#8a8170');r(-3+dx,-30.5,2,1,'#4c4d49');r(-9+dx,-27,3,.5,C.leatherHi);
 }
-function torso(g,back,quarter,side,top=0,strapG=g){let {p,r}=g;
- if(side){p([[-5,-50],[4,-49],[7,-43],[7,-28],[4,-24],[-7,-25],[-9,-30],[-9,-43]],C.ink);p([[-4,-48],[3,-47],[5,-43],[5,-29],[3,-26],[-6,-27],[-7,-31],[-7,-42]],C.coat);p([[-5,-47],[-2,-48],[0,-44],[-1,-28],[-6,-28],[-7,-33]],C.coatHi);r(3,-44,2,15,C.coatLo);r(3,-38,2,6,C.shirtLo);r(-5,-28,9,2,C.coatLo);r(-6,-47,9,3,C.coatDeep);return;}
+// Tops: closed fronts share the T-shirt body; extra details are drawn on top of it.
+const TOPS=[{sleeve:0},{sleeve:1,closed:1},{sleeve:2,closed:1},{sleeve:3,closed:1,hood:1},{sleeve:4,closed:1,collar:1},{sleeve:4,closed:1,collar:1,tie:1},{sleeve:5,closed:1,scoop:1}];
+const TIE=['#7a2f36','#9a4249','#5a2228'],STRING='#d8d0c0';
+function torso(g,back,quarter,side,T=TOPS[0],strapG=g){let {p,r}=g;const top=T.closed?1:0;
+ if(side){p([[-5,-50],[4,-49],[7,-43],[7,-28],[4,-24],[-7,-25],[-9,-30],[-9,-43]],C.ink);p([[-4,-48],[3,-47],[5,-43],[5,-29],[3,-26],[-6,-27],[-7,-31],[-7,-42]],C.coat);p([[-5,-47],[-2,-48],[0,-44],[-1,-28],[-6,-28],[-7,-33]],C.coatHi);r(3,-44,2,15,C.coatLo);if(!T.hood)r(3,-38,2,6,C.shirtLo);r(-5,-28,9,2,C.coatLo);r(-6,-47,9,3,C.coatDeep);
+  if(T.hood){p([[2,-37],[6,-37],[6.5,-31],[2,-31]],C.coatLo);r(2,-37,4.5,.5,C.coatDeep);r(-6,-28,11,1.5,C.coatDeep);}
+  if(T.collar){r(4,-41,.5,.5,C.coatLight);r(4,-36,.5,.5,C.coatLight);r(4,-31,.5,.5,C.coatLight);}
+  if(T.tie)p([[4,-47],[6,-46.5],[6.5,-37],[5,-35.5],[4,-37]],TIE[0]);
+  return;}
  p([[-8,-51],[5,-51],[11,-47],[13,-39],[11,-25],[-10,-25],[-14,-33],[-13,-45]],C.ink);
  p([[-7,-49],[5,-49],[9,-45],[11,-38],[9,-27],[-9,-27],[-12,-34],[-11,-44]],C.coat);
  p([[-7,-48],[-3,-49],[-2,-42],[-5,-28],[-9,-28],[-11,-35],[-10,-44]],C.coatHi);
  p([[7,-46],[10,-39],[9,-28],[6,-28],[6,-39]],C.coatLo);
  r(-8,-28,16,2,C.coatDeep);
- if(!back&&top===1){let x=quarter?1:-2;p([[x-1,-49],[x+3,-49],[x+2,-46],[x,-46]],C.coatDeep);r(x-3,-27,7,1,C.leather);r(x,-27,2,1,C.metal);if(strapG){strapG.p([[-9,-48],[-7,-48],[-6,-40],[-6,-31],[-8,-32]],C.leatherLo);strapG.r(-8,-46,1,10,C.leatherHi);if(!quarter){strapG.r(7,-46,1.5,11,C.leatherLo);strapG.r(7,-44,.5,7,C.leatherHi);}}}
+ if(!back&&top===1){let x=quarter?1:-2;p([[x-1,-49],[x+3,-49],[x+2,-46],[x,-46]],C.coatDeep);if(!T.hood){r(x-3,-27,7,1,C.leather);r(x,-27,2,1,C.metal);}
+  // Kangaroo pocket and drawstrings; a placket with buttons; a tie over the placket.
+  if(T.hood){p([[x-5,-37],[x+6,-37],[x+7.5,-30],[x-6.5,-30]],C.coatMid);r(x-5,-37,11,.5,C.coatDeep);p([[x-5,-37],[x-4,-37],[x-5.5,-32],[x-6.5,-32]],C.coatDeep);p([[x+5,-37],[x+6,-37],[x+7.5,-32],[x+6.5,-32]],C.coatDeep);r(-9,-28.5,18,1.5,C.coatDeep);
+   r(x-1,-47,.5,5,STRING);r(x+3,-47,.5,4.5,STRING);r(x-1.5,-42,1,.5,STRING);r(x+3,-42.5,1,.5,STRING);}
+  if(T.collar){r(x+1,-46,.5,18,C.coatLo);for(const y of [-44,-40,-36,-32])r(x+1.5,y,.5,.5,C.coatLight);if(!T.tie){p([[x+3.5,-44],[x+6.5,-44],[x+6.5,-40.5],[x+3.5,-40.5]],C.coatMid);r(x+3.5,-44,3,.5,C.coatLo);}}
+  if(T.tie){p([[x+.3,-47],[x+2.2,-47],[x+2.8,-37],[x+1.2,-35],[x-.3,-37]],TIE[0]);r(x+1,-45,.5,7,TIE[1]);r(x+.3,-37.5,2.4,.5,TIE[2]);}if(strapG){strapG.p([[-9,-48],[-7,-48],[-6,-40],[-6,-31],[-8,-32]],C.leatherLo);strapG.r(-8,-46,1,10,C.leatherHi);if(!quarter){strapG.r(7,-46,1.5,11,C.leatherLo);strapG.r(7,-44,.5,7,C.leatherHi);}}}
  else if(!back){let x=quarter?1:-2;p([[x-2,-48],[x+4,-47],[x+5,-28],[x-3,-28]],C.shirtLo);p([[x-1,-47],[x+3,-46],[x+3,-30],[x-2,-30]],C.shirt);r(x-1,-44,3,3,C.shirtHi);r(x-1,-37,3,1,C.shirtHi);r(x-2,-32,5,1,C.shirtLo);p([[x-3,-49],[x,-48],[x-1,-42],[x-4,-39]],C.coatDeep);p([[x+4,-49],[x+7,-46],[x+4,-39],[x+3,-43]],C.coatHi);r(x-3,-27,7,1,C.leather);r(x,-27,2,1,C.metal);
   r(-8,-37,4,5,C.coatLo);r(-8,-37,4,1,C.coatLight);r(6,-35,2,5,C.coatDeep);r(6,-35,2,.5,C.coatHi);
   if(strapG){strapG.p([[-9,-48],[-7,-48],[-6,-40],[-6,-31],[-8,-32]],C.leatherLo);strapG.r(-8,-46,1,10,C.leatherHi);if(!quarter){strapG.r(7,-46,1.5,11,C.leatherLo);strapG.r(7,-44,.5,7,C.leatherHi);}}
@@ -230,9 +247,29 @@ function femaleFace(g,back,quarter,side){if(back&&!(quarter))return;const {r}=g;
  if(side){r(7,-58.5,1,.5,C.ink);r(7.5,-52,1,.5,C.skinLo);return;}
  if(back){r(9.5,-57.5,.5,.5,C.ink);return;}
  const x=quarter?2:0;r(-4.5+x,-58.5,1,.5,C.ink);r(4+x,-58.5,1,.5,C.ink);r(x+.5,-50.5,2,.5,C.skinLo);}
+// A lowered hood lies behind the neck: a rim over the shoulders from the front, a folded hood on the upper back from behind.
+function hood(g,back,quarter,side){const {p,r}=g;
+ if(side){p([[-11,-49],[-9,-54],[-3,-54],[-2,-47],[-6,-43],[-10,-44]],C.ink);p([[-10,-49],[-8.5,-53],[-4,-53],[-3,-47.5],[-6,-44.5],[-9,-45.5]],C.coat);p([[-8,-51],[-4.5,-51],[-4,-48],[-6,-46.5]],C.coatDeep);return;}
+ if(back){const dx=quarter?-1:0;p([[-10+dx,-52],[9+dx,-52],[10.5+dx,-46],[4+dx,-39],[-5+dx,-39],[-11.5+dx,-46]],C.ink);p([[-9+dx,-51],[8+dx,-51],[9.5+dx,-46],[3.5+dx,-40.5],[-4.5+dx,-40.5],[-10.5+dx,-46]],C.coat);
+  p([[-6+dx,-50],[5+dx,-50],[6+dx,-46.5],[2+dx,-43.5],[-3+dx,-43.5],[-7+dx,-46.5]],C.coatDeep);r(-4+dx,-42,7,1,C.coatHi);return;}
+ p([[-13,-46],[-12.5,-51.5],[-9,-55],[8,-55],[11.5,-51.5],[12,-46],[8,-46.5],[-9,-46.5]],C.ink);p([[-12,-47],[-11.5,-51],[-8.5,-54],[7.5,-54],[10.5,-51],[11,-47],[-9,-47.5]],C.coat);
+ p([[-10,-48],[-9.5,-51.5],[-7,-53],[6,-53],[8.5,-51.5],[9,-48]],C.coatDeep);r(-11.5,-50,1.5,3,C.coatHi);
+}
+// Shirt collars, tie knot and the tank top's scoop neck sit over the plain crew collar.
+function neckline(g,back,quarter,side,T){const {p,r}=g;
+ if(T.scoop&&!back){if(!side){const x=quarter?1:0;p([[-6.5+x,-51],[6.5+x,-51],[4+x,-42.5],[-4+x,-42.5]],C.coatDeep);p([[-5.5+x,-51],[5.5+x,-51],[3.3+x,-43.5],[-3.3+x,-43.5]],C.skin);r(-2+x,-47,4,1,C.skinLo);r(-1+x,-45,2,.5,C.skinLo);
+  p([[-7,-49],[-6,-49],[-6,-46],[-9.5,-44.5],[-10.5,-44.5]],C.skin);p([[5.5,-49],[7,-48.5],[9.5,-45],[6.5,-45.5]],C.skin);}else p([[1,-50],[5,-49],[4,-45],[1,-46]],C.skin);return;}
+ if(!T.collar)return;
+ if(back){r(-6,-51,12,1.5,C.coatLight);return;}
+ if(side){p([[1,-50.5],[5,-49],[3.5,-46],[1,-48]],C.coatLight);return;}
+ if(T.tie)p([[-1.5+(quarter?1:0),-47.5],[1.5+(quarter?1:0),-47.5],[1+(quarter?1:0),-44.5],[-1+(quarter?1:0),-44.5]],TIE[2]);
+ const x=quarter?1:0;
+ p([[-7+x,-48.5],[-.5+x,-46.5],[-2+x,-42.5],[-7.5+x,-45.5]],C.ink);p([[-6.5+x,-47.8],[-1+x,-46.2],[-2.2+x,-43.5],[-6.8+x,-45.7]],C.coatLight);
+ p([[.5+x,-46.5],[6.5+x,-48.5],[7+x,-45.5],[1.5+x,-42.5]],C.ink);p([[1+x,-46.2],[6+x,-47.8],[6.3+x,-45.7],[1.7+x,-43.5]],C.coatLight);
+}
 export function survivor(c,direction=1,frame=0,pack=true,look={}){
  let dir=((direction%8)+8)%8,side=dir===0||dir===4,back=dir>=5,quarter=dir%2===1,mirror=dir===3||dir===4||dir===5;
- const G=gait(frame,side,back,quarter),maps=colorMaps(look),top=look.top===1?1:0,short=top===1,female=look.body===1;
+ const G=gait(frame,side,back,quarter),maps=colorMaps(look),T=TOPS[look.top]||TOPS[0],sleeve=T.sleeve,female=look.body===1;
  // Pack choice 1 removes the pack and its straps; the legacy pack argument only hides the pack itself.
  const straps=look.pack!==1;pack=pack&&straps;
  c.save();c.translate(40,85);if(mirror)c.scale(-1,1);let g=tint(painter(c),maps.main);const boots=tint(painter(c),maps.boots);
@@ -244,25 +281,25 @@ export function survivor(c,direction=1,frame=0,pack=true,look={}){
  // Upper-body parts draw through the tailoring warp; arms keep their thickness and move in with the shoulders.
  const body=female?tailor(g,-.5,side?TORSO_SIDE:TORSO_FRONT):g,shoulder=x=>female&&!side?-.5+(x+.5)*.86:x;if(female)packG=tailor(packG,-.5,side?TORSO_SIDE:TORSO_FRONT);
  // In profile the far arm is genuinely behind the body.
- if(side&&!GUNS[look.gun])arm(g,3,-46,G.farHand,false,short);
+ if(side&&!GUNS[look.gun])arm(g,3,-46,G.farHand,false,sleeve);
  if(pack&&!back)backpack(packG,false,quarter,side);
  // Long hair falls behind the shoulders in forward views, so that part is painted before the torso.
  const headG=female?tailor(g,side?2:quarter?1.5:-.5,JAW,-.5):g;if(look.hair===7)hairBehind(headG,back,quarter,side,look.hair,hairPalette(look));
- torso(body,back,quarter,side,top,straps?packG:null);
- if(back&&GUNS[look.gun]){weaponArms(g,back,quarter,side,look.gun,short,shoulder);heldGun(g,look.gun,back,quarter,side);}
+ torso(body,back,quarter,side,T,straps?packG:null);
+ if(back&&GUNS[look.gun]){weaponArms(g,back,quarter,side,look.gun,sleeve,shoulder);heldGun(g,look.gun,back,quarter,side);}
  if(pack&&back)backpack(packG,true,quarter,false);
  // Other views need a visible far sleeve and hand outside the torso/pack.
  // Quarter views foreshorten that arm instead of hiding the whole limb.
   // Front diagonals turn the left (far) side away on screen-right; back diagonals put it on screen-left.
  if(!side&&!GUNS[look.gun]){const x=shoulder(back&&quarter?-14:quarter?11:-11),width=quarter?(back?.75:.85):1;
   const far={p:(pts,col)=>g.p(pts.map(([px,py])=>[x+(px-x)*width,py]),col),r:(px,py,w,h,col)=>g.r(x+(px-x)*width,py,w*width,h,col)};
-  arm(far,x,-46,G.farHand,false,short);
+  arm(far,x,-46,G.farHand,false,sleeve);
  }
- if(!GUNS[look.gun])arm(g,side?0:shoulder(quarter&&!back?-11:11),-45,G.nearHand,true,short);
+ if(!GUNS[look.gun])arm(g,side?0:shoulder(quarter&&!back?-11:11),-45,G.nearHand,true,sleeve);
  if(look.grenade&&!back){const belt={p:(pts,col)=>g.p(pts.map(([x,y])=>[x*.6-8,y*.6-25]),col),r:(x,y,w,h,col)=>g.r(x*.6-8,y*.6-25,w*.6,h*.6,col)};grenadeArt(belt,look.grenade);}
- if(!back&&GUNS[look.gun]){weaponArms(g,back,quarter,side,look.gun,short,shoulder);heldGun(g,look.gun,back,quarter,side);}
+ if(!back&&GUNS[look.gun]){weaponArms(g,back,quarter,side,look.gun,sleeve,shoulder);heldGun(g,look.gun,back,quarter,side);}
  // Neck/collar connect torso and skull; the head is the final silhouette layer.
- if(female)g.r(side?.5:-2.5,-51,5,4,C.skinLo);else g.r(side?0:-3,-51,6,4,C.skinLo);body.p([[-6,-51],[1,-50],[6,-51],[8,-48],[4,-46],[-5,-47],[-8,-49]],C.coatDeep);body.r(-5,-49,5,1,C.coatHi);
+ if(T.hood)hood(body,back,quarter,side,true);if(female)g.r(side?.5:-2.5,-51,5,4,C.skinLo);else g.r(side?0:-3,-51,6,4,C.skinLo);body.p([[-6,-51],[1,-50],[6,-51],[8,-48],[4,-46],[-5,-47],[-8,-49]],C.coatDeep);body.r(-5,-49,5,1,C.coatHi);neckline(body,back,quarter,side,T);
  // The female head narrows the jaw and lifts the chin slightly; crown, hair volume and hats are unchanged above the cheekbones.
  appearanceHead(headG,back,quarter,side,look);if(female)femaleFace(g,back,quarter,side);c.restore();c.restore();
 }

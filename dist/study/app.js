@@ -1,9 +1,10 @@
 import {GUNS,GRENADES,gunArt,grenadeArt,readLoadout,saveLoadout} from './equipment.js';
 import {APPEARANCE_OPTIONS,DEFAULT_APPEARANCE,readAppearance,saveAppearance,randomAppearance} from './appearance.js';
+import {SHIRT_TOPS} from './palette.js';
 import {StudyModel} from './model.js';import {makeStudyScene} from './scene.js';import {DIRECTIONS} from './character.js';import {FloatingStick} from '../layout.js';
 const $=id=>document.getElementById(id),model=new StudyModel(),keys=new Set(),stick=new FloatingStick();let game,scene,ready=false,move={x:0,y:0},running=false,runPointer=null,zoomIndex=0,inspectDirection=1,pose='idle',lastInspect=0,contextMissing=false;const zooms=[1,1.5,2];
 let storage;try{storage=window.localStorage;}catch{}let appearance=readAppearance(storage),loadout=readLoadout(storage);const aimStick=new FloatingStick();let aim={x:0,y:0},firing=false,mouseFire=false,mousePoint=null;
-function syncAppearanceControls(){for(const key of Object.keys(APPEARANCE_OPTIONS))$('style'+key[0].toUpperCase()+key.slice(1)).value=String(appearance[key]);$('styleCoat').disabled=appearance.top===1;$('stylePackColor').disabled=appearance.pack===1;}
+function syncAppearanceControls(){for(const key of Object.keys(APPEARANCE_OPTIONS))$('style'+key[0].toUpperCase()+key.slice(1)).value=String(appearance[key]);$('styleCoat').disabled=SHIRT_TOPS.has(appearance.top);$('styleShirt').disabled=appearance.top===3;$('stylePackColor').disabled=appearance.pack===1;}
 function applyAppearance(){scene?.setAppearance(appearance);lastInspect=0;paintInspection(performance.now());$('lookSaveStatus').textContent=saveAppearance(storage,appearance)?'Your look is saved on this device.':'Your look is active for this visit. Saving is unavailable.';}
 for(const [key,options] of Object.entries(APPEARANCE_OPTIONS)){const select=$('style'+key[0].toUpperCase()+key.slice(1));select.innerHTML=options.map((label,index)=>label?`<option value="${index}">${label}</option>`:'').join('');select.addEventListener('change',()=>{appearance={...appearance,[key]:Number(select.value)};syncAppearanceControls();applyAppearance();});}
 syncAppearanceControls();if(!storage)$('lookSaveStatus').textContent='Your look is active for this visit. Saving is unavailable.';

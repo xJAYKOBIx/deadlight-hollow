@@ -36,6 +36,8 @@ export const DYES={
  pack:[['Brown','#5b4030'],['Olive','#4e5434'],['Black','#2e2e32'],['Tan','#85704e'],['Navy','#2f4357']]
 };
 // The T-shirt reuses the jacket silhouette, so its body takes the shirt dye through the coat ramp.
+// Tops dyed with the shirt color: T-shirt, long sleeve, business shirt, shirt and tie, tank top. The jacket and hoodie take the jacket color.
+export const SHIRT_TOPS=new Set([1,2,4,5,6]);
 const SHIRT_AS_COAT=['#b8a082','#ccb596','#d6c1a3','#c0a888','#8f775f','#7a6450'];
 
 const cache=new Map();
@@ -44,7 +46,7 @@ const cache=new Map();
 export function colorMaps(look={}){const key=[look.skin,look.top,look.coat,look.shirt,look.pants,look.boots,look.packColor].join('-');if(cache.has(key))return cache.get(key);
  const main=new Map(),add=m=>{for(const [a,b] of m)main.set(a,b);},skin=SKIN_TONES[look.skin]?.ramp||MATERIAL.skin,shirtHex=(DYES.shirt[look.shirt]||DYES.shirt[0])[1];
  MATERIAL.skin.forEach((c,i)=>{if(skin[i]!==c)main.set(c,skin[i]);});
- if(look.top===1){const coatAsShirt=dyeRamp(SHIRT_AS_COAT,MATERIAL.shirt[0],shirtHex);MATERIAL.coat.forEach((c,i)=>main.set(c,coatAsShirt.get(SHIRT_AS_COAT[i])||SHIRT_AS_COAT[i]));}
+ if(SHIRT_TOPS.has(look.top)){const coatAsShirt=dyeRamp(SHIRT_AS_COAT,MATERIAL.shirt[0],shirtHex);MATERIAL.coat.forEach((c,i)=>main.set(c,coatAsShirt.get(SHIRT_AS_COAT[i])||SHIRT_AS_COAT[i]));}
  else add(dyeRamp(MATERIAL.coat,MATERIAL.coat[0],(DYES.coat[look.coat]||DYES.coat[0])[1]));
  add(dyeRamp(MATERIAL.shirt,MATERIAL.shirt[0],shirtHex));
  add(dyeRamp(MATERIAL.pants,MATERIAL.pants[0],(DYES.pants[look.pants]||DYES.pants[0])[1]));

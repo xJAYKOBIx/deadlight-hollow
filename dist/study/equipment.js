@@ -45,22 +45,25 @@ export function heldGun(g,id,back,quarter,side){if(!GUNS[id])return;const {point
  if(back&&!quarter)return;const h=gunHands(id,back,quarter,side);hand(g,h.support,false);hand(g,h.grip,true);
 }
 // Two-bone arm: upper sleeve, bent elbow and forearm with the same thickness and shading as the walking arms.
-function limb(g,s,e,h,near,short){const seg=(a,b,wa,wb,col)=>{const dx=b[0]-a[0],dy=b[1]-a[1],l=Math.hypot(dx,dy)||1,nx=-dy/l,ny=dx/l;g.p([[a[0]+nx*wa,a[1]+ny*wa],[b[0]+nx*wb,b[1]+ny*wb],[b[0]-nx*wb,b[1]-ny*wb],[a[0]-nx*wa,a[1]-ny*wa]],col);};
+// sleeve: 0 jacket, 1 short (bare forearm), 2 long, 3 ribbed cuff, 4 shirt cuff, 5 bare arm.
+function limb(g,s,e,h,near,sleeve){const short=sleeve===1||sleeve===true,bare=sleeve===5;const seg=(a,b,wa,wb,col)=>{const dx=b[0]-a[0],dy=b[1]-a[1],l=Math.hypot(dx,dy)||1,nx=-dy/l,ny=dx/l;g.p([[a[0]+nx*wa,a[1]+ny*wa],[b[0]+nx*wb,b[1]+ny*wb],[b[0]-nx*wb,b[1]-ny*wb],[a[0]-nx*wa,a[1]-ny*wa]],col);};
  const joint=([x,y],w,col)=>g.p([[x-w*.5,y-w],[x+w*.5,y-w],[x+w,y-w*.5],[x+w,y+w*.5],[x+w*.5,y+w],[x-w*.5,y+w],[x-w,y+w*.5],[x-w,y-w*.5]],col);
- const ink='#111319',sleeve=near?'#29465a':'#1b3040',hi=near?'#3d5c72':'#304f64',light=near?'#47677c':'#3d5c72',skin=near?'#d99b73':'#ae7356';
+ const ink='#111319',skin=near?'#d99b73':'#ae7356',cloth=bare?skin:near?'#29465a':'#1b3040',hi=bare?(near?'#ecb18a':'#d99b73'):near?'#3d5c72':'#304f64',light=bare?hi:near?'#47677c':'#3d5c72';
  joint(s,4,ink);seg(s,e,4,3.5,ink);joint(e,3.5,ink);seg(e,h,3.5,2.5,ink);
- joint(s,3,sleeve);seg(s,e,3,2.5,sleeve);joint(e,2.5,short?skin:sleeve);seg(e,h,2.5,1.5,short?skin:sleeve);
+ joint(s,3,cloth);seg(s,e,3,2.5,cloth);joint(e,2.5,short?skin:cloth);seg(e,h,2.5,1.5,short?skin:cloth);
  seg(s,e,1.5,1,hi);if(!short)seg(e,h,1,.5,hi);g.r(s[0]-1.5,s[1]-1.5,2,2,light);
  if(short){const m=[s[0]+(e[0]-s[0])*.75,s[1]+(e[1]-s[1])*.75];seg(m,[m[0]+(e[0]-s[0])*.08,m[1]+(e[1]-s[1])*.08],3,3,'#172731');}
+ // Cuffs sit just above the hand.
+ if(sleeve===3||sleeve===4){const m=[e[0]+(h[0]-e[0])*.72,e[1]+(h[1]-e[1])*.72];seg(m,[m[0]+(h[0]-e[0])*.14,m[1]+(h[1]-e[1])*.14],2.5,2.2,sleeve===3?'#172731':(near?'#47677c':'#3d5c72'));}
 }
 function elbow(s,h,out,lu=9,lf=9){const dx=h[0]-s[0],dy=h[1]-s[1],d=Math.min(Math.hypot(dx,dy)||1,lu+lf-.5),ux=dx/(Math.hypot(dx,dy)||1),uy=dy/(Math.hypot(dx,dy)||1),a=(lu*lu-lf*lf+d*d)/(2*d),k=Math.sqrt(Math.max(0,lu*lu-a*a)),px=s[0]+ux*a,py=s[1]+uy*a;
  const c1=[px-uy*k,py+ux*k],c2=[px+uy*k,py-ux*k];return out(c1)>=out(c2)?c1:c2;}
 // shoulderX scales shoulder spread for narrower bodies.
-export function weaponArms(g,back,quarter,side,id,short=false,shoulderX=x=>x){if(!GUNS[id])return;const h=gunHands(id,back,quarter,side);
+export function weaponArms(g,back,quarter,side,id,sleeve=0,shoulderX=x=>x){if(!GUNS[id])return;const h=gunHands(id,back,quarter,side);
  // Far arm (support hand) first, then near arm (trigger hand); elbows bend outward and down, never across the chest.
  // Front diagonals put the near (right) shoulder on screen-left, matching the walking arms and legs.
  const fq=quarter&&!back,far=side?[-1,-46]:[shoulderX(back&&quarter?-12:fq?9:-10),-46],near=side?[1,-45]:[shoulderX(fq?-9:quarter?9:10),-45];
  const outward=(cx)=>p=>side?p[1]-Math.abs(p[0]-cx)*.2:Math.abs(p[0])+p[1]*.35;
- limb(g,far,elbow(far,h.support,outward(far[0])),h.support,false,short);
- limb(g,near,elbow(near,h.grip,outward(near[0])),h.grip,true,short);
+ limb(g,far,elbow(far,h.support,outward(far[0])),h.support,false,sleeve);
+ limb(g,near,elbow(near,h.grip,outward(near[0])),h.grip,true,sleeve);
 }

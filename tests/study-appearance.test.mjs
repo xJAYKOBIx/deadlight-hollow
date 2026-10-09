@@ -40,3 +40,11 @@ test('every hairstyle has its own silhouette from the front, side and back, and 
 test('long hair falls behind the torso in forward views and over the back from behind',()=>{const chest=(a)=>{const out=[];for(let y=84;y<98;y++)for(let x=74;x<86;x++)out.push(a[(y*160+x)*4],a[(y*160+x)*4+3]);return out;};
  for(const d of[1,2,3])for(const f of[0,4,12])assert.deepEqual(chest(render(d,f,{hair:7})),chest(render(d,f,{hair:6})),`front ${d}/${f}`);
  assert.notDeepEqual(chest(render(6,0,{hair:7,pack:1})),chest(render(6,0,{hair:6,pack:1})));});
+test('every top has its own look in front, side and back views and fits the atlas while walking, running and aiming',()=>{const tops=APPEARANCE_OPTIONS.top.map((_,i)=>i);
+ for(const d of[0,1,2,6,7]){const seen=tops.map(top=>Buffer.from(render(d,0,{top,pack:1})).toString('base64'));assert.equal(new Set(seen).size,tops.length-(d>=6?1:0),`tops dir ${d}`);if(d>=6)assert.equal(seen[4],seen[5],"the tie is hidden from behind");}
+ for(const top of tops)for(const look of[{top},{top,body:1,gun:'heavy-ar'},{top,gun:'light-pistol',hair:7}])for(let d=0;d<8;d++)for(const f of[0,4,13]){const a=render(d,f,look);for(let x=0;x<160;x++)assert.equal(a[x*4+3]+a[(191*160+x)*4+3],0);for(let y=0;y<192;y++)assert.equal(a[y*160*4+3]+a[(y*160+159)*4+3],0,`${top}/${d}/${f}`);}});
+test('shirts take the shirt color, the jacket and hoodie take the jacket color',()=>{const same=(a,b)=>Buffer.from(a).equals(Buffer.from(b));
+ for(const top of[1,2,4,5,6]){assert.ok(same(render(2,0,{top}),render(2,0,{top,coat:3})),`coat ignored by ${top}`);assert.ok(!same(render(2,0,{top}),render(2,0,{top,shirt:3})),`shirt dyes ${top}`);}
+ assert.ok(same(render(2,0,{top:3}),render(2,0,{top:3,shirt:3})),'shirt color ignored by hoodie');assert.ok(!same(render(2,0,{top:3}),render(2,0,{top:3,coat:3})),'jacket color dyes hoodie');});
+test('tank top arms are bare skin, walking and aiming',()=>{const sleeve=[0x29,0x46,0x5a],count=(a,c)=>{let n=0;for(let i=0;i<a.length;i+=4)if(a[i]===c[0]&&a[i+1]===c[1]&&a[i+2]===c[2])n++;return n;};
+ for(const look of[{top:6,shirt:2},{top:6,shirt:2,gun:'tactical-ar'}])for(const d of[0,1,2,6])assert.equal(count(render(d,3,{...look,pants:1}),sleeve),0,`${d}/${JSON.stringify(look)}`);});
