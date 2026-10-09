@@ -59,7 +59,7 @@ export function makeCampScene(model,bridge){return class Camp extends Phaser.Sce
   this.glow.setAlpha(.34+.05*Math.sin(now*.013)+.03*Math.sin(now*.037));this.lampGlows.forEach((g,i)=>g.setAlpha(.16+.03*Math.sin(now*.005+i*2)));
   this.setCampers(model.campers);this.effects(now,dt);this.life.update(now,dt,[model,pal]);this.petFx.clear();drawHearts(this.petFx,pal,bridge.petTarget().my+6,now);this.drawFishing(fishing,now,dt);this.drawSpit(bridge.cooking?.(),now);
   // While fishing, the camera moves in close and leans out over the water so the bobber and the fish stay in view.
-  this.camOff+=((fishing?1:0)-this.camOff)*Math.min(1,dt*3);this.cookOff=(this.cookOff||0)+((bridge.busy?.()&&!fishing?1:0)-(this.cookOff||0))*Math.min(1,dt*3);const cam=this.cameras.main,z=this.zoom(),fz=Math.max(z,Math.min(2.4,this.scale.height/220,this.scale.width/220)),k=this.camOff;
+  this.camOff+=((fishing?1:0)-this.camOff)*Math.min(1,dt*3);this.cookOff=(this.cookOff||0)+((bridge.busy?.()&&!fishing?1:0)-(this.cookOff||0))*Math.min(1,dt*3);const cam=this.cameras.main,z=this.zoom(),fz=Math.max(z,Math.min(2.4*(bridge.res||1),this.scale.height/220,this.scale.width/220)),k=this.camOff;
   cam.setZoom(z+(fz-z)*k);cam.centerOn(model.x+44*k+30*this.cookOff,model.y-20-42*k+56*this.cookOff);bridge.tick(now,this);}
  setPetLook(look){petSheet(this,look);}
  // Beds and chests appear as co-op players join: spot 0 is always yours.

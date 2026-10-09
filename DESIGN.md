@@ -209,3 +209,13 @@ The touch overlay (move stick, fire stick, fan, action button) follows the last 
 ### v0.22.2 portrait control deck
 
 On a phone held upright (touch, height more than 1.15× width) the controls get their own deck along the bottom (`#deck`, 206px plus the safe area) and the game view ends above it, so nothing in play sits under your thumbs; the camera centers on the smaller view. The fire stick sits in the corner (130px), with Reload, Grenade and Swap on an arc 100px around it at 180°, 225° and 270°; the ammo readout takes the corner above the move stick. In camp the action button keeps its place on the deck, dimmed and reading Use until something is in reach. Landscape and PC are unchanged, and switching to the keyboard, mouse or a controller drops the deck.
+
+### v0.22.3 wider camera, aim lean, Run toggle, lighter landscape
+
+Camera distances are now Wide (0.7), Normal (1) and Close (1.5); phones start on Wide and a PC on Normal. To keep pixel art whole when zoomed out, the game draws at the screen's real pixel density (`RES`, up to 3×) and every camera zoom is multiplied by it. When the view is bigger than the character room, the room is centered in it.
+
+The camera leans toward your aim (`leadStep`, 36% of the half-view along the aim), so you see what you are shooting at, as in Helldivers. Sticks lean by their direction; the mouse leans by its distance from the middle of the screen, so the view never chases the cursor. It eases in quickly and drifts back slowly when you stop aiming. Camp has no lean.
+
+Run on touch is a toggle button up and in from the move stick: tap to run, tap again to walk; it stays on through stops. Pushing the stick to its edge no longer runs. Controller L3/LT and Shift are unchanged.
+
+Landscape is lighter: the fire stick (108px ring) and a 50px fan on a 92px arc sit in the corner, the stick labels are gone, and the ammo readout is a small plate under the menu buttons instead of a panel at the bottom middle. On the portrait deck the readout loses its plate and sits top-left, with Run beside it.

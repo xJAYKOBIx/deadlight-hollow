@@ -265,3 +265,40 @@ body:not(.touch):not(.pad) .cref thead th:nth-child(2),.pad .cref thead th:nth-c
 .deck.touch:not(.pad) .instructions{max-width:86%}
 #rightPad #act.idle{opacity:.4;box-shadow:0 0 0 1px #0006;filter:saturate(.3)}
 #rightPad #act.idle b{color:var(--dust)}
+/* v0.22.3 lighter touch layout. Smaller sticks and buttons kept in the corners, no stick labels in landscape, a Run toggle
+   up and in from the move stick, and a compact ammo readout: under the menu buttons in landscape, top-left of the deck in portrait.
+   Fan arc in landscape: 92px around the fire stick's center at 180°, 225° and 270°. */
+.touch #moveZone #ring{width:100px;height:100px}
+.touch #moveZone #thumb{width:42px;height:42px}
+.touch:not(.deck) #moveZone>span,.touch:not(.deck) #rightPad #aimLabel{display:none}
+body.touch:not(.pad) #rightPad{width:220px;height:200px}
+#rightPad #aimZone{width:132px;height:132px}
+#rightPad #aimRing{width:108px;height:108px}
+#rightPad #aimThumb{width:48px;height:48px}
+#rightPad .fan.fan{width:50px;height:50px}
+#rightPad .fan svg{width:20px;height:20px;margin-top:-8px}
+#rightPad .fan>span{bottom:6px;font-size:7.5px}
+.fan-ring{-webkit-mask:radial-gradient(circle,transparent 27px,#000 28px);mask:radial-gradient(circle,transparent 27px,#000 28px)}
+#rightPad .fan.f1{left:37px;top:109px}
+#rightPad .fan.f2{left:64px;top:44px}
+#rightPad .fan.f3{left:129px;top:17px}
+#rightPad #act{left:108px;top:88px}
+.deck.touch:not(.pad) #rightPad{width:236px;height:206px}
+.deck.touch #moveZone #ring{width:112px;height:112px}
+.deck.touch #moveZone #thumb{width:46px;height:46px}
+#runToggle{display:none}
+body.touch:not(.pad) #runToggle{display:grid;place-items:center;position:fixed;z-index:2;left:calc(var(--vx) + var(--sl) + 109px);bottom:calc(var(--sb) + 115px);width:50px;height:50px;min-width:0;min-height:0;padding:0;border-radius:50%;background:radial-gradient(circle at 50% 30%,#2c2925f2,#141311f2);border:1.5px solid #e8e0d155;color:var(--bone);box-shadow:0 4px 12px #0009;touch-action:none;transition:transform .08s}
+body.deck.touch:not(.pad) #runToggle{left:calc(var(--vx) + var(--sl) + 114px);bottom:calc(var(--sb) + 112px);width:52px;height:52px}
+#runToggle svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;margin-top:-8px}
+#runToggle span{position:absolute;bottom:6px;left:0;right:0;text-align:center;font:700 7.5px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--dust)}
+#runToggle:active{transform:scale(.92)}
+#runToggle.on{background:radial-gradient(circle at 50% 30%,#ffa868,#c0581f);border-color:#ffd2a0;color:#1c0f07;box-shadow:0 0 0 3px #dd6f2c44,0 0 16px #dd6f2c66}
+#runToggle.on span{color:#2a1408}
+.talking #runToggle,.cooking #runToggle,.fishing #runToggle{display:none!important}
+body.touch:not(.pad) #weaponHud{left:auto;right:calc(var(--sr) + 4px);top:calc(var(--vy) + var(--st) + 66px);bottom:auto;width:132px;padding:5px 9px 6px;background:#0d0e11b0;border:1px solid #e8e0d11a;border-radius:8px;box-shadow:none}
+body.touch:not(.pad) #weaponHud .wh-top b{font-size:9.5px}
+body.touch:not(.pad) #weaponHud .wh-mid{margin:3px 0 0;gap:4px}
+body.touch:not(.pad) #ammoNow{font-size:22px}
+body.touch:not(.pad) #ammoMag{font-size:11px}
+body.touch:not(.pad) #weaponHud .wh-mag{height:4px;margin-left:4px}
+body.deck.touch:not(.pad) #weaponHud{left:calc(var(--vx) + var(--sl));right:auto;top:auto;bottom:calc(var(--sb) + 140px);width:98px;background:transparent;border-color:transparent;padding:4px 2px}
