@@ -8,9 +8,15 @@ export const WALK=[[100,228],[880,226],[934,268],[962,334],[967,368],[1104,368],
 export const SHORE=[[930,150],[984,240],[1012,330],[1022,430],[1016,530],[990,622],[944,706],[884,782],[820,880]];
 // Lights are baked into a banded light map: [x, y, radius, r, g, b] with 1 = untouched color.
 export const AMBIENT=[.6,.64,.8];
-export const LIGHTS=[[560,470,250,1,.86,.64],[742,606,120,1,.8,.58],[356,452,120,.98,.86,.66],[748,522,110,.98,.86,.66],[300,590,115,.98,.86,.66],[239,174,110,.98,.84,.62],[820,330,120,.92,.95,.98],[1110,120,330,.62,.72,.95],[1100,346,90,.98,.86,.66]];
+export const LIGHTS=[[560,470,250,1,.86,.64],[742,606,120,1,.8,.58],[356,452,120,.98,.86,.66],[748,522,110,.98,.86,.66],[300,590,115,.98,.86,.66],[239,174,110,.98,.84,.62],[820,330,120,.92,.95,.98],[1110,120,330,.62,.72,.95],[1100,346,90,.98,.86,.66],[272,609,26,1,.86,.62]];
 // Solid props: footprint (x, y, w, h) and painted height z above it. flat props are walked over.
+// Four sleeping spots under the shelter, east to west: spot 0 is yours, the rest fill as co-op players join.
+export const MAX_CAMPERS=4;
+export const BED_SPOTS=[290,243,196,149];
+const SLEEPERS=BED_SPOTS.flatMap((cx,slot)=>[{id:'bed-'+slot,kind:'bed',slot,x:cx-13,y:602,w:26,h:66,z:2,flat:true},{id:'chest-'+slot,kind:'chest',slot,x:cx-13,y:672,w:26,h:12,z:14}]);
 export const PROPS=[
+ {id:'shelter',kind:'shelter',x:124,y:596,w:190,h:22,z:60,glass:[187,-6],candle:[148,13]},
+ ...SLEEPERS,
  {id:'fire',kind:'fire',x:532,y:458,w:56,h:28,z:16},
  {id:'log-s',kind:'logH',x:512,y:532,w:96,h:16,z:14},
  {id:'log-w',kind:'logH',x:420,y:478,w:76,h:16,z:14},
@@ -25,19 +31,15 @@ export const PROPS=[
  {id:'pot',kind:'pot',x:740,y:590,w:44,h:26,z:50},
  {id:'fishcrate',kind:'crate',x:798,y:604,w:40,h:30,z:28},
  {id:'barrel',kind:'barrel',x:690,y:648,w:28,h:20,z:34},
- {id:'leanto',kind:'leanto',x:166,y:598,w:124,h:46,z:58},
- {id:'bedroll',kind:'bedroll',x:186,y:656,w:72,h:24,z:4,flat:true},
- {id:'stash',kind:'stash',x:300,y:640,w:48,h:32,z:32},
  {id:'gate',kind:'gate',x:112,y:212,w:104,h:16,z:88},
  {id:'boat',kind:'boat',x:914,y:430,w:52,h:112,z:22},
  {id:'rack',kind:'rack',x:868,y:612,w:62,h:10,z:56,fish:0},
  {id:'lamp-1',kind:'lantern',x:351,y:450,w:10,h:8,z:72},
  {id:'lamp-2',kind:'lantern',x:743,y:520,w:10,h:8,z:72},
- {id:'lamp-3',kind:'lantern',x:302,y:588,w:10,h:8,z:72},
  {id:'lamp-4',kind:'lantern',x:234,y:240,w:10,h:8,z:72},
  {id:'rock-a',kind:'rock',x:420,y:700,w:40,h:22,z:20},
  {id:'rock-b',kind:'rock',x:620,y:734,w:30,h:16,z:14},
- {id:'rock-c',kind:'rock',x:116,y:604,w:28,h:18,z:16},
+ {id:'rock-c',kind:'rock',x:110,y:716,w:28,h:18,z:16},
  {id:'pier',kind:'pier',x:958,y:362,w:154,h:40,z:8,flat:true},
  {id:'laundry',kind:'laundry',x:250,y:292,w:100,h:8,z:62},
  {id:'sacks',kind:'sacks',x:478,y:258,w:30,h:22,z:20},
@@ -68,8 +70,8 @@ export const RESIDENTS=[
 // Things you can walk up to. (x, y) is where you stand to use them; my is where the marker floats.
 export const OBJECTS=[
  {id:'board',verb:'Read',my:200,name:'The Lantern Board',role:'Job board',x:560,y:316,lines:['No jobs posted yet.','One note, in faded marker: "Hunters wanted. Ask Wren."']},
- {id:'stash',verb:'Open',my:596,name:'Your stash',role:'Storage',x:324,y:686,lines:['Your stash crate. Empty for now.','Everything you bring home will end up in here.']},
- {id:'bedroll',verb:'Rest',my:640,name:'Your bedroll',role:'Bunk',x:222,y:676,lines:['Your bedroll. Thin, damp, and yours.','Rest and saved loadouts will live here.']},
+ {id:'stash',verb:'Open',my:652,name:'Your stash',role:'Your chest',x:290,y:698,lines:['Your chest, at the foot of your bed. Empty for now.','Everything you bring home will end up in here.']},
+ {id:'bedroll',verb:'Rest',my:606,name:'Your bedroll',role:'Bunk',x:290,y:640,lines:['Your bedroll. Thin, damp, and yours.','Rest and saved loadouts will live here.']},
  {id:'gate',verb:'Check',my:112,name:'The gate',role:'Way out',x:164,y:252,lines:['Planks, a car door and sandbags, barred from this side.','Wren\'s voice from across the camp: "It stays shut until we have a plan."']},
  {id:'boat',verb:'Look',my:404,mx:940,name:'Rowboat',role:'The inlet',x:902,y:486,lines:['A rowboat, patched with tar and stubbornness.','Someday it\'ll carry you past the mouth of the cave.']},
  {id:'basket',verb:'Check',my:566,name:'Fish basket',role:'Pike\'s salt crate',x:818,y:648,lines:['Empty. The pier\'s past the medic tent.']},

@@ -5,7 +5,8 @@ import {DRIPS,FUNGI,shoreX} from './art.js';
 const px=v=>Math.round(v*2)/2;
 // Where the moths circle: every lantern's glass, the board's lantern and the one at the end of the pier.
 const pier=PROPS.find(o=>o.id==='pier'),board=PROPS.find(o=>o.id==='board');
-export const LAMP_GLASS=[...PROPS.filter(o=>o.kind==='lantern').map(o=>({x:o.x+12,y:o.y-60.5})),{x:board.x-2.5,y:board.y-57.5},{x:pier.x+pier.w-13,y:pier.y-pier.z-49}];
+export const LAMP_GLASS=[...PROPS.filter(o=>o.kind==='lantern').map(o=>({x:o.x+12,y:o.y-60.5})),...PROPS.filter(o=>o.glass).map(o=>({x:o.x+o.glass[0],y:o.y+o.glass[1]})),{x:board.x-2.5,y:board.y-57.5},{x:pier.x+pier.w-13,y:pier.y-pier.z-49}];
+export const CANDLES=PROPS.filter(o=>o.candle).map(o=>({x:o.x+o.candle[0],y:o.y+o.candle[1]}));
 // Crabs keep to the wet strip, clear of the pier and the boat.
 export const CRAB={scare:46,flee:70,walk:22,back:[14,24],near:120};
 const tideSpot=(rand=Math.random)=>{const y=470+rand()*270;return {x:shoreX(y)-6-rand()*16,y};};
@@ -30,6 +31,8 @@ export class CaveLife{
   this.glows.forEach((g,i)=>g.setAlpha(.26+.08*Math.sin(t*.9+i*1.7)));this.passGlow.setAlpha(.14+.05*Math.sin(t*.6));
   if(now>this.nextSpore){this.nextSpore=now+700+Math.random()*900;const [x,y]=FUNGI[Math.floor(Math.random()*FUNGI.length)];this.spores.push({x:x+(Math.random()-.5)*8,y:y-2,life:2.5});}
   const a=this.air;a.clear();this.spores=this.spores.filter(s=>(s.life-=dt)>0);for(const s of this.spores){s.y-=5*dt;s.x+=Math.sin(t*2+s.life*3)*3*dt;a.fillStyle(0xe2f2a6,Math.min(1,s.life*.6));a.fillRect(px(s.x),px(s.y),.5,.5);}
+  // The candle by your bed.
+  for(const c of CANDLES){const f=Math.sin(t*13+c.x)*.5+Math.sin(t*7.3)*.5;a.fillStyle(0xffc456,.85+.15*f);a.fillRect(px(c.x),px(c.y-1.5+(f>.6?-.5:0)),.5,1);a.fillStyle(0xfff0c0,.9);a.fillRect(px(c.x),px(c.y-.5),.5,.5);}
   // Moths: flickering specks looping round each lantern.
   for(const m of this.moths){m.a+=m.speed*dt*(1+.5*Math.sin(t*3+m.rx));const x=m.l.x+Math.cos(m.a)*m.rx+Math.sin(t*7+m.ry)*1.2,y=m.l.y+Math.sin(m.a*1.3)*m.ry,up=Math.floor(t*24+m.rx)%2;
    a.fillStyle(0xeee4c8,.95);a.fillRect(px(x),px(y),up?1.5:.5,up?.5:1);}

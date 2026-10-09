@@ -5,10 +5,11 @@ const SOLID=PROPS.filter(o=>!o.flat);
 export const TARGETS=[...RESIDENTS.map(p=>({...p,kind:'resident',range:USE_RANGE+8})),...OBJECTS.map(o=>({...o,kind:'object',range:USE_RANGE}))];
 // Same walking and animation as the room; only the ground and obstacles change.
 export class CampModel extends StudyModel{
- constructor(){super();this.stamina=new Stamina();this.reset();}
+ // campers: how many sleeping spots are in use (1 to MAX_CAMPERS). Empty spots have no chest to bump into.
+ constructor(){super();this.stamina=new Stamina();this.campers=1;this.reset();}
  reset(){Object.assign(this,{x:CAMP_START.x,y:CAMP_START.y,direction:CAMP_START.direction,phase:0,frame:0,moving:false,running:false});}
  blocked(x,y){const r=this.radius;for(const [px,py] of [[x,y],[x-r,y],[x+r,y],[x,y-r*.6],[x,y+r*.6]])if(!insidePolygon(WALK,px,py))return true;
-  if(SOLID.some(b=>{const dx=x-Math.max(b.x,Math.min(x,b.x+b.w)),dy=y-Math.max(b.y,Math.min(y,b.y+b.h));return dx*dx+dy*dy<r*r;}))return true;
+  if(SOLID.some(b=>{if(b.slot>=this.campers)return false;const dx=x-Math.max(b.x,Math.min(x,b.x+b.w)),dy=y-Math.max(b.y,Math.min(y,b.y+b.h));return dx*dx+dy*dy<r*r;}))return true;
   return RESIDENTS.some(p=>Math.hypot((x-p.x)*.55,(y-p.y)*1.3)<r+9);}
  // Running spends stamina. Once it runs dry the survivor walks until it is partly back.
  update(dt,input={}){super.update(dt,{...input,run:!!input.run&&this.stamina.canRun()});this.stamina.update(Math.max(0,Math.min(.05,Number(dt)||0)),this.running&&this.moving);}

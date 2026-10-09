@@ -13,6 +13,8 @@ export function painter(c){
 }
 export const EDGE='#191b21',SHADOW='#100e0c66',EMBER='#dd6f2c',EMBER_HI='#ff9a52',BONE='#e8e0d1';
 const W=['#2b2320','#4a3a2e','#6b5440','#8d7255','#a88a66'],CV=['#3a362e','#5f584a','#857c69','#a39a84','#bdb39b'],M=['#23262c','#3e434b','#5c636b','#838a8f'],R=['#1d1f27','#2b2e38','#3a3e4b','#4b5060','#5f6575'];
+// Bedding colors per sleeping spot, dark to light. Spot 0 is yours.
+export const BED_COLORS=[['#5e3a26','#7d5236','#9a6a48','#71492f'],['#2d3d52','#3f5670','#56708c','#384d66'],['#34402c','#4b5b3e','#62744f','#435237'],['#4a3550','#664a6c','#80628a','#5c4262']];
 const RUST='#7a4a30',GLASS='#e8b45a',GLASS_HI='#ffe4a0',TEAL='#2f6f69',TEAL_HI='#4b9a91';
 // Deterministic noise, so the camp paints the same every time.
 export const hash=(x,y)=>{let h=Math.imul(x|0,374761393)+Math.imul(y|0,668265263)|0;h=Math.imul(h^(h>>>13),1274126177);return ((h^(h>>>16))>>>0)/4294967296;};
@@ -30,7 +32,7 @@ export const inMouth=(x,y)=>((x-1160)/300)**2+((y-40)/200)**2<1;
 const inMouthRim=(x,y)=>((x-1160)/306)**2+((y-40)/204)**2<1;
 const HORIZON=118;
 // Worn paths from the fire to every station help players read where to go.
-const PATHS=[[[560,500],[560,330]],[[540,480],[300,420],[170,270]],[[590,480],[780,410]],[[590,500],[740,620]],[[530,510],[320,640],[230,680]],[[590,490],[900,486]],[[300,420],[200,450]]];
+const PATHS=[[[560,500],[560,330]],[[540,480],[300,420],[170,270]],[[590,480],[780,410]],[[590,500],[740,620]],[[530,510],[320,640],[290,700]],[[590,490],[900,486]],[[300,420],[200,450]]];
 function pathDist(x,y){let best=1e9;for(const line of PATHS)for(let i=1;i<line.length;i++){const [ax,ay]=line[i-1],[bx,by]=line[i],dx=bx-ax,dy=by-ay,t=Math.max(0,Math.min(1,((x-ax)*dx+(y-ay)*dy)/(dx*dx+dy*dy)));best=Math.min(best,Math.hypot(x-ax-dx*t,y-ay-dy*t));}return best+5*Math.sin(x*.06+y*.04)+3*Math.sin(y*.11);}
 const rgb=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
 const SAND=['#5f5444','#6c604d','#766a55','#80735d','#8b7e66'].map(rgb),PATH=['#7d715b','#857862','#8c806a'].map(rgb),WET=['#4c483f','#545046','#5c574b'].map(rgb),FOAM=rgb('#9fb0ab');
@@ -112,6 +114,8 @@ export function groundArt(c){
   else if(sx-x<40){l(x,y,x+4+t*6,y+2-t*4,1,'#34412f');r(x+2,y,1,1,'#45553c');}}
  // Kelp along the tideline.
  for(let y=240;y<800;y+=5){const x=shoreX(y)-4-hash(y,51)*6;if(hash(y,52)<.4)l(x,y,x-3-hash(y,53)*5,y+2,1,'#2f3a2c');}
+ // Shade under the sleeping shelter.
+ e(219,612,90,13,'#14120f44');e(219,610,80,9,'#14120f33');
  // A scorched ring around the fire pit, ash scattered by the wind.
  e(560,474,44,20,'#4c443a55');e(560,474,34,15,'#3c362f66');for(let i=0;i<40;i++){const a=hash(i,61)*Math.PI*2,d=24+hash(i,62)*26;r(560+Math.cos(a)*d,474+Math.sin(a)*d*.45,1,.5,'#3a3530');}
  e(762,612,20,9,'#3c362f55');
@@ -205,15 +209,50 @@ const ART={
   for(let i=0;i<5;i++){const x=3+i*7,y=-z+3+(i%2)*6;e(x+4,y+2,4.5,2.2,EDGE);e(x+4,y+1.8,3.6,1.5,i%2?'#9aa3a6':'#b9c1c3');r(x+1,y+1.5,1,1,'#2b3134');}r(1,-z+.5,w-2,1,'#b2936c');},
  barrel(g,o){const {e,r}=g;e(15,18,15,5,SHADOW);r(1,-24,26,38,EDGE);e(14,14,13,4,EDGE);r(2,-24,24,38,W[2]);e(14,14,12,3.2,W[2]);r(2,-24,5,38,W[3]);r(21,-24,5,38,W[1]);for(let x=9;x<22;x+=5)r(x,-22,.5,36,W[1]);
   for(const y of [-17,4]){r(1,y,26,2.5,EDGE);r(2,y+.5,24,1.5,M[2]);}e(14,-24,13,4.5,EDGE);e(14,-24,12,3.6,W[3]);e(14,-24,9,2.4,'#2b2320');r(9,-25,6,.5,'#6a7f84');},
- leanto(g,o){const {e,r,p,l}=g;e(62,44,66,7,SHADOW);r(4,0,116,42,'#14120f99');r(14,26,22,14,EDGE);r(15,27,20,12,'#5c4a37');r(15,27,20,3,'#76614a');r(84,20,12,18,EDGE);r(85,21,10,16,'#7a3a2a');r(87,18,5,3,EDGE);
-  for(const x of [3,117]){r(x,-4,4,50,EDGE);r(x+1,-3,2,48,W[2]);}
-  p([[-2,-60],[126,-60],[126,1],[-2,1]],EDGE);p([[-1,-59],[125,-59],[125,0],[-1,0]],'#4f5a46');r(-1,-59,126,6,'#66725a');r(-1,-6,126,6,'#3e4738');
-  for(let x=20;x<120;x+=26)r(x,-58,1,57,'#45503e');for(const x of [2,40,84,121])r(x,-3,2,2,CV[3]);r(30,-40,22,10,'#5d6950');r(31,-39,20,.5,'#3e4738');},
- bedroll(g,o){const {e,r}=g;e(36,14,38,6,SHADOW);r(0,-2,72,18,EDGE);r(1,-1,70,16,'#6b4f3a');r(1,-1,70,4,'#8a6a4a');for(let x=18;x<70;x+=10)r(x,0,.5,14,'#5a4130');r(2,0,15,12,CV[3]);r(2,8,15,4,CV[2]);r(60,-1,11,16,'#5a4130');r(62,-1,.5,16,'#8a6a4a');},
- stash(g,o){const {e,r}=g,w=o.w,h=o.h,z=o.z;e(w/2+3,h+1,w/2+6,5,SHADOW);box(g,w,h,z,'#5d4a38','#4a3a2e');for(let x=10;x<w-4;x+=12)r(x,-z+1,.5,h-2,'#4a3a2e');
-  // Ember stripe and stencil: this one is yours.
-  r(.5,h-z+4,w-1,5,EMBER);for(let x=1;x<w-1;x+=6)r(x+3,h-z+4,2.5,5,'#1b0f07');r(.5,h-z+3.5,w-1,.5,EMBER_HI);
-  for(const [x,y] of [[.5,-z+.5],[w-4.5,-z+.5],[.5,h-4.5],[w-4.5,h-4.5]])r(x,y,4,4,M[2]);r(w/2-3,h-z+12,6,7,EDGE);r(w/2-2,h-z+13,4,5,M[3]);r(w/2-1,h-z+10,2,3,M[3]);r(w/2-1,h-z+15,1,2,EDGE);},
+ // The shared shelter: a patched tarp pitched from a ridge pole, room for four sleepers underneath.
+ shelter(g,o){const {e,r,p,l}=g,w=o.w,h=o.h,T=['#2f3629','#3e4738','#4f5a46','#66725a','#7a8668'],posts=[-2,w/2-2,w-2];
+  // (Its shade on the sand is painted with the ground, so it never darkens the beds.)
+  // The back wall, seen under the front edge of the roof, with a coat and a pack hung on it.
+  r(.5,-26,w-1,27,EDGE);r(1.5,-25,w-3,25,'#2e2c25');for(let x=12;x<w-4;x+=20)r(x,-25,.5,25,'#24231e');r(1.5,-2.5,w-3,2.5,'#201f1a');
+  r(40,-24,1,1.5,M[3]);p([[37,-23],[44,-23],[45,-10],[36,-10]],EDGE);p([[38,-22.5],[43,-22.5],[44,-11],[37,-11]],'#5a4a3c');r(40.25,-22,.5,10,'#4a3c30');
+  r(128,-24,1,1.5,M[3]);r(124,-22,10,11,EDGE);r(125,-21,8,9,'#5f6844');r(125,-21,8,2.5,'#4b5236');r(127,-16,4,2,'#4b5236');
+  for(const x of posts){r(x-.5,-21,5,h+22,EDGE);r(x+.5,-20,3,h+20,W[2]);r(x+.5,-20,1,h+20,W[3]);r(x,h-1,4,2,W[1]);}
+  // The tarp sags between the posts along its front edge; tension folds run up to the ridge.
+  const sag=x=>{const k=x<w/2?(x+11)/(w/2+11):(x-w/2)/(w/2+11);return -18+Math.sin(Math.max(0,Math.min(1,k))*Math.PI)*3.5;},front=[];for(let x=w+11;x>=-11;x-=4)front.push([x,sag(x)]);front.push([-11,sag(-11)]);
+  p([[-8,-55],[w+8,-55],...front],EDGE);p([[-7,-54],[w+7,-54],...front.map(([x,y])=>[x+(x>w/2?-1:1),y-1])],T[2]);
+  p([[-7,-54],[w+7,-54],[w+7.6,-47],[-7.6,-47]],T[1]);p(front.map(([x,y])=>[x*.997,y-1]).concat([[-10,-26],[w+10,-26]].reverse()),T[3]);
+  for(let x=-10;x<w+10;x+=2)r(x,sag(x)-2.5,2,1.2,T[4]);
+  for(const x of posts){const px=x+2;l(px,-20,px-14,-50,.6,T[1]);l(px,-20,px+14,-50,.6,T[1]);l(px+1,-21,px+5,-40,.5,T[4]);}
+  for(const [x,y,pw,ph,col] of [[24,-46,14,9,'#5d6950'],[104,-40,13,10,'#6b5f48'],[146,-50,11,7,'#5d6950']]){r(x-.5,y-.5,pw+1,ph+1,T[0]);r(x,y,pw,ph,col);r(x,y,pw,1,'#ffffff14');for(let s=1;s<pw;s+=2){r(x+s,y-.5,.5,.5,'#a39a84');r(x+s,y+ph,.5,.5,'#a39a84');}}
+  r(-11,-58,w+22,4,EDGE);r(-10,-57,w+20,2,W[2]);r(-10,-57,w+20,.5,W[3]);e(-11,-56,2.2,2.2,EDGE);e(-11,-56,1.5,1.5,W[4]);e(w+11,-56,2.2,2.2,EDGE);e(w+11,-56,1.5,1.5,W[4]);
+  // Guy ropes to stakes out front.
+  l(-10,-18,-13,h+10,.5,'#7a735f');l(w+10,-18,w+13,h+10,.5,'#7a735f');r(-14,h+8,2,3,W[1]);r(w+12,h+8,2,3,W[1]);
+  // A lantern hangs from the front corner.
+  r(w-3.5,-17,.5,5,M[1]);r(w-7,-12.5,7,1.5,M[1]);r(w-6.5,-11,6,9,EDGE);r(w-5.5,-10,4,7,GLASS);r(w-4.5,-9,2,5,GLASS_HI);r(w-6.5,-2.5,6,1,M[1]);},
+ // A sleeping pad, a plump pillow and a patchwork quilt with its corner turned back. The colors are the sleeper's; an ember band marks yours.
+ bed(g,o){const {e,r,p,l}=g,w=o.w,h=o.h,[c0,c1,c2,c3]=BED_COLORS[o.slot||0],round=(x,y,a,b,k)=>[[x+k,y],[x+a-k,y],[x+a,y+k],[x+a,y+b-k],[x+a-k,y+b],[x+k,y+b],[x,y+b-k],[x,y+k]];
+  e(w/2+1.5,h,w/2+3,3.5,SHADOW);p(round(-.5,-.5,w+1,h+1,2.5),EDGE);p(round(.5,.5,w-1,h-1,2),'#75664e');r(2,1,w-4,.5,'#8f7f63');
+  // Pillow: soft corners, a lit top, a dent where a head goes.
+  p(round(3,2,w-6,11,3),'#57503f');p(round(3.5,2.5,w-7,10,2.5),'#b3aa94');p(round(4,2.5,w-8,7,2.5),'#cfc6b0');e(w/2-3,5,4,1.6,'#e0d8c4');e(w/2+1,8,4,1.8,'#b3aa94');r(5,11.5,w-10,.5,'#8f8774');
+  // Quilt: drapes a little past the pad, patchwork squares with stitching.
+  const top=15,qb=h-1;p(round(-1.5,top-.5,w+3,qb-top+1,2.5),EDGE);p(round(-1,top,w+2,qb-top,2),c1);
+  for(let row=0;row<5;row++)for(let col=0;col<3;col++){const pw=(w+2)/3,ph=(qb-top-6)/5,x=-1+col*pw,y=top+5+row*ph;if((row+col)%2)r(x,y,pw,ph,c3);r(x,y,pw,.5,c0);r(x,y,.5,ph,c0);}
+  r(-1,top+3,1.5,qb-top-5,c2);r(w-.5,top+3,1.5,qb-top-5,c0);
+  for(const [x0,y0,x1,y1] of [[4,26,7,40],[16,30,19,46],[9,46,12,54]]){l(x0,y0,x1,y1,.6,c2);l(x0+1,y0+.5,x1+1,y1+.5,.5,c0);}
+  // The turned-down sheet along the top, and the top corner folded back to show the lining.
+  r(-1,top,w+2,5,'#d8d0bc');r(-1,top,w+2,1,'#ece5d4');for(let x=0;x<w;x+=3)r(x,top+4.5,2,.5,'#a89f8a');r(-1,top+5,w+2,.5,c0);
+  const fold=(o.slot||0)%2?-1:1,fx=fold>0?w+1:-1,F=x=>fold>0?x:w-x;p([[F(w-7),top+5.5],[fx,top+5.5],[fx,top+13]],EDGE);p([[F(w-5.5),top+6],[fx-fold*.5,top+6],[fx-fold*.5,top+11.5]],'#d8d0bc');l(F(w-5.5),top+6,fx-fold*.5,top+11.5,.5,'#a89f8a');
+  if(o.slot===0){r(-7,4,5,6,EDGE);r(-6.5,4.5,4,5,'#8fa6a6');r(-5.5,5.5,2,3,'#e8dcc0');r(-4.75,3.5,.5,2,'#2a2320');r(-8,12,6,4,EDGE);r(-7.5,12.5,5,3,'#6e3b2c');r(-7.5,12.5,5,.5,'#d8d0bc');}
+  const band=top+24;if(o.slot===0){r(-1,band,w+2,3,EMBER);r(-1,band,w+2,.5,EMBER_HI);for(let x=1;x<w;x+=4)r(x,band+2,1,.5,'#8a3d1a');}else{r(-1,band,w+2,2,'#cfc6b055');}},
+ // A footlocker at the end of each bed: a plank lid with a rounded top, iron straps and corners, a lock. Yours is your stash.
+ chest(g,o){const {e,r}=g,w=o.w,h=o.h,z=o.z,mine=o.slot===0,[c0,c1]=BED_COLORS[o.slot||0];e(w/2+2,h+1,w/2+5,4.5,SHADOW);
+  r(-.5,-z-1.5,w+1,h+z+2,EDGE);r(.5,-z-.5,w-1,h-.5,'#7a6250');r(.5,-z-.5,w-1,2,'#8f7660');r(.5,-z+h-3,w-1,2,'#5f4c3c');for(const y of [-z+3,-z+6.5])r(.5,y,w-1,.5,'#5a4636');
+  r(.5,h-z,w-1,4,'#5d4a38');r(.5,h-z,w-1,.5,'#7a6250');r(.5,h-z+4,w-1,.5,EDGE);r(.5,h-z+4.5,w-1,z-5,'#4e3d30');for(const x of [9,17])r(x,h-z+4.5,.5,z-5,'#3d3027');
+  r(.5,h-z+8,w-1,3,mine?EMBER:c1);r(.5,h-z+8,w-1,.5,mine?EMBER_HI:c0);
+  for(const x of [3.5,w-5.5]){r(x,-z-.5,2,h+z,'#3b2c22');r(x+.5,-z-.5,.5,h+z,'#5a4434');r(x+.5,h-z+1,1,1,M[3]);}
+  for(const [x,y] of [[.5,-z-.5],[w-3.5,-z-.5],[.5,h-3],[w-3.5,h-3],[.5,h-z],[w-3.5,h-z]])r(x,y,3,2.5,M[2]);
+  r(w/2-2.5,h-z+2,5,6,EDGE);r(w/2-2,h-z+2.5,4,5,mine?'#c99a4e':'#8a8f94');r(w/2-.25,h-z+4,.5,2,EDGE);r(w/2-1.5,h-z+2.5,3,.5,mine?'#e8c27a':'#b0b5b9');
+  r(-1.5,h-z+6,1.5,3,M[1]);r(w,h-z+6,1.5,3,M[1]);},
  gate(g,o){const {e,r,p,l}=g;
   for(const [y,x0,x1,col] of [[-82,-6,112,W[2]],[-70,0,108,W[3]],[-58,-4,104,W[2]],[-46,2,110,W[3]],[-34,-2,106,W[2]],[-22,4,102,W[3]]]){const t=(hash(y,1)-.5)*4;p([[x0,y+t],[x1,y-t],[x1,y+9-t],[x0,y+9+t]],EDGE);p([[x0+1,y+1+t],[x1-1,y+1-t],[x1-1,y+8-t],[x0+1,y+8+t]],col);r(x0+2,y+1.5+t,x1-x0-4,.5,W[4]);r(x0+3,y+4+t,1,1,M[0]);r(x1-5,y+4-t,1,1,M[0]);}
   // A car door wedged into the middle.

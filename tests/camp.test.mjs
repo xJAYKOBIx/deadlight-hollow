@@ -27,9 +27,15 @@ test('camp art paints every prop, the light map, the flame and the badges',{skip
  assert.ok(fire[0]>dark[0]+40&&fire[0]>fire[2],'fire light is brighter and warm');
  for(const [draw,w,h] of [[flameArt,FLAME.w*FLAME.frames,FLAME.h],[iconArt,ICON.w*ICONS.length,ICON.h]]){const c=createCanvas(w*2,h*2);draw(c.getContext('2d'));const px=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let n=0;for(let i=3;i<px.length;i+=4)n+=px[i]>0;assert.ok(n>500);}});
 test('the page offers the camp and its talk controls',()=>{const html=fs.readFileSync(new URL('../dist/index.html',import.meta.url),'utf8');
- for(const id of ['travel','act','prompt','talk','talkFace','talkName','talkRole','talkLine','talkNext','placeName'])assert.match(html,new RegExp(`id="${id}"`));assert.match(html,/0\.21\.0/);});
+ for(const id of ['travel','act','prompt','talk','talkFace','talkName','talkRole','talkLine','talkNext','placeName'])assert.match(html,new RegExp(`id="${id}"`));assert.match(html,/0\.21\.1/);});
 test('cave life keeps to the walls, the lanterns and the wet sand',async()=>{const {DRIPS,FUNGI,wallTop}=await import('../dist/camp/art.js'),{LAMP_GLASS,CRAB}=await import('../dist/camp/life.js');
  for(const d of DRIPS){assert.ok(d.top>wallTop(d.x)&&d.top<d.y,'drip falls down the wall');if(!d.into)assert.ok(d.y>wallBottom(d.x),'puddle at the wall foot');}
- assert.ok(DRIPS.some(d=>d.into),'one drip feeds the medic\'s water drum');assert.equal(LAMP_GLASS.length,PROPS.filter(o=>o.kind==='lantern').length+2);
+ assert.ok(DRIPS.some(d=>d.into),'one drip feeds the medic\'s water drum');assert.equal(LAMP_GLASS.length,PROPS.filter(o=>o.kind==='lantern'||o.glass).length+2);
  for(const [x,y] of FUNGI)assert.ok(x<westEdge(y)+60||y<=wallBottom(x)+2,'fungus grows on rock');assert.ok(CRAB.scare<CRAB.near&&CRAB.flee>CRAB.walk);
  const pass=OBJECTS.find(o=>o.id==='passage');assert.ok(pass&&PROPS.find(o=>o.id==='passage'),'the collapsed passage can be looked at');});
+test('the shelter has four sleeping spots, each a bed with a chest at its foot, and only yours shows alone',()=>{const m=new CampModel();
+ for(let slot=0;slot<4;slot++){const bed=PROPS.find(o=>o.id==='bed-'+slot),chest=PROPS.find(o=>o.id==='chest-'+slot);assert.ok(bed&&chest&&bed.flat&&!chest.flat);assert.equal(bed.x,chest.x);assert.ok(chest.y>=bed.y+bed.h-2,'chest at the foot');}
+ const stash=OBJECTS.find(o=>o.id==='stash'),bed=OBJECTS.find(o=>o.id==='bedroll'),mine=PROPS.find(o=>o.id==='chest-0');assert.ok(Math.abs(stash.x-(mine.x+mine.w/2))<2,'your chest is your stash');assert.ok(Math.abs(bed.x-stash.x)<2);
+ // An empty spot's chest is not there to bump into; once someone joins, it is.
+ const c=PROPS.find(o=>o.id==='chest-3'),x=c.x+c.w/2,y=c.y+c.h/2;assert.equal(m.blocked(x,y),false);m.campers=4;assert.equal(m.blocked(x,y),true);
+ for(let i=0;i<3;i++){const a=PROPS.find(o=>o.id==='chest-'+i),b=PROPS.find(o=>o.id==='chest-'+(i+1));assert.ok(a.x-(b.x+b.w)>=2*m.radius+1,'room to walk between chests');}});
