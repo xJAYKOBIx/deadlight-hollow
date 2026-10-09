@@ -10,7 +10,8 @@ const AR={away:'→',up:'↑',down:'↓'},CO={away:'←',up:'↓',down:'↑'};
 const lower=c=>FISH_BY_ID[c.id||c.fish].name.toLowerCase();
 // A fish drawn on a small page canvas, centered, at a whole-pixel scale.
 export function paintFish(canvas,id,cook=null){const c=canvas.getContext('2d'),k=canvas.width/40;c.clearRect(0,0,canvas.width,canvas.height);c.save();c.imageSmoothingEnabled=false;c.scale(k,k);c.translate(22.5,canvas.height/k/2);fishArt(c,id,cook);c.restore();}
-export function createCampPlay({$,storage,model,touch,scene,afterChange}){
+export function createCampPlay({$,storage,model,touch:touchInput,scene,afterChange}){
+ const touch$=()=>typeof touchInput==='function'?touchInput():!!touchInput;
  const camp=readCamp(storage);model.stamina.setBuff(camp.buff);model.stamina.value=model.stamina.max;
  let fishing=null,cooking=null,hud='',fishHud='';
  const vibrate=p=>{try{navigator.vibrate?.(p);}catch{}};
@@ -32,7 +33,7 @@ export function createCampPlay({$,storage,model,touch,scene,afterChange}){
  function land(){const c=fishing.f.catch,kept=addToBasket(camp,c);fishing.catch={...c,kept};save();vibrate([30,40,30]);
   paintFish($('fishCard'),c.id);const f=FISH_BY_ID[c.id];$('catchName').textContent=(f.rare?'Rare! ':'')+f.name;
   $('catchInfo').textContent=`${c.w.toFixed(1)} kg · ${sizeLabel(c)}. `+(kept?`Into Pike's basket (${camp.basket.length}/${BASKET_SIZE}).`:'The basket is full, so you let it go.');$('fishCatch').hidden=false;}
- function fishText(){const f=fishing.f,P=f.pull?.name,castHint=touch?'Tap Cast. Move to leave the pier.':'Space or click to cast. Walk away to stop.';
+ function fishText(){const f=fishing.f,P=f.pull?.name,castHint=touch$()?'Tap Cast. Move to leave the pier.':'Space or click to cast. Walk away to stop.';
   switch(f.state){
    case 'ready':return ['Cast your line',castHint,''];
    case 'cast':return ['Casting…','',''];
@@ -41,7 +42,7 @@ export function createCampPlay({$,storage,model,touch,scene,afterChange}){
    case 'bite':return [`Bite! Pull back ${CO.away}`,'Now!','hot'];
    case 'fight':{const hint=fishing.reel?'Stop reeling while it fights!':f.stance==='counter'?'Good. It\'s getting tired.':f.stance==='with'?'You\'re pulling with it. The line can\'t take that.':`Hold the stick ${CO[P]}`;
     return [`It pulls ${AR[P]} · Hold ${CO[P]}`,hint,f.stance==='counter'&&!fishing.reel?'good':'hot'];}
-   case 'slack':return ['It\'s tired. Reel in!',touch?'Hold Reel until it fights again.':'Hold Space or the mouse button to reel.','good'];
+   case 'slack':return ['It\'s tired. Reel in!',touch$()?'Hold Reel until it fights again.':'Hold Space or the mouse button to reel.','good'];
    case 'landed':return ['Caught!',castHint,'good'];
    case 'snapped':return ['The line snapped','It got away. '+castHint,'warn'];
    case 'lost':return ['It stole the bait','Pull back the moment the bobber sinks. '+castHint,'warn'];}

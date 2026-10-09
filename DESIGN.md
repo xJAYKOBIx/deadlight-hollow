@@ -201,3 +201,7 @@ PC: WASD or arrows move, Shift runs, the mouse aims (with a crosshair cursor) an
 Controller (`pad.js`, standard mapping): left stick moves (L3 or LT runs), right stick aims past 30% and fires past 55% (or RT), X reload, Y swap, RB/LB grenade, A use, Start pause, Back character, R3 zoom; the D-pad and A/B work the menus. Firing, reloading, swapping and throwing rumble. The HUD's key prompts switch to controller glyphs as soon as a controller is used, and back when you touch the keyboard, mouse or screen.
 
 The weapon panel (`#weaponHud`) shows the gun, rounds left over the magazine with a bar, the reload state and the grenade with its cooldown; it turns ember when low and red when empty.
+
+### v0.22.1 touch controls only while touching
+
+The touch overlay (move stick, fire stick, fan, action button) follows the last input you used instead of whether the device has a touchscreen. Phones and tablets (primary pointer coarse) start with it; a PC starts without it, even with a touchscreen. Touching the screen shows it; moving the mouse, pressing a key (except while typing in a text field) or using a controller hides it, so it never sits over the game catching clicks. Camp fishing hints follow the same switch.
