@@ -74,7 +74,8 @@ export function pet(c,direction=2,frame=0,look={}){
  const ball=(p,r,col,opt={})=>({k:'c',x:p.x,y:p.y,r:r*Z,col,...opt}),limb=(a,b,w,col,opt={})=>({k:'l',a,b,w:w*Z,col,...opt}),poly=(pts,col,opt={})=>({k:'p',pts:pts.map(q=>[q.x,q.y]),col,...opt});
  // Body: a chain of spheres from the hips to the chest, shaded low, base, then a band of light along the back.
  const body=[],n=6,chest=V(sk.chestF,0,sk.cU),hip=V(sk.hipF,0,sk.hU);
- const bodyAt=k=>({f:sk.hipF+(sk.chestF-sk.hipF)*k,u:sk.hU+(sk.cU-sk.hU)*k,r:P.rh+(P.rc-P.rh)*k*k+P.fluff*.6});
+ // A deep chest and a tucked waist: the middle of the chain is slimmer and sits a little higher, so the underline rises toward the hips.
+ const bodyAt=k=>{const w=Math.sin(Math.PI*k)**2*(cat?.08:.15),r=(P.rh+(P.rc-P.rh)*k*k+P.fluff*.6)*(1-w);return {f:sk.hipF+(sk.chestF-sk.hipF)*k,u:sk.hU+(sk.cU-sk.hU)*k+r*w*.9,r};};
  for(const pass of [0,1,2])for(let i=0;i<=n;i++){const b=bodyAt(i/n),p=V(b.f,0,b.u);
   if(pass===0)body.push(ball(p,b.r,coat[1],{sil:1}));else if(pass===1)body.push(ball({x:p.x,y:p.y-.5},b.r-.8,coat[2]));else body.push(ball({x:p.x,y:p.y-b.r*.5},b.r*.45,coat[3]));}
  // Markings on the body.
@@ -86,16 +87,18 @@ export function pet(c,direction=2,frame=0,look={}){
  if(belly&&facing(.7,0,-.3)>-.3){const b=bodyAt(1),p=V(b.f+b.r*.45,0,b.u-b.r*.25);bodyMark.push(ball(p,b.r*.62,pale[2]),ball({x:p.x,y:p.y-.6},b.r*.4,pale[3]));}
  if(marking==='mask'||marking==='tuxedo')for(let i=1;i<n;i++){const b=bodyAt(i/n),p=V(b.f,0,b.u-b.r*.7);if(facing(0,0,-1)>-.6)bodyMark.push(ball(p,b.r*.45,pale[2]));}
  // Neck and collar.
- const head=V(sk.headF,0,sk.headU),neckA=V(sk.chestF+P.rc*.1,0,sk.cU+P.rc*.3),neckB=V(sk.headF-P.rH*.3,0,sk.headU-P.rH*.45);
- const neckR=P.rH*.85+P.fluff*.5,neck=[limb(neckA,neckB,neckR*2,coat[1],{sil:1}),limb({x:neckA.x,y:neckA.y-.5},{x:neckB.x,y:neckB.y-.5},neckR*2-1.6,coat[2])];
+ const head=V(sk.headF,0,sk.headU),neckA=V(sk.chestF+P.rc*.1,0,sk.cU+P.rc*.3),neckB=V(sk.headF-P.rH*.4,0,sk.headU-P.rH*.5);
+ const neckR=P.rH*.72+P.fluff*.5,neck=[limb(neckA,neckB,neckR*2,coat[1],{sil:1}),limb({x:neckA.x,y:neckA.y-.5},{x:neckB.x,y:neckB.y-.5},neckR*2-1.6,coat[2])];
  if(P.fluff>.6)neck.push(ball({x:(neckA.x+neckB.x)/2,y:(neckA.y+neckB.y)/2+.5},neckR*1.15,coat[1],{sil:1}),ball({x:(neckA.x+neckB.x)/2,y:(neckA.y+neckB.y)/2},neckR,coat[2]));
  if(belly&&facing(.6,0,-.2)>-.2)neck.push(ball({x:(neckA.x*.4+neckB.x*.6),y:(neckA.y*.4+neckB.y*.6)+neckR*.35},neckR*.7,pale[2]));
- if(collar.col){const cf=sk.headF-P.rH*.55,cu=sk.headU-P.rH*.62,ring=[];for(let i=0;i<16;i++){const q=i/16*Math.PI*2;ring.push(V(cf,Math.cos(q)*(neckR+.5),cu+Math.sin(q)*(neckR+.5)));}
+ if(collar.col){const cf=sk.headF-P.rH*.85,cu=sk.headU-P.rH*.9,ring=[];for(let i=0;i<16;i++){const q=i/16*Math.PI*2;ring.push(V(cf,Math.cos(q)*(neckR+.5),cu+Math.sin(q)*(neckR+.5)));}
   const lo=mix(collar.col,'#000000',.35),pts=ring.map(q=>[q.x,q.y]);neck.push({k:'p',pts,col:lo,sil:1},{k:'p',pts:pts.map(([x,y])=>[x,y-.6]),col:collar.col});
   const front=V(cf+neckR*.6,0,cu-neckR*.75);if(facing(1,0,-.3)>0){if(collar.bandana){neck.push(poly([V(cf+neckR*.3,-neckR,cu-neckR*.2),V(cf+neckR*.3,neckR,cu-neckR*.2),V(cf+neckR*1.1,0,cu-neckR*1.9)],collar.col,{sil:1}),poly([V(cf+neckR*.4,-neckR*.5,cu-neckR*.45),V(cf+neckR*.4,neckR*.2,cu-neckR*.45),V(cf+neckR*.8,-.2,cu-neckR*1.2)],mix(collar.col,'#ffffff',.25)));}
    else neck.push(ball(front,.9,'#d9b24a'));}}
  // Legs. Far legs are a shade darker; each limb is its own group so the near legs draw over the body with an outline.
  const pawCol=(marking==='tuxedo'||(marking==='mask'&&!cat))?pale:null;
+ // Thigh and shoulder masses join the body without a seam: far ones go under it, near ones over it.
+ const farMass=[],nearMass=[];
  for(const L of sk.legs){const near=facing(0,L.side,0)>0,col=near?coat:[coat[0],coat[0],coat[1],coat[2]];const sh=[];
   if(L.sit){// A folded hind leg: the haunch with the paw tucked in front of it.
    const hf=sk.hipF+P.rh*.2,hs=L.side*(P.w*.8+P.rh*.2),hp=V(hf,hs,P.rh*.85),paw=V(hf+P.rh*1.25,L.side*(P.w*.9),.6),hr=P.rh*.64;
@@ -104,17 +107,21 @@ export function pet(c,direction=2,frame=0,look={}){
   if(L.lie){const j=V(sk.chestF*.7,L.side*P.w*.8,P.rc*.6),paw=V(sk.chestF+P.rc*.9+2,L.side*(P.w*.8),.6);
    sh.push(limb(j,paw,P.leg,col[1],{sil:1}),limb({x:j.x,y:j.y-.4},{x:paw.x,y:paw.y-.4},P.leg-1.2,col[2]),{k:'e',x:paw.x,y:paw.y,rx:P.leg*.8,ry:P.leg*.5,col:pawCol?pawCol[2]:col[2],sil:1});group(paw.d,sh);continue;}
   const j=V(L.jf,L.s,L.ju),p=V(L.pf,L.s,L.pu),front=L.front;
+  const mp=front?V(L.jf+.3,L.s*1.05,L.ju-P.rc*.15):V(L.jf-.3,L.s+L.side*.8,L.ju-P.rh*.1),mr=front?P.rc*.42:P.rh*.62;
+  (near?nearMass:farMass).push(ball(mp,mr,col[1],{sil:1}),ball({x:mp.x,y:mp.y-.4},mr-.5,col[2]));
   // Front legs run nearly straight; hind legs bend back at the hock.
   const knee=front?V(L.jf+(L.pf-L.jf)*.45-.6,L.s,L.ju*.45+L.pu*.55):V(L.jf+(L.pf-L.jf)*.4-2.2,L.s,L.ju*.4+L.pu*.6);
   const top=front?P.leg*1.25:P.leg*1.6;
-  sh.push(ball(j,top*.6,col[1],{sil:1}),limb(j,knee,top,col[1],{sil:1}),limb(knee,p,P.leg,col[1],{sil:1}),limb({x:j.x,y:j.y-.4},{x:knee.x,y:knee.y-.3},top-1.3,col[2]),limb(knee,{x:p.x,y:p.y-.4},P.leg-1.3,col[2]));
+  sh.push(limb(j,knee,top,col[1],{sil:1}),limb(knee,p,P.leg,col[1],{sil:1}),limb({x:j.x,y:j.y-.4},{x:knee.x,y:knee.y-.3},top-1.3,col[2]),limb(knee,{x:p.x,y:p.y-.4},P.leg-1.3,col[2]));
   if(pawCol)sh.push(limb({x:knee.x*.4+p.x*.6,y:knee.y*.4+p.y*.6},p,P.leg-1,pawCol[2]));
   sh.push({k:'e',x:p.x+ca*.6,y:p.y,rx:P.leg*.62,ry:P.leg*.42,col:pawCol?pawCol[2]:col[2],sil:1});group(p.d+(front?.01:0),sh);}
  // Tail, wagging side to side.
- const tp=tailPath(P,sk).map(([f,u,k])=>V(sk.hipF-P.rh*.6+f,sk.wag*k*k*P.tailL*.45,sk.hU+P.rh*.25+u)),tail=[];
+ // A curled tail also leans to one side, as a husky's does, so from behind it reads as a curl rather than a pole.
+ const lean=P.tail==='curl'?P.tailL*.28:0,tp=tailPath(P,sk).map(([f,u,k])=>V(sk.hipF-P.rh*.6+f,sk.wag*k*k*P.tailL*.45+lean*Math.sin(k*Math.PI*.6),sk.hU+P.rh*.25+u)),tail=[];
  const tr=k=>P.tail==='brush'||P.tail==='plume'?P.tailR*(1+Math.sin(k*Math.PI)*.45)*(1-k*.3):P.tail==='curl'?P.tailR*(1.1-k*.2):P.tailR*(1-k*.55);
  const tk=i=>i/(tp.length-1);for(let i=1;i<tp.length;i++)tail.push(limb(tp[i-1],tp[i],tr(tk(i))*2,coat[1],{sil:1}));tail.push(ball(tp.at(-1),tr(1),coat[1],{sil:1}));
- for(let i=1;i<tp.length;i++)tail.push(limb({x:tp[i-1].x,y:tp[i-1].y-.4},{x:tp[i].x,y:tp[i].y-.4},Math.max(.6,tr(tk(i))*2-1.4),coat[2]));
+ // A saddle-backed dog has a dark stripe down the top of its tail, which also keeps the tail from reading as a leg from behind.
+ const tailTop=marking==='saddle'?dark[1]:coat[2];for(let i=1;i<tp.length;i++)tail.push(limb({x:tp[i-1].x,y:tp[i-1].y-.4},{x:tp[i].x,y:tp[i].y-.4},Math.max(.6,tr(tk(i))*2-1.4),tailTop));
  if(marking==='tabby')tp.forEach((q,i)=>{if(i%3===2&&i<tp.length-1)tail.push(limb(tp[i],tp[i+1],tr(tk(i))*1.9,coat[0]));});
  if((marking==='mask'||marking==='tuxedo')&&P.tail!=='stub')tail.push(ball(tp.at(-1),tr(1)*.9,pale[2]));
  group(tp[2].d-.4,tail);
@@ -143,7 +150,7 @@ export function pet(c,direction=2,frame=0,look={}){
   const at=(df,ds,du)=>V(base[0]+df,base[1]+ds,base[2]+du),earCol=coat;
   if(P.ears==='prick'||P.ears==='cat'){const h=P.earH,w=cat?1.9:2.1,tip=at(-.4,s*(cat?.9:.7),h);
    const ring=[];for(let i=0;i<10;i++){const q=i/10*Math.PI*2;ring.push(at(Math.cos(q)*w*1.05-.3,Math.sin(q)*w*.9,-.6));}const outer=hull([...ring,tip]);ears.push({side:s,d:tip.d,shapes:[poly(outer,earCol[1],{sil:1}),poly([at(.1,-w*.55,-.2),at(.1,w*.55,-.2),at(-.3,s*(cat?.7:.55),h*.75)],facing(1,0,.2)>.2?PINK:earCol[2])]});}
-  else if(P.ears==='drop'){const top=at(.3,s*.6,-.2),tip=at(.6,s*1.9,-P.earH);ears.push({side:s,d:top.d+(vis>0?1:-1),shapes:[limb(top,tip,3.4,coat[0],{sil:1}),limb({x:top.x,y:top.y-.3},{x:tip.x,y:tip.y-.3},2.2,coat[1]),{k:'e',x:tip.x,y:tip.y,rx:1.7,ry:1.3,col:coat[1],sil:1}]});}
+  else if(P.ears==='drop'){const top=at(-.1,s*.9,-.2),tip=at(-.3,s*(rH*.42+.6),-P.earH);ears.push({side:s,d:top.d+(vis>0?1:-1),shapes:[limb(top,tip,3.4,coat[0],{sil:1}),limb({x:top.x,y:top.y-.3},{x:tip.x,y:tip.y-.3},2.2,coat[1]),{k:'e',x:tip.x,y:tip.y,rx:1.7,ry:1.3,col:coat[1],sil:1}]});}
   else{const b0=at(0,-.9,-.3),b1=at(0,.9,-.3),tip=at(1.6,s*1.2,P.earH*.35);ears.push({side:s,d:tip.d,shapes:[poly([b0,b1,at(-.8,0,P.earH*.6),tip],coat[1],{sil:1}),poly([at(.1,-.5,0),at(.1,.5,0),at(.6,s*.6,P.earH*.4)],coat[0])]});}}
  // Whiskers and the tongue are tiny, but they say "cat" and "happy dog" from across the camp.
  const mouth=[];if(facing(1,0,0)>-.2){
@@ -157,9 +164,9 @@ export function pet(c,direction=2,frame=0,look={}){
  const headShapes=[...H],headFront=facing(1,0,0)>0;
  const farEars=ears.filter(e=>e.d<hs.d),nearEars=ears.filter(e=>e.d>=hs.d);
  const headGroup=[];for(const e of farEars)group(hs.d-.01,e.shapes);
- group(hs.d+(headFront?.5:-.5),headFront?[...headShapes,...snout,...eyes,...mouth]:[...snout,...mouth,...headShapes,...eyes]);
- for(const e of nearEars)group(hs.d+(headFront?.6:-.4),e.shapes);
- group(0,[...body,...bodyMark]);group(neckA.d*.6+(headFront?.2:-.2),neck);
+ group(headFront?hs.d+.5:Math.max(hs.d-.5,neckA.d*.6-.15),headFront?[...headShapes,...snout,...eyes,...mouth]:[...snout,...mouth,...headShapes,...eyes]);
+ for(const e of nearEars)group(headFront?hs.d+.6:Math.max(hs.d-.4,neckA.d*.6-.1),e.shapes);
+ const neckDepth=neckA.d*.6+(headFront?.2:-.2);group(0,[...farMass,...body,...nearMass,...bodyMark]);group(neckDepth,neck);
  groups.sort((a,b)=>a.depth-b.depth);for(const G of groups)for(const sh of G.shapes)if(sh.k==='e'){sh.rx*=Z;sh.ry*=Z;}
  for(const G of groups){
   for(const s of G.shapes)if(s.sil){if(s.k==='p'){for(const [ox,oy] of [[-1,0],[1,0],[0,-1],[0,1],[-.5,-.5],[.5,-.5],[-.5,.5],[.5,.5]])draw(g,s,INK,ox,oy);}else draw(g,s,INK,0,0,1);}

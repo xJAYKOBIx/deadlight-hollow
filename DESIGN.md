@@ -167,3 +167,7 @@ Petting: face your pet in camp and the prompt reads "Pet (name)" (or "Pet your d
 ### v0.20.2 creator preview fix, muzzles
 
 The creator preview now runs its own animation loop while the creator is open. Before this, only the room scene repainted it, so in camp the Idle, Walk and Run buttons and drag-to-turn did nothing (desktop and phone alike). Muzzles were rebuilt: dogs have a tapered muzzle from a broad base at the stop to the nose, a jaw line on the visible side, a nose with a highlight, and the tongue tucked under the nose. Snout lengths are a little shorter (Shepherd 5.6, Lab 4.8, Terrier 3.2, Husky 4.8). Cats have a very short muzzle with round cheeks either side. The eyes now draw over the muzzle, so front views show them.
+
+### v0.20.3 companion build fixes (from a turnaround video)
+
+Body: the middle of the body chain is slimmer and a little higher, giving a deep chest and a tucked waist. Each standing leg now has a thigh or shoulder mass that joins the body without a seam: far ones are drawn under the body, near ones over it. The old round joint balls are gone. Neck: thinner (0.72 of the head radius) and set further back, and the collar sits lower on the neck. From behind, the head now draws over the neck, so it shows above the shoulders instead of disappearing behind a collar band. Lab ears hang at the sides of the head, not over the face. A saddle-backed dog has a dark stripe down the top of its tail, so from behind the tail no longer reads as a fifth leg. The husky's curled tail leans to one side.
