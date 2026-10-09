@@ -34,6 +34,20 @@ const PATHS=[[[560,500],[560,330]],[[540,480],[300,420],[170,270]],[[590,480],[7
 function pathDist(x,y){let best=1e9;for(const line of PATHS)for(let i=1;i<line.length;i++){const [ax,ay]=line[i-1],[bx,by]=line[i],dx=bx-ax,dy=by-ay,t=Math.max(0,Math.min(1,((x-ax)*dx+(y-ay)*dy)/(dx*dx+dy*dy)));best=Math.min(best,Math.hypot(x-ax-dx*t,y-ay-dy*t));}return best+5*Math.sin(x*.06+y*.04)+3*Math.sin(y*.11);}
 const rgb=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
 const SAND=['#5f5444','#6c604d','#766a55','#80735d','#8b7e66'].map(rgb),PATH=['#7d715b','#857862','#8c806a'].map(rgb),WET=['#4c483f','#545046','#5c574b'].map(rgb),FOAM=rgb('#9fb0ab');
+const MOSS_HEX=['#34422c','#435437','#566a40'],MOSS=MOSS_HEX.map(rgb);
+const ROOTS=[[204,26],[330,40],[452,18],[700,34],[776,22],[870,30]];
+// Where water drips from the ceiling (the scene animates the drops) and where the glowing fungus grows.
+export const DRIPS=[...[292,488,624].map(x=>({x,top:wallTop(x)+8,y:wallBottom(x)+7})),{x:917,top:wallTop(917)+8,y:224,into:true}];
+export const FUNGI=[[300,wallBottom(300)-1],[617,wallBottom(617)-1],[912,wallBottom(912)],[80,326],[84,700],[134,486]];
+// Jittered cells for the boulder field: distance to the nearest two centers.
+function boulder(x,y){const S=17,cx=Math.floor(x/S),cy=Math.floor(y/S);let d1=1e9,d2=1e9,best=null;
+ for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){const gx=cx+i,gy=cy+j,px=(gx+.2+hash(gx,gy*3+1)*.6)*S,py=(gy+.2+hash(gx*5+2,gy)*.6)*S,d=Math.hypot((x-px)*1.1,y-py);if(d<d1){d2=d1;d1=d;best=[px,py,gx,gy];}else if(d<d2)d2=d;}
+ const [px,py,gx,gy]=best,r=d2-d1;return {seam:r,lit:y<py&&x<px+4?r:9,tone:(hash(gx,gy)-.5)*.3};}
+// Wall joints: x positions with a wobble down the face; some stop partway down.
+const JOINTS=[];for(let x=8;x<CAMP.w;x+=30+Math.floor(hash(x,7)*46))JOINTS.push({x,end:hash(x,9)<.4?.55+hash(x,10)*.3:1.1,tone:(hash(x,8)-.5)*.22,shift:hash(x,11)*9,slope:(hash(x,12)-.5)*.16});
+function joint(x,y,wt,wb){let best={d:30,w:60,tone:0,shift:0,slope:0,crack:false};const k=(y-wt)/(wb-wt);
+ for(let i=0;i<JOINTS.length;i++){const J=JOINTS[i],sy=y/13,f=Math.floor(sy),t=sy-f,d=x-J.x-((hash(i,f)*(1-t)+hash(i,f+1)*t)-.5)*9;if(d<0)break;best={d,w:(JOINTS[i+1]?.x??CAMP.w)-J.x,tone:J.tone,shift:J.shift,slope:J.slope,crack:k<J.end};}
+ return best;}
 const SEA=['#2c5664','#22485a','#1a3a4b','#14303f','#0f2532'].map(rgb),ROCK=R.map(rgb),CEIL=['#121319','#17181f','#1d1f27'].map(rgb),SKY=['#141b2c','#1b2539','#243149'].map(rgb);
 function groundColor(x,y){
  const wb=wallBottom(x),n=fbm(x/38,y/38),g=hash(x,y),dith=bayer(x,y);
@@ -42,11 +56,18 @@ function groundColor(x,y){
   const wt=wallTop(x);if(inMouthRim(x,y))return y<wt?ROCK[2]:ROCK[4];
   if(y<wt){const t=y/wt;return CEIL[Math.min(2,Math.floor(t*2.2+dith*.8))];}
   // Rock face: strata bands, rougher near the base, a dark contact line at the foot.
-  if(y>wb-4)return ROCK[0];if(y>wb-9)return ROCK[1];
-  const band=Math.floor((y+5*Math.sin(x*.05)+3*Math.sin(x*.13))/10),edge=((y+5*Math.sin(x*.05)+3*Math.sin(x*.13))%10+10)%10;
-  if(edge<1.2)return ROCK[1];const v=n*.55+g*.25+(band%2?.12:0)+(y-wt)/(wb-wt)*.2;return ROCK[v>.78?4:v>.52?3:2];}
+  if(y>wb-4)return ROCK[0];if(y>wb-9)return y>wb-7&&fbm(x/7,3)>.62?MOSS[0]:ROCK[1];
+  // Moss creeps up from the damp foot of the wall.
+  const mossy=fbm(x/9,y/6)+(y-wb+26)/60;if(y>wb-26&&mossy>.98)return MOSS[mossy>1.12?2:g>.5?1:0];
+  // Joints split the wall into tall facets, each its own shade: a dark crack with a lit lip beside it.
+  const j=joint(x,y,wt,wb);if(j.crack&&j.d<1)return ROCK[0];if(j.crack&&j.d<2)return ROCK[3];
+  // Bedding planes tilt a little differently in each block, so they break at the joints like stacked stone.
+  const by=y+j.shift+j.d*j.slope+1.5*Math.sin(x*.13),band=Math.floor(by/9),edge=(by%9+9)%9;
+  if(edge<1)return ROCK[1];if(edge>8.2&&g>.3)return ROCK[3];const v=n*.5+g*.25+(band%2?.1:0)+(y-wt)/(wb-wt)*.2+j.tone-j.d/j.w*.14;return ROCK[v>.78?4:v>.52?3:v>.2?2:1];}
  if(mouth&&y<HORIZON){const t=y/HORIZON;if(g<.004)return rgb('#9aa4b8');return SKY[Math.min(2,Math.floor(t*2.4+dith*.7))];}
- if(x<westEdge(y)){const d=westEdge(y)-x;if(d<2)return ROCK[3];if(d<4)return ROCK[2];return ROCK[n*.6+g*.4>.62?2:1];}
+ if(x<westEdge(y)){const d=westEdge(y)-x;if(d<2)return ROCK[3];if(d<4)return ROCK[2];const m=fbm(x/11,y/11);if(d<16&&m>.7)return MOSS[m>.8?1:0];
+  // The west rock is a jumble of boulders: dark seams between them, each lit along its upper edge.
+  const b=boulder(x,y);if(b.seam<1.1)return ROCK[0];if(b.lit<2.2)return ROCK[b.lit<1?3:2];return ROCK[n*.6+g*.4+b.tone>.62?2:1];}
  const se=southEdge(x);if(y>se){return ROCK[y-se<3?2:n>.6?2:1];}
  const sx=shoreX(y);
  if(x>sx){const d=x-sx;if(d<2.5)return FOAM;const t=d/110+n*.18+dith*.12;if(y>HORIZON&&y<HORIZON+2&&mouth)return SEA[0];if(g<.01&&d>8)return rgb('#3a6573');return SEA[Math.min(4,Math.floor(t*4))];}
@@ -67,6 +88,17 @@ export function groundArt(c){
  for(let x=10;x<CAMP.w-20;x+=14+Math.floor(hash(x,1)*22)){if(inMouth(x,wallTop(x)+6))continue;const y=wallTop(x),len=10+hash(x,2)*26,wd=4+hash(x,3)*6;p([[x-wd/2,y-2],[x+wd/2,y-2],[x+1,y+len]],R[0]);p([[x-wd/2+1,y-1],[x,y-1],[x+.5,y+len-3]],R[1]);}
  for(let x=20;x<900;x+=30+Math.floor(hash(x,4)*40)){const y=wallTop(x)+12+hash(x,5)*20,len=wallBottom(x)-y-12;r(x,y,1,len,'#2f3b3d');r(x+1,y+len*.3,.5,len*.5,'#3d4a4a');if(hash(x,6)>.5)r(x,y+len-2,1,1,'#8fa6a6');}
  for(let i=0;i<60;i++){const x=hash(i,11)*900,y=wallTop(x)+20+hash(i,12)*(wallBottom(x)-wallTop(x)-34);r(x,y,2+hash(i,13)*6,.5,R[1]);r(x+1,y+.5,1+hash(i,13)*4,.5,R[4]);}
+ // Roots push through the ceiling and hang down the face.
+ for(const [x,len] of ROOTS){let px=x,py=wallTop(x)-6;for(let k=0;k<len;k+=3){const nx=px+Math.sin(k*.4+x)*1.2,ny=py+3;l(px,py,nx,ny,k<len*.5?2:1.5,'#241d18');l(px,py,nx,ny,k<len*.5?1:.5,'#5a4836');px=nx;py=ny;
+  if(hash(x,k)>.8){const s=hash(k,x)>.5?1:-1;l(px,py,px+s*4,py+5,1,'#4a3a2c');}}}
+ // Drips: a wet streak down the wall into a little puddle at its foot.
+ for(const d of DRIPS){r(d.x-.5,d.top,1.5,(d.into?wallBottom(d.x):d.y)-d.top-6,'#2b3639');if(d.into)continue;r(d.x+1,d.top+8,.5,(d.y-d.top)*.6,'#3d4a4a');e(d.x,d.y,9,3,'#2b3233');e(d.x,d.y-.5,7.5,2.2,'#3b4a52');r(d.x-4,d.y-1.5,4,.5,'#6f8790');r(d.x+2,d.y,2,.5,'#55707a');}
+ // Moss at the foot of the walls, thicker where water runs.
+ for(let i=0;i<46;i++){const x=40+hash(i,141)*880,y=wallBottom(x)-2-hash(i,142)*5,s=2+hash(i,143)*4;if(inMouth(x,y))continue;e(x,y,s+1.5,s*.55+.5,MOSS_HEX[0]);e(x-.5,y-.5,s,s*.4,MOSS_HEX[1]);r(x-s*.6,y-s*.4,s*.7,.5,MOSS_HEX[2]);}
+ for(const d of DRIPS.filter(d=>!d.into))for(let k=0;k<4;k++){const x=d.x-8+k*5+hash(k,d.x)*3,y=d.y-5-hash(d.x,k)*3;e(x,y,3,1.6,MOSS_HEX[1]);r(x-1.5,y-1,2.5,.5,MOSS_HEX[2]);}
+ for(let i=0;i<26;i++){const y=240+hash(i,151)*540,x=westEdge(y)-3-hash(i,152)*14,s=2+hash(i,153)*3;e(x,y,s+1,s*.6+.5,MOSS_HEX[0]);e(x,y-.5,s,s*.45,MOSS_HEX[1]);}
+ // Pale glowing fungus in a few damp corners. Their glow is drawn above the lighting.
+ for(const [fx,fy] of FUNGI)for(let k=0;k<5;k++){const x=fx+(hash(k,fx)-.5)*9,y=fy+(hash(fy,k)-.5)*4,s=.8+hash(k,fy)*1.3;r(x-.25,y,.5,s+1,'#8a8f6e');e(x,y,s+.5,s*.6+.3,'#3d4232');e(x,y-.3,s,s*.5,'#c9d68a');r(x-s*.5,y-.6,s*.6,.5,'#eef5c0');}
  // Tunnel behind the barred gate, cut into the back wall.
  const gx=164,gy=wallBottom(gx);p([[gx-50,gy],[gx-46,gy-60],[gx-34,gy-82],[gx,gy-92],[gx+34,gy-82],[gx+46,gy-60],[gx+50,gy]],R[0]);p([[gx-44,gy],[gx-40,gy-58],[gx-30,gy-77],[gx,gy-86],[gx+30,gy-77],[gx+40,gy-58],[gx+44,gy]],'#0b0c10');
  r(gx-50,gy-1,100,2,R[0]);
@@ -85,6 +117,16 @@ export function groundArt(c){
  e(762,612,20,9,'#3c362f55');
  // Footprints between the stations.
  for(let i=0;i<46;i++){const line=PATHS[i%PATHS.length],t=hash(i,71),a=line[0],b=line.at(-1),x=a[0]+(b[0]-a[0])*t+(hash(i,72)-.5)*10,y=a[1]+(b[1]-a[1])*t+(hash(i,73)-.5)*8;r(x,y,2,1,'#6a5e4b');r(x+3,y+2,2,1,'#6a5e4b');}
+ // The rowboat was dragged up from the water: a keel groove runs back to the tideline.
+ for(let t=0;t<=1;t+=.01){const x=944+t*66,y=540+t*42+Math.sin(t*3)*3;r(x-1.5,y,3,1,'#4e483d');r(x-2.5,y-1,1,1,'#857862');r(x+1.5,y+1,1,1,'#857862');if(hash(Math.floor(t*100),7)>.8)r(x+4,y+3,2,1,'#6a5e4b');}
+ // Crab holes along the wet sand, each with a little spray of dug-out grains.
+ for(let i=0;i<9;i++){const y=470+hash(i,161)*280,x=shoreX(y)-8-hash(i,162)*22;e(x,y,1.6,1,'#2c2a25');for(let k=0;k<4;k++)r(x-3+hash(k,i)*6,y-2+hash(i,k)*4,.5,.5,'#8b7e66');}
+ // A rusted anchor, half sunk in the sand, its chain trailing off.
+ {const ax=640,ay=690;l(ax,ay-14,ax,ay+4,2.5,EDGE);l(ax,ay-14,ax,ay+4,1.4,RUST);e(ax,ay-15,2.5,2,EDGE);e(ax,ay-15,1.4,1,'#3b3530');l(ax-6,ay-10,ax+6,ay-10,2,EDGE);l(ax-6,ay-10,ax+6,ay-10,1,RUST);
+  p([[ax-9,ay+1],[ax,ay+6],[ax+9,ay+1],[ax+8,ay+3.5],[ax,ay+8],[ax-8,ay+3.5]],EDGE);p([[ax-8,ay+2],[ax,ay+6],[ax+8,ay+2],[ax,ay+7]],'#8a5236');e(ax,ay+7,12,2,'#5f544455');
+  for(let k=0;k<9;k++){const x=ax+3+k*3.2,y=ay-15-Math.sin(k*.5)*3+k*.4;e(x,y,1.4,1,EDGE);r(x-.5,y-.5,1,.5,'#8a5236');}}
+ // A starfish and a few more shells near the water.
+ {const sx=868,sy=716;for(let k=0;k<5;k++){const a=k/5*Math.PI*2-Math.PI/2;l(sx,sy,sx+Math.cos(a)*4,sy+Math.sin(a)*3,1.6,'#8a4a35');}e(sx,sy,1.4,1,'#b0654a');}
  // Ripples and glints on the water.
  for(let i=0;i<160;i++){const y=230+hash(i,81)*650,sx=shoreX(y),x=sx+12+hash(i,82)*340;if(x>CAMP.w)continue;r(x,y,3+hash(i,83)*8,.5,hash(i,84)>.7?'#4a7584':'#2f5a69');}
  c.restore();
@@ -213,6 +255,47 @@ const ART={
   r(8.5,-66.5,7,1.5,M[1]);r(9,-65,6,9,EDGE);r(10,-64,4,7,GLASS);r(11,-63,2,5,GLASS_HI);r(9,-56.5,6,1,M[1]);},
  rock(g,o){const {e,p,r}=g,w=o.w,h=o.h,z=o.z;e(w/2+2,h-1,w/2+3,h/3,SHADOW);const pts=[[1,h-2],[2,h-z*.5-4],[w*.3,-z+h*.4],[w*.68,-z+h*.3],[w-2,h-z*.55],[w,h-3],[w*.6,h],[w*.2,h]];
   p(pts,EDGE);p(pts.map(([x,y])=>[x+(x<w/2?1:-1),y+(y<h/2?1:-1)]),R[2]);p([[3,h-z*.5-3],[w*.3,-z+h*.4+1],[w*.68,-z+h*.3+1],[w-3,h-z*.55],[w*.6,h-z*.3],[w*.2,h-z*.25]],R[3]);r(w*.3,-z+h*.4+1.5,w*.3,.5,R[4]);r(w*.5,h-z*.3,.5,z*.4,R[1]);},
+ // Split logs stacked between two stakes, cut ends out, and a chopping stump with the axe left in it.
+ woodpile(g,o){const {e,r,l,p}=g;e(30,18,32,5,SHADOW);for(const x of [1,37]){r(x,-27,4,44,EDGE);r(x+1,-26,2,42,W[2]);r(x+1,-26,.5,42,W[3]);}
+  const rows=[[13,[8,16,24,32]],[6,[12,20,28]],[-1,[8,16,24,32]],[-8,[12,20,28]],[-15,[16,24]]];
+  for(const [y,xs] of rows)for(const x of xs){e(x,y+.5,4.6,4,EDGE);e(x,y,3.8,3.2,hash(x,y)>.5?W[3]:'#9a7c5a');e(x,y,2.2,1.8,W[4]);r(x-.25,y-.25,.5,.5,W[1]);r(x-3,y+2.2,4,.5,W[1]);}
+  e(51,15,7,3.4,EDGE);r(44.5,7,13,8,EDGE);r(45.5,8,11,7,W[1]);r(46,8,1.5,7,W[2]);e(51,7.5,6,2.6,EDGE);e(51,7.3,5.2,2,'#9a7c5a');e(51,7.3,3,1.1,W[4]);
+  l(50,7,57,-6,2,EDGE);l(50,7,57,-6,1,W[3]);p([[54,-8],[60,-9],[61,-4],[56,-2]],EDGE);p([[55,-7.5],[59.5,-8],[60,-4.5],[56.5,-3]],M[2]);r(55.5,-7.5,4,.5,M[3]);
+  for(let i=0;i<7;i++)r(42+hash(i,3)*18,14+hash(i,4)*5,1.5,.5,'#a88a66');},
+ // A blue drum under the drip by the medic tent, with a tarp funnel. Clean water is scarce.
+ drum(g,o){const {e,r,l,p}=g;e(14,16,16,5,SHADOW);r(1,-27,24,40,EDGE);e(13,13,12,4,EDGE);r(2,-27,22,40,'#34495a');e(13,13,11,3.2,'#34495a');r(2,-27,5,40,'#435b6e');r(19,-27,5,40,'#2a3a48');
+  for(const y of [-18,-2,9])r(1.5,y,23,1.5,'#2a3a48');e(13,-27,12,4.5,EDGE);e(13,-27,11,3.6,'#435b6e');e(13,-27,8,2.5,'#1c2a35');e(13,-27.3,6,1.6,'#3b5a66');r(10,-28,4,.5,'#8fb0b8');
+  p([[4,-38],[22,-38],[15,-29],[11,-29]],EDGE);p([[5.5,-37.5],[20.5,-37.5],[14.5,-30],[11.5,-30]],'#5d6950');r(6,-37.5,14,1,'#6f7d5f');l(4,-38,-2,-44,.5,'#5b5446');l(22,-38,28,-44,.5,'#5b5446');
+  e(32,12,5,2.5,EDGE);r(27.5,4,9,8,EDGE);r(28.5,5,7,7,M[2]);e(32,5,4,1.5,EDGE);e(32,5,3.2,1,'#1c2a35');r(28.5,5,1.5,7,M[3]);l(28,5,32,1,.5,M[3]);l(32,1,36,5,.5,M[3]);},
+ // A heap of net with cork floats and a faded buoy, by the pier steps.
+ nets(g,o){const {e,r,l,p}=g,w=o.w;e(w/2,11,w/2+3,5,SHADOW);const lumps=[[11,7,10,5],[23,5,12,6.5],[34,8,9,5]];
+  for(const [x,y,a,b] of lumps)e(x,y+1,a+1,b+1,EDGE);for(const [x,y,a,b] of lumps){e(x,y,a,b,'#4a4538');e(x-1,y-1.5,a*.75,b*.55,'#5d5747');}
+  for(let i=0;i<26;i++){const x=3+hash(i,1)*(w-6),y=1+hash(i,2)*11,s=hash(i,3)>.5?1:-1;l(x,y,x+2.5,y+2.5*s,.5,'#7a735f');}
+  for(const [x,y] of [[6,8],[17,2],[29,3],[38,10],[24,11]]){e(x,y,2.4,1.6,EDGE);e(x,y-.2,1.8,1.1,'#b8a27a');r(x-1,y-.8,1,.5,'#d4c39a');}
+  l(-6,14,40,-4,2.5,EDGE);l(-6,14,40,-4,1.4,W[3]);p([[36,-2],[46,-7],[48,-4],[39,1]],EDGE);p([[37,-2],[45.5,-6],[47,-4.2],[39,0]],W[3]);
+  e(w-3,4,5,4.4,EDGE);e(w-3,3.6,4.2,3.6,'#8a4a3e');r(w-7,2.5,8.4,1.6,'#c4bca8');r(w-5.5,.5,2,1,'#b06a5a');},
+ // A stack of salvage by Hollis's cart: crates, an ammo can and a coil of hose.
+ salvage(g,o){const {e,r,l}=g;e(22,16,24,5,SHADOW);box(g,26,12,18,'#5a4a38','#3d3027');r(.5,-17.5,25,1,'#76614a');for(const x of [8,17])r(x,-5.5,1,17,'#33281f');
+  r(4,-24,16,8,EDGE);r(5,-23,14,7,'#5a4a38');r(5,-23,14,3,'#76614a');r(5,-20,14,.5,'#33281f');r(10,-18,4,2,M[1]);
+  r(28,-2,14,14,EDGE);r(29,-1,12,5,'#5f6844');r(29,4,12,7,'#4b5236');r(33,-3,4,2,EDGE);r(33.5,-2.5,3,1,M[2]);r(30,7,10,.5,'#3a3f2a');
+  e(36,15,7,3,EDGE);e(36,14.5,6,2.4,'#2a2b2f');e(36,14.5,3.6,1.3,'#3f4247');e(36,14.5,2,.6,'#2a2b2f');l(30,14,24,17,1,'#2a2b2f');},
+ // The way deeper in: a mine frame in a rock outcrop, choked with fallen stone. Green things push through the gaps.
+ passage(g,o){const {e,r,l,p}=g,h=o.h;e(40,h,50,7,SHADOW);
+  const rock=[[-12,h+2],[-14,h-24],[-8,-22],[6,-46],[26,-58],[52,-58],[72,-46],[86,-22],[90,h-20],[88,h+2]];
+  p(rock,EDGE);p(rock.map(([x,y])=>[x+(x<40?1.2:-1.2),y+1.2]),R[1]);p([[-6,h-26],[-2,-20],[10,-42],[28,-54],[50,-54],[66,-44],[78,-24],[60,-30],[40,-38],[20,-32]],R[2]);
+  p([[10,-42],[28,-54],[50,-54],[40,-46],[24,-44]],R[3]);r(26,-54,18,.5,R[4]);r(12,-40,8,.5,R[4]);for(const [x,y,w] of [[0,-6,10],[70,-12,12],[64,6,10],[-8,10,8]])r(x,y,w,.5,R[0]);
+  for(let i=0;i<8;i++){const x=8+hash(i,7)*64,y=-50+hash(i,8)*12;e(x,y,2.5+hash(i,9)*2,1.2,MOSS_HEX[hash(i,10)>.5?1:0]);}
+  // The opening, its timbers and the rubble filling it.
+  p([[18,h],[19,-18],[24,-26],[56,-26],[61,-18],[62,h]],'#0b0c10');
+  for(const x of [16,58]){r(x,-24,6,h+25,EDGE);r(x+1,-23,4,h+23,W[1]);r(x+1,-23,1.2,h+23,W[2]);}
+  p([[12,-31],[68,-27],[68,-21],[12,-25]],EDGE);p([[13,-30],[67,-26],[67,-22],[13,-26]],W[2]);r(14,-29.5,52,.5,W[3]);p([[36,-28.5],[40,-28],[38,-23],[35,-24]],EDGE);
+  const stones=[[24,h-2,8],[36,h-1,9],[50,h-3,8],[28,h-11,7],[42,h-12,8],[54,h-13,6],[32,h-21,6],[46,h-22,6],[38,h-30,5],[26,h-28,4]];
+  for(const [x,y,s] of stones){e(x,y+1,s+1,s*.7+1,EDGE);e(x,y,s,s*.7,R[hash(x,y)>.5?2:3]);r(x-s*.5,y-s*.45,s*.6,.5,R[4]);}
+  l(20,h-36,60,h-14,3,EDGE);l(20,h-36,60,h-14,1.8,W[1]);r(30,-12,1,4,M[1]);
+  // Sprouts through the rubble: the only green thing in camp that is not moss.
+  for(const [x,y] of [[30,h-26],[48,h-31],[41,h-17]]){l(x,y,x,y-5,.8,'#4f6b34');e(x-1.6,y-5,1.8,1,'#6f9a45');e(x+1.6,y-6,1.8,1,'#86b356');}
+  // A pick leans on the frame for whoever clears it someday.
+  l(66,h+1,74,h-24,1.5,EDGE);l(66,h+1,74,h-24,.8,W[3]);p([[66,-26],[80,-22],[81,-20],[74,-21],[67,-24]],EDGE);r(68,-24.5,10,1,M[3]);},
  driftwood(g,o){const {l,r}=g;l(2,8,78,4,4,EDGE);l(2,7.5,78,3.5,2.8,'#8f8576');l(4,6.5,76,2.5,.8,'#a9a090');l(40,6,52,-2,2.5,EDGE);l(40,6,52,-2,1.5,'#8f8576');for(const x of [16,34,60])r(x,5,.5,2,'#6d665b');}
 };
 export const PROP_PAD=14;

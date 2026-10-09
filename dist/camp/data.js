@@ -43,7 +43,12 @@ export const PROPS=[
  {id:'sacks',kind:'sacks',x:478,y:258,w:30,h:22,z:20},
  {id:'pool-a',kind:'tidepool',x:930,y:560,w:40,h:20,z:2,flat:true},
  {id:'pool-b',kind:'tidepool',x:900,y:640,w:30,h:16,z:2,flat:true},
- {id:'drift',kind:'driftwood',x:476,y:640,w:80,h:14,z:6,flat:true}
+ {id:'drift',kind:'driftwood',x:476,y:640,w:80,h:14,z:6,flat:true},
+ {id:'woodpile',kind:'woodpile',x:378,y:518,w:42,h:18,z:30},
+ {id:'drum',kind:'drum',x:904,y:258,w:26,h:14,z:40},
+ {id:'nets',kind:'nets',x:906,y:332,w:42,h:14,z:8,flat:true},
+ {id:'salvage',kind:'salvage',x:234,y:500,w:44,h:14,z:28},
+ {id:'passage',kind:'passage',x:66,y:494,w:80,h:30,z:60}
 ];
 // Residents are placeholders until the cast is redesigned. Looks use the character creator's options.
 export const RESIDENTS=[
@@ -69,6 +74,7 @@ export const OBJECTS=[
  {id:'boat',verb:'Look',my:404,mx:940,name:'Rowboat',role:'The inlet',x:902,y:486,lines:['A rowboat, patched with tar and stubbornness.','Someday it\'ll carry you past the mouth of the cave.']},
  {id:'basket',verb:'Check',my:566,name:'Fish basket',role:'Pike\'s salt crate',x:818,y:648,lines:['Empty. The pier\'s past the medic tent.']},
  {id:'pier',verb:'Fish',my:322,name:'Fishing pier',role:'The inlet',x:1086,y:382,lines:['The water\'s deep off the end of the pier.']},
+ {id:'passage',verb:'Look',my:420,name:'Collapsed passage',role:'Deeper caverns',x:122,y:548,lines:['An old mine frame, choked with fallen rock. Cool air breathes through the gaps.','Something green is growing in there. You can smell wet soil, not salt.','Wren\'s voice from across the camp: "One day we dig that out. Not today."']},
  {id:'fire',verb:'Sit',my:418,name:'Campfire',role:'Firelight Camp',x:560,y:506,lines:['The fire crackles. For a moment, everything is quiet.']}
 ];
 export const USE_RANGE=44;

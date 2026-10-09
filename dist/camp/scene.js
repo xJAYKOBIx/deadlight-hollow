@@ -2,6 +2,7 @@ import {survivor,FRAME,FRAME_COUNT} from '../study/character.js';
 import {CAMP,PROPS,RESIDENTS,LIGHTS} from './data.js';
 import {groundArt,frontArt,FRONT_Y,propArt,PROP_PAD,flameArt,FLAME,lightArt,LIGHT_SCALE,glowArt,iconArt,ICON,ICONS,shoreX,hash,fishArt} from './art.js';
 import {PIER_END} from './play.js';
+import {CaveLife} from './life.js';
 import {addPet,placePet,petSheet,drawHearts} from '../companion/sprite.js';
 // Residents turn to face you when you come close.
 const FACE_RANGE=130;
@@ -32,7 +33,7 @@ export function makeCampScene(model,bridge){return class Camp extends Phaser.Sce
   this.texture('camp-glow',128,128,glowArt);this.textures.get('camp-glow').setFilter(Phaser.Textures.FilterMode.LINEAR);
   this.glow=this.add.image(fire.x+fire.w/2,fire.y+6,'camp-glow').setScale(3.2,2.2).setDepth(6001).setBlendMode(Phaser.BlendModes.ADD);
   this.lampGlows=LIGHTS.slice(1,6).map(([x,y],i)=>this.add.image(x,y+(i?0:-20),'camp-glow').setScale(i?.55:1.1,i?.45:.8).setDepth(6001).setBlendMode(Phaser.BlendModes.ADD).setAlpha(.18));
-  this.fx=this.add.graphics().setDepth(6002);this.smoke=this.add.graphics().setDepth(5600);this.embers=[];this.puffs=[];this.nextEmber=0;this.nextPuff=0;this.nextWater=0;
+  this.fx=this.add.graphics().setDepth(6002);this.smoke=this.add.graphics().setDepth(5600);this.embers=[];this.puffs=[];this.nextEmber=0;this.nextPuff=0;this.nextWater=0;this.life=new CaveLife(this);
   const icons=this.texture('camp-icons',ICON.w*2*ICONS.length,ICON.h*2,iconArt);ICONS.forEach((k,i)=>{if(!icons.has(k))icons.add(k,0,i*ICON.w*2,0,ICON.w*2,ICON.h*2);});
   this.badges=this.residents.map(r=>this.add.image(r.data.x,r.data.y-92,'camp-icons',r.data.icon).setScale(.5).setOrigin(.5,1).setDepth(7000));
   this.marker=this.add.image(0,0,'camp-icons','chevron').setScale(.5).setOrigin(.5,1).setDepth(7001).setVisible(false);
@@ -55,7 +56,7 @@ export function makeCampScene(model,bridge){return class Camp extends Phaser.Sce
   if(target){const bob=Math.round(Math.sin(now/180)*2*2)/2,x=target.mx??target.x,y=target.kind==='resident'?target.y-116:target.my;this.marker.setVisible(true).setPosition(x,y+bob);}else this.marker.setVisible(false);
   this.flame.setFrame(Math.floor(now/90)%FLAME.frames);this.potFlame.setFrame((Math.floor(now/110)+3)%FLAME.frames);
   this.glow.setAlpha(.34+.05*Math.sin(now*.013)+.03*Math.sin(now*.037));this.lampGlows.forEach((g,i)=>g.setAlpha(.16+.03*Math.sin(now*.005+i*2)));
-  this.effects(now,dt);this.petFx.clear();drawHearts(this.petFx,pal,bridge.petTarget().my+6,now);this.drawFishing(fishing,now,dt);this.drawSpit(bridge.cooking?.(),now);
+  this.effects(now,dt);this.life.update(now,dt,[model,pal]);this.petFx.clear();drawHearts(this.petFx,pal,bridge.petTarget().my+6,now);this.drawFishing(fishing,now,dt);this.drawSpit(bridge.cooking?.(),now);
   // While fishing, the camera moves in close and leans out over the water so the bobber and the fish stay in view.
   this.camOff+=((fishing?1:0)-this.camOff)*Math.min(1,dt*3);this.cookOff=(this.cookOff||0)+((bridge.busy?.()&&!fishing?1:0)-(this.cookOff||0))*Math.min(1,dt*3);const cam=this.cameras.main,z=this.zoom(),fz=Math.max(z,Math.min(2.4,this.scale.height/220,this.scale.width/220)),k=this.camOff;
   cam.setZoom(z+(fz-z)*k);cam.centerOn(model.x+44*k+30*this.cookOff,model.y-20-42*k+56*this.cookOff);bridge.tick(now,this);}

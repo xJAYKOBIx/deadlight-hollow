@@ -175,3 +175,11 @@ Body: the middle of the body chain is slimmer and a little higher, giving a deep
 ### v0.20.4 chest and legs
 
 The chest no longer hangs out in front of the front legs like a ball. The front of the body chain now ends 0.3 of the chest radius further back, and the front legs sit further forward (at 0.84 of the half body length, was 0.72), so the forechest only just clears the forearms. The waist is tucked more for dogs (0.22, cats 0.1), so the underline rises from a deep chest to the hips and the Lab no longer reads as a tube. The thigh and shoulder masses keep only a soft shadow along their lower edge, with no full ring.
+
+### v0.21 camp polish
+
+The camp gets more detail without more clutter, so it still reads on a phone. Back wall (`art.js`, `groundColor`): vertical joints split the rock into blocks, each a slightly different shade with its own bedding-plane tilt, so the strata break at the joints like stacked stone. Moss grows along the damp foot of the walls; the west rock is a field of boulders with dark seams. Roots hang from the ceiling edge. Three drips run down the wall into puddles, and a fourth feeds a blue water drum by the medic tent (`DRIPS`). Pale yellow-green glowing fungus grows in six damp corners (`FUNGI`); it is not ember (yours or usable) and not teal (care).
+
+New props: a woodpile with a chopping stump by the fire, the medic's water drum with a tarp funnel, a net heap with floats and an oar by the pier (flat), salvage crates by Hollis's cart, and the collapsed passage in the west wall: a mine frame in a rock outcrop, choked with rubble, with a few sprouts and a faint green glow coming through. You can Look at it. It is where the deeper caverns (the farm and training grounds) will open later. On the sand: the rowboat's keel groove back to the water, crab holes, a half-sunk anchor and a starfish.
+
+Cave life (`life.js`, `CaveLife`), all decoration: drops fall and ring out in the puddles; the fungus glow breathes and lets off the odd spore; moths loop round every lantern; small flocks of bats cross under the ceiling every 9 to 18 seconds and leave by the cave mouth; three crabs sidle on the wet sand, bolt into the water when you or your pet come within 46 units, and come back somewhere else 14 to 24 seconds later. It costs about 0.06 ms a frame; the ground takes about 5% longer to paint once at load.
