@@ -1,0 +1,26 @@
+{
+  "id": "/",
+  "name": "Deadlight Hollow",
+  "short_name": "Deadlight",
+  "description": "One survivor, two quiet rooms. Walk, run and inspect the first Deadlight Hollow character.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#242630",
+  "theme_color": "#242630",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+import test from'node:test';import assert from'node:assert/strict';import{createRequire}from'node:module';import{APPEARANCE_KEY,APPEARANCE_OPTIONS,DEFAULT_APPEARANCE,normalizeAppearance,readAppearance,saveAppearance,randomAppearance}from'../dist/study/appearance.js';import{survivor}from'../dist/study/character.js';
+const require=createRequire(import.meta.url),{createCanvas}=require((process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES||'/opt/codex/runtimes/codex-primary-runtime/dependencies/node/node_modules')+'/@napi-rs/canvas');
+test('study appearance safely restores, validates and persists independently',()=>{let data;const storage={getItem:k=>{assert.equal(k,APPEARANCE_KEY);return data},setItem:(k,v)=>{assert.equal(k,APPEARANCE_KEY);data=v}};assert.deepEqual(readAppearance(storage),DEFAULT_APPEARANCE);const look={hair:2,beard:3,hat:1,color:2};assert.equal(saveAppearance(storage,look),true);assert.deepEqual(readAppearance(storage),{...DEFAULT_APPEARANCE,...look});data='broken';assert.deepEqual(readAppearance(storage),DEFAULT_APPEARANCE);assert.deepEqual(normalizeAppearance({hair:99,beard:-1,hat:'1',color:2,extra:1}),{...DEFAULT_APPEARANCE,color:2});assert.deepEqual(readAppearance(undefined),DEFAULT_APPEARANCE);assert.equal(saveAppearance(undefined,look),false);assert.equal(normalizeAppearance({beard:1}).beard,0);assert.equal(normalizeAppearance({beard:2}).beard,0);assert.equal(normalizeAppearance({beard:3,hat:5}).hat,5);assert.deepEqual(APPEARANCE_OPTIONS.beard.filter(Boolean),['Clean shaven','Full beard']);});
+function render(d,f,look){const c=createCanvas(160,192),g=c.getContext('2d');g.scale(2,2);survivor(g,d,f,true,look);return g.getImageData(0,0,160,192).data;}
+test('head choices preserve the approved body and remain inside the atlas in all directions and walking frames',()=>{let looks=[{hair:1},{hair:2},{hair:3},{beard:1},{beard:2},{beard:3},{hat:1},{hat:2},{hair:2,beard:3,hat:1,color:1},{hair:2,beard:2,hat:2,color:2},{hair:3,beard:3,color:3}];for(let hat of[3,4,5])for(let hair of[0,1,2,3])for(let beard of[0,3])looks.push({hat,hair,beard,color:hair});for(let d=0;d<8;d++)for(let f=0;f<17;f++){const original=render(d,f,{});for(const look of looks){let a=render(d,f,look);assert.deepEqual(a.slice(92*160*4),original.slice(92*160*4),`body changed ${d}/${f}/${JSON.stringify(look)}`);for(let x=0;x<160;x++)assert.equal(a[(x)*4+3]+a[(191*160+x)*4+3],0);for(let y=0;y<192;y++)assert.equal(a[y*160*4+3]+a[(y*160+159)*4+3],0);}}});
+test('every hair, beard, hat and color choice visibly changes the front portrait',()=>{const base=render(2,0,{});for(const [key,max]of[['hair',4],['beard',4],['hat',6],['color',4]])for(let i=1;i<max;i++)assert.notDeepEqual(render(2,0,{[key]:i}),base,`${key} ${i}`);});
+
+test('fitted hats occlude crown hair and have distinct silhouettes in every direction',()=>{for(let d=0;d<8;d++){let hats=[];for(let hat of[3,4,5]){const base=render(d,0,{hat});hats.push(base);for(let hair=0;hair<4;hair++)assert.deepEqual(render(d,0,{hat,hair,color:3}).slice(0,44*160*4),base.slice(0,44*160*4),`hair above crown ${d}/${hat}/${hair}`);}for(let i=0;i<hats.length;i++)for(let j=i+1;j<hats.length;j++)assert.notDeepEqual(hats[i],hats[j]);}});
+
+test('body and clothing parts recolor only their own pixels and keep the silhouette',()=>{const alpha=d=>{const out=[];for(let i=3;i<d.length;i+=4)out.push(d[i]);return out;};
+ const base=[],looks=[{skin:5},{coat:3},{shirt:3},{pants:2},{boots:1},{packColor:4},{top:1,shirt:1},{skin:4,coat:7,shirt:4,pants:5,boots:3,packColor:2}];
+ for(const d of [0,1,2,6,7])for(const f of [0,3,12])base.push([d,f,render(d,f,{})]);
+ for(const look of looks)for(const [d,f,b] of base){const a=render(d,f,look);if(look.top!==1)assert.deepEqual(alpha(a),alpha(b),`silhouette ${d}/${f}/${JSON.stringify(look)}`);let changed=0;for(let i=0;i<a.length;i+=4)if(a[i]!==b[i]||a[i+1]!==b[i+1]||a[i+2]!==b[i+2])changed++;assert.ok(changed>0||(d>=5&&look.shirt!==undefined&&Object.keys(look).length===1),`no change ${d}/${f}/${JSON.stringify(look)}`);}
+ // Outline ink is never dyed.
+ const ink=a=>{let n=0;for(let i=0;i<a.length;i+=4)if(a[i]===17&&a[i+1]===19&&a[i+2]===25)n++;return n;};for(const [d,f,b] of base)assert.equal(ink(render(d,f,{skin:5,coat:2,pants:1,boots:1,packColor:2})),ink(b));
+});
+test('no pack removes the pack and straps; boots and pack dye independently',()=>{const withPack=render(6,0,{}),none=render(6,0,{pack:1});assert.notDeepEqual(withPack,none);
+ const leather=[0x5b,0x40,0x30];const count=(a,c)=>{let n=0;for(let i=0;i<a.length;i+=4)if(a[i]===c[0]&&a[i+1]===c[1]&&a[i+2]===c[2])n++;return n;};
+ assert.equal(count(render(2,0,{pack:1}),leather)>0,true,'boots keep their leather');assert.ok(count(render(6,0,{boots:1}),leather)>0,'pack keeps leather when only boots change');assert.ok(count(render(2,0,{boots:1,packColor:1,pack:1}),leather)<count(render(2,0,{}),leather));
+});
+test('saved looks from before clothing parts gain safe defaults and random looks are always valid',()=>{assert.deepEqual(normalizeAppearance({hair:1,beard:3,hat:2,color:3}),{...DEFAULT_APPEARANCE,hair:1,beard:3,hat:2,color:3});assert.deepEqual(normalizeAppearance({skin:99,top:-1,coat:'2',pack:1}),{...DEFAULT_APPEARANCE,pack:1});
+ let seed=7;const rand=()=>(seed=(seed*16807)%2147483647)/2147483647;for(let i=0;i<40;i++){const look=randomAppearance(rand);assert.deepEqual(normalizeAppearance(look),look);for(const d of [1,6])render(d,i%17,look);}
+});
+
+test('female body narrows shoulders and waist on the same skeleton without moving feet, head height or animation frames',()=>{
+ const rows=(a,y0,y1)=>{let min=999,max=-1;for(let y=y0;y<y1;y++)for(let x=0;x<160;x++)if(a[(y*160+x)*4+3]===255){min=Math.min(min,x);max=Math.max(max,x);}return max-min;};
+ const top=a=>{for(let y=0;y<192;y++)for(let x=0;x<160;x++)if(a[(y*160+x)*4+3]===255)return y;};
+ for(const d of [1,2,6])for(const f of [0,4,13]){const m=render(d,f,{pack:1}),w=render(d,f,{pack:1,body:1});
+  assert.ok(rows(w,110,122)<rows(m,110,122),`waist narrower ${d}/${f}`);assert.equal(top(w),top(m),`same height ${d}/${f}`);
+  assert.deepEqual(m.slice(150*160*4),w.slice(150*160*4),`legs and feet shared ${d}/${f}`);}
+ for(const look of [{body:1,hat:5,hair:2},{body:1,beard:3,top:1},{body:1,gun:'tactical-ar',grenade:'smoke'},{body:1,skin:5,coat:4}])for(let d=0;d<8;d++)for(const f of [0,5,14])render(d,f,look);
+});
+test('short sleeves show bare forearms while aiming',()=>{const skin=new Set(['217,155,115','174,115,86']);const count=a=>{let n=0;for(let i=0;i<a.length;i+=4)if(skin.has(`${a[i]},${a[i+1]},${a[i+2]}`))n++;return n;};
+ for(const d of [1,2])assert.ok(count(render(d,0,{top:1,gun:'heavy-pistol'}))>count(render(d,0,{gun:'heavy-pistol'})));});

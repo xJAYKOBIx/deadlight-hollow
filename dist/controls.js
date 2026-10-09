@@ -1,0 +1,3 @@
+export function stickVector(dx,dy,radius=45,deadzone=.13){let len=Math.hypot(dx,dy),power=Math.min(1,len/radius);if(power<deadzone)return {x:0,y:0,power:0};let strength=(power-deadzone)/(1-deadzone);return {x:dx/(len||1)*strength,y:dy/(len||1)*strength,power:strength};}
+export function aimAngle(x,y){return Math.atan2(y/.72,x);}
+export function assistedAngle(angle,player,enemies){let best=null,score=Infinity;for(let e of enemies){if(e.hp<=0||e.active>0)continue;let dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy),a=Math.atan2(dy,dx),diff=Math.atan2(Math.sin(a-angle),Math.cos(a-angle));if(d<600&&Math.abs(diff)<.21){let s=Math.abs(diff)*1100+d;if(s<score){score=s;best=angle+diff*.82;}}}return best??angle;}
