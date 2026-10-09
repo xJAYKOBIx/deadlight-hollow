@@ -71,3 +71,28 @@ dialog.creator[open]{display:grid;grid-template-rows:auto minmax(0,1fr) auto}dia
 @media(orientation:landscape) and (max-height:560px){.cr-kind button{min-height:30px;font-size:12px}.cr-stage{gap:6px}}
 @media(orientation:portrait){.cr-stage{grid-template-rows:auto minmax(0,1fr)}.cr-kind{grid-column:1/-1}}
 @media(orientation:portrait){.cr-main{grid-template-rows:minmax(220px,38%) auto minmax(0,1fr)}.cr-stage-controls .cr-turn,.cr-poses button{min-height:34px}.cr-stage-controls{gap:5px}.cr-poses{gap:5px}}
+
+/* Firelight Camp (v0.18). Talk replaces the shooting controls; prompts float over the person or thing in reach. */
+.camp #aimZone,.camp #throwGrenade,.camp .ammo,.camp #equipment{display:none!important}
+#travel{color:var(--ember-hi)}
+#prompt{position:fixed;left:0;top:0;z-index:3;display:flex;align-items:center;gap:6px;padding:4px 9px 4px 4px;background:#141311e6;border:1px solid var(--edge-hi);border-radius:3px;font:600 13px/1 var(--ui);letter-spacing:.05em;color:var(--bone);white-space:nowrap;pointer-events:none;box-shadow:0 3px 10px #0008}
+#prompt[hidden]{display:none}
+#prompt kbd{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 4px;font:700 12px/1 var(--ui);color:var(--ember-ink);background:var(--ember);border-radius:2px}
+#prompt b{font-weight:700;text-transform:uppercase;color:var(--ember-hi)}#prompt span{color:var(--bone)}
+.touch #prompt kbd{display:none}.touch #prompt{padding-left:9px}
+#act{position:fixed;z-index:3;right:max(28px,calc(env(safe-area-inset-right) + 18px));bottom:max(40px,calc(env(safe-area-inset-bottom) + 26px));width:84px;height:84px;padding:6px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:radial-gradient(circle at 50% 35%,#3a2a1f,#1c1a17);border:2px solid var(--ember);color:var(--bone);font-family:var(--ui);box-shadow:0 0 18px var(--ember-glow);touch-action:none}
+#act[hidden]{display:none}#act b{font-size:17px;letter-spacing:.06em;text-transform:uppercase;color:var(--ember-hi)}#act span{max-width:70px;font-size:10px;letter-spacing:.04em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dust)}
+#act:active{transform:scale(.96);background:#3a2a1f}
+.touch.camp #run{right:max(128px,calc(env(safe-area-inset-right) + 118px));bottom:max(46px,calc(env(safe-area-inset-bottom) + 32px))}
+#talk{position:fixed;z-index:5;left:50%;bottom:max(16px,calc(env(safe-area-inset-bottom) + 10px));transform:translateX(-50%);width:min(640px,calc(100% - 2 * max(16px,env(safe-area-inset-left))));display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:14px;padding:12px 14px;color:var(--bone);font-family:var(--body);background:var(--grit),linear-gradient(160deg,#23201c,#161412);border:1px solid var(--edge);border-radius:4px;box-shadow:0 10px 30px #000a;cursor:pointer}
+#talk[hidden]{display:none}
+#talk::before{content:'';position:absolute;left:0;right:0;top:-4px;height:3px;background:repeating-linear-gradient(-45deg,var(--ember) 0 5px,transparent 5px 11px);opacity:.6}
+#talkFace{width:76px;height:76px;image-rendering:pixelated;background:radial-gradient(70% 70% at 50% 45%,#36312b,#1b1916);border:1px solid var(--edge)}
+.talk-body{min-width:0}.talk-role{display:block;font:600 11px/1 var(--ui);letter-spacing:.2em;text-transform:uppercase;color:var(--ember-hi)}
+#talk h2{margin:4px 0 6px;font:400 21px/1 var(--display);letter-spacing:.03em;text-transform:uppercase}
+#talk p{margin:0;font-size:15px;line-height:1.45;color:#d8d0c2;max-width:60ch}
+#talkNext{align-self:end;min-height:40px;padding:0 16px;font:700 14px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;background:var(--ember);color:var(--ember-ink);border:1px solid var(--ember-hi);border-radius:3px}
+#talkNext:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
+@media(orientation:portrait){#talk{grid-template-columns:auto minmax(0,1fr);bottom:max(14px,env(safe-area-inset-bottom))}#talkNext{grid-column:1/-1;justify-self:end}#talkFace{width:64px;height:64px}#talk p{font-size:14px}.touch.camp #run{left:auto;right:30px;bottom:150px}}
+@media(orientation:landscape) and (max-height:560px){#talk{padding:9px 12px;gap:12px}#talkFace{width:60px;height:60px}#talk h2{font-size:18px;margin:3px 0 4px}#talk p{font-size:14px;line-height:1.35}}
+.talking #moveZone,.talking #run,.talking #act{display:none!important}
