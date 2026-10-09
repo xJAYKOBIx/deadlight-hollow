@@ -1,5 +1,6 @@
 import {GUNS,heldGun,weaponArms,grenadeArt} from './equipment.js';
 import {colorMaps,tint} from './palette.js';
+import {skull,faceFeatures,styledHead,hairBehind,facialHair as moreFacialHair} from './hair.js';
 // Survivor 01: authored pixel silhouettes, rasterized once into directional frames.
 // Source frames stay 160 × 192 and display at 80 × 96, anchored at (40, 85).
 export const FRAME={w:160,h:192,displayW:80,displayH:96,footX:40,footY:85};
@@ -39,7 +40,7 @@ const WALK={stride:4,lift:2,arm:3.5,bend:1.5,carry:0,bob:.5,lean:0},RUN={stride:
 function gait(frame,side,back,quarter){
  const moving=frame>0,G=frame>=9?RUN:WALK,t=moving?((frame-1)%8)/8*Math.PI*2:0,s=moving?Math.sin(t):0,v=moving?Math.cos(t):0;
  // Facing direction projected onto the angled ground plane (local coordinates always face right).
- const fx=side?1.25:quarter?.8:0,fy=side?0:(back?-1:1)*(quarter?.36:.6);
+ const fx=side?1.25:quarter?.65:0,fy=side?0:(back?-1:1)*(quarter?.5:.6);
  const foot=(sv,vv)=>{const lift=Math.max(0,vv)*G.lift;return {dx:fx*G.stride*sv,dy:fy*G.stride*sv,lift,knee:fx*(sv*G.stride*.35+lift*.7)};};
  const hand=a=>side?{dx:a*G.arm,dy:-Math.abs(a)*.5,bend:Math.max(0,a)*G.bend+G.carry}:quarter?{dx:a*G.arm*.75,dy:0,bend:Math.max(0,a)*G.bend*.8+a*.6+G.carry*.7}:{dx:0,dy:0,bend:a*G.arm*.35+G.carry*.6};
  return {near:foot(s,v),far:foot(-s,-v),nearHand:hand(-s),farHand:hand(s),bob:moving?-G.bob*Math.sin(2*t):0,lean:side?G.lean:Math.round(fx*G.lean*2)/2};
@@ -89,21 +90,20 @@ function head(g,back,quarter,side){const {p,r}=g;
 // Crop crown art under fitted headwear instead of stacking a hat on the hair volume.
 function belowHatBand(g,band){return {r:(x,y,w,h,col)=>{const top=Math.max(y,band);if(y+h>top)g.r(x,top,w,y+h-top,col);},p:(pts,col)=>{const out=[];for(let i=0;i<pts.length;i++){const a=pts[i],b=pts[(i+1)%pts.length],inside=a[1]>=band,next=b[1]>=band;if(inside)out.push(a);if(inside!==next)out.push([a[0]+(b[0]-a[0])*(band-a[1])/(b[1]-a[1]),band]);}if(out.length>2)g.p(out,col);}};}
 // The approved swept head is retained intact. Other choices use the same face planes.
+function hairPalette(look){
+ const tones=[['#282328','#201d23','#352a2e','#463439'],['#694936','#402f29','#80573e','#9c7252'],['#ab8755','#71593e','#c19d68','#d4b482'],['#9b969e','#66636f','#b2acb5','#ccc3ca'],['#7a3a26','#4e2419','#93492f','#ad5e3c'],['#d6cdb6','#9f957f','#e4ddca','#f2ecdc']][look.color||0];
+ return {...C,hair:tones[0],hairDeep:tones[1],hairMid:tones[2],hairLight:tones[3]};}
 function appearanceHead(g,back,quarter,side,look){
- const tones=[['#282328','#201d23','#352a2e','#463439'],['#694936','#402f29','#80573e','#9c7252'],['#ab8755','#71593e','#c19d68','#d4b482'],['#9b969e','#66636f','#b2acb5','#ccc3ca']][look.color||0];
- const H={...C,hair:tones[0],hairDeep:tones[1],hairMid:tones[2],hairLight:tones[3]},style=look.hat===5&&look.hair===2?1:look.hair||0;
- const base=g;if(look.hat>=3)g=belowHatBand(g,-62);
+ const H=hairPalette(look),style=look.hat===5&&look.hair===2?1:look.hair||0;
+ const base=g;if(look.hat>=3)g=belowHatBand(g,-62);else if(look.hat&&style>=4)g=belowHatBand(g,-64);
  if(style===0){const map=look.color?new Map([[C.hair,H.hair],[C.hairDeep,H.hairDeep],[C.hairMid,H.hairMid],[C.hairLight,H.hairLight],['#3c2f33',H.hairMid],['#30272c',H.hair],['#3a2e33',H.hairMid],['#4c383b',H.hairLight]]):null;const tinted=map?{p:(pts,col)=>g.p(pts,map.get(col)||col),r:(x,y,w,h,col)=>g.r(x,y,w,h,map.get(col)||col)}:g;head(tinted,back,quarter,side);}
- else alternativeHead(g,back,quarter,side,style,H);
+ else if(style<4)alternativeHead(g,back,quarter,side,style,H);
+ else styledHead(g,back,quarter,side,style,H);
  g=base;facialHair(g,back,quarter,side,look.beard||0,H);
  headwear(g,back,quarter,side,look.hat||0,H);
 }
 function alternativeHead(g,back,quarter,side,style,H){const {p,r}=g;
- // Rounded skull and jaw, followed by directional face shading.
- p([[-8,-68],[-4,-71],[3,-71],[8,-68],[10,-62],[10,-55],[7,-49],[1,-47],[-6,-49],[-10,-55],[-11,-62]],H.ink);
- p([[-7,-67],[-3,-69],[3,-69],[7,-66],[8,-61],[8,-55],[5,-50],[1,-49],[-5,-51],[-8,-56],[-9,-61]],H.skin);
- p([[-6,-66],[-2,-68],[3,-68],[6,-65],[7,-60],[6,-56],[1,-54],[-5,-56],[-7,-61]],H.skinHi);
- p([[-8,-61],[-6,-56],[-4,-52],[1,-50],[5,-51],[5,-49],[-1,-48],[-6,-50],[-9,-56]],H.skinLo);
+ skull(g,H);
  if(style!==3){
   p([[-9,-68],[-5,-72],[3,-72],[8,-69],[10,-65],[9,-60],[6,-61],[3,-63],[-3,-62],[-7,-59],[-10,-62]],H.ink);
   p([[-8,-67],[-4,-70],[3,-70],[7,-67],[8,-64],[7,-62],[3,-65],[-3,-64],[-7,-61],[-9,-63]],H.hair);
@@ -119,9 +119,7 @@ function alternativeHead(g,back,quarter,side,style,H){const {p,r}=g;
    p([[x-1,-60],[x+1,-59],[x+1.5,-54],[x+.5,-48],[x-1,-44],[x-2,-47],[x-2.5,-51]],H.hair);r(x-2,-58,4,2,'#90734f');r(x-1.5,-55,1,7,H.hairMid);
   }
  }
- if(side){p([[7,-60],[9,-59],[9,-56],[11,-54],[10,-51],[8,-50],[6,-47],[1,-47],[-2,-50]],H.ink);p([[-2,-62],[5,-62],[7,-59],[7,-55],[9,-53],[7,-52],[5,-49],[1,-49],[-2,-52]],H.skin);p([[3,-61],[6,-60],[6,-55],[9,-53],[6,-52],[5,-50],[2,-50]],H.skinHi);r(5,-58,1.5,2.5,H.ink);r(6,-51,2,.5,H.skinDeep);r(-1,-56,3,4,H.skinLo);r(0,-56,2,2,H.skin);if(style!==3)r(-3,-61,2,6,H.hair);}
- else if(!back){let x=quarter?2:0;r(-3+x,-58,2,3,H.ink);r(3+x,-58,1.5,3,H.ink);r(1+x,-55,1,2,H.skinLo);r(2+x,-54,1,1,H.skinHi);r(x,-51.5,3,.5,H.skinDeep);r(-9,-56,2,3,H.skinLo);}
- else if(quarter){p([[7,-61],[9,-60],[9,-55],[11,-53],[10,-51],[8,-49],[5,-50],[5,-55]],H.skinLo);r(7,-57,2,5,H.skin);r(8,-57,1,2,H.ink);r(5,-55,2,3,H.skin);if(style!==3)r(6,-62,2,3,H.hair);}
+ faceFeatures(g,back,quarter,side,H,style!==3?H.hair:null);
 }
 // Broad connected beard planes follow the jaw; the mouth is only a dark seam.
 function fullBeard(g,back,quarter,side,H){const {p,r}=g;
@@ -149,6 +147,7 @@ function fullBeard(g,back,quarter,side,H){const {p,r}=g;
 }
 function facialHair(g,back,quarter,side,style,H){if(!style||back&&!quarter)return;const {p,r}=g;
  if(style===3){fullBeard(g,back,quarter,side,H);return;}
+ moreFacialHair(g,back,quarter,side,style,H);return;
  if(back){if(style===1){r(8,-51,1,.5,H.hairMid);return;}r(8,-52,2,.75,H.hair);if(style===3){p([[6,-52],[7,-50],[10,-51],[8,-48],[6,-49]],H.hair);r(7,-50,.5,1,H.hairMid);}return;}
  if(side){if(style===1){for(let [x,y]of [[2,-51],[4,-50],[6,-50],[1,-53]])r(x,y,.5,.5,H.hairMid);return;}r(6,-52,3,1,H.hair);r(8,-51,1,1,H.hairDeep);if(style===3){p([[0,-54],[2,-51],[5,-49],[8,-51],[8,-48],[5,-46],[1,-48],[-1,-51]],H.hair);p([[1,-51],[4,-48],[6,-48],[4,-47],[1,-49]],H.hairMid);r(6,-50,2,.5,H.skinDeep);}return;}
  let x=quarter?2:0;if(style===1){for(let [xx,y]of [[-4,-53],[-3,-51],[-1,-50],[1,-49.5],[3,-50],[5,-52]])r(xx+x,y,.5,.5,H.hairMid);return;}
@@ -212,6 +211,13 @@ function fittedHeadwear(g,back,quarter,side,style,H){const {p,r}=g;
 
 }
 
+// Hips sit on one ground plane with the stride: in diagonals the near (right) hip is offset perpendicular to the facing
+// direction, so each foot travels its own parallel track and the legs never scissor through each other.
+// Facing down-right the near leg is screen-left and lower; facing up-right it is screen-right and lower.
+export function legLayout(direction,frame){const dir=((direction%8)+8)%8,side=dir===0||dir===4,back=dir>=5,quarter=dir%2===1,G=gait(frame,side,back,quarter);
+ // In profile both hips share one centre while moving, so each foot reaches equally far forward and back.
+ const centre=side&&frame>0?2:0,farX=side?1:quarter?(back?-4.5:4.5):4,nearX=side?-3:quarter?(back?4.5:-4.5):-5;
+ return {far:{x:farX,depth:quarter?4:0,foot:{...G.far,dx:G.far.dx-centre}},near:{x:nearX,depth:0,foot:{...G.near,dx:G.near.dx+centre}}};}
 // Female tailoring: the same authored parts, pinched horizontally by a smooth profile (shoulders, chest, waist, hips).
 // Edges are subdivided before warping so long vertical outlines follow the waist curve.
 const lerpProfile=(pts,y)=>{if(y<=pts[0][0])return pts[0][1];for(let i=1;i<pts.length;i++)if(y<=pts[i][0]){const [y0,k0]=pts[i-1],[y1,k1]=pts[i];return k0+(k1-k0)*(y-y0)/(y1-y0);}return pts[pts.length-1][1];};
@@ -232,30 +238,31 @@ export function survivor(c,direction=1,frame=0,pack=true,look={}){
  c.save();c.translate(40,85);if(mirror)c.scale(-1,1);let g=tint(painter(c),maps.main);const boots=tint(painter(c),maps.boots);
  g.p([[-16,0],[-11,-3],[11,-3],[17,0],[15,3],[-12,3]],'#11152230');g.p([[-11,0],[-6,-2],[9,-2],[13,1],[9,3],[-9,2]],'#11152242');
  // Feet keep their own ground plane while the upper body rises, dips and (when running) leans into the stride.
- let farX=side?1:quarter?-4:4,nearX=side?-3:quarter?4:-5;
- // In profile both hips share one centre while moving, so each foot reaches equally far forward and back.
- const centre=side&&frame>0?2:0;
- leg(g,farX,{...G.far,dx:G.far.dx-centre},side,false,quarter?3:0,boots);leg(g,nearX,{...G.near,dx:G.near.dx+centre},side,true,0,boots);
+ const L=legLayout(dir,frame);
+ leg(g,L.far.x,L.far.foot,side,false,L.far.depth,boots);leg(g,L.near.x,L.near.foot,side,true,0,boots);
  c.save();c.translate(G.lean,G.bob);g=tint(painter(c),maps.main);let packG=tint(painter(c),maps.pack);
  // Upper-body parts draw through the tailoring warp; arms keep their thickness and move in with the shoulders.
  const body=female?tailor(g,-.5,side?TORSO_SIDE:TORSO_FRONT):g,shoulder=x=>female&&!side?-.5+(x+.5)*.86:x;if(female)packG=tailor(packG,-.5,side?TORSO_SIDE:TORSO_FRONT);
  // In profile the far arm is genuinely behind the body.
  if(side&&!GUNS[look.gun])arm(g,3,-46,G.farHand,false,short);
  if(pack&&!back)backpack(packG,false,quarter,side);
+ // Long hair falls behind the shoulders in forward views, so that part is painted before the torso.
+ const headG=female?tailor(g,side?2:quarter?1.5:-.5,JAW,-.5):g;if(look.hair===7)hairBehind(headG,back,quarter,side,look.hair,hairPalette(look));
  torso(body,back,quarter,side,top,straps?packG:null);
  if(back&&GUNS[look.gun]){weaponArms(g,back,quarter,side,look.gun,short,shoulder);heldGun(g,look.gun,back,quarter,side);}
  if(pack&&back)backpack(packG,true,quarter,false);
  // Other views need a visible far sleeve and hand outside the torso/pack.
  // Quarter views foreshorten that arm instead of hiding the whole limb.
- if(!side&&!GUNS[look.gun]){const x=shoulder(back&&quarter?-14:-11),width=quarter?(back?.75:.85):1;
+  // Front diagonals turn the left (far) side away on screen-right; back diagonals put it on screen-left.
+ if(!side&&!GUNS[look.gun]){const x=shoulder(back&&quarter?-14:quarter?11:-11),width=quarter?(back?.75:.85):1;
   const far={p:(pts,col)=>g.p(pts.map(([px,py])=>[x+(px-x)*width,py]),col),r:(px,py,w,h,col)=>g.r(x+(px-x)*width,py,w*width,h,col)};
   arm(far,x,-46,G.farHand,false,short);
  }
- if(!GUNS[look.gun])arm(g,side?0:shoulder(11),-45,G.nearHand,true,short);
+ if(!GUNS[look.gun])arm(g,side?0:shoulder(quarter&&!back?-11:11),-45,G.nearHand,true,short);
  if(look.grenade&&!back){const belt={p:(pts,col)=>g.p(pts.map(([x,y])=>[x*.6-8,y*.6-25]),col),r:(x,y,w,h,col)=>g.r(x*.6-8,y*.6-25,w*.6,h*.6,col)};grenadeArt(belt,look.grenade);}
  if(!back&&GUNS[look.gun]){weaponArms(g,back,quarter,side,look.gun,short,shoulder);heldGun(g,look.gun,back,quarter,side);}
  // Neck/collar connect torso and skull; the head is the final silhouette layer.
  if(female)g.r(side?.5:-2.5,-51,5,4,C.skinLo);else g.r(side?0:-3,-51,6,4,C.skinLo);body.p([[-6,-51],[1,-50],[6,-51],[8,-48],[4,-46],[-5,-47],[-8,-49]],C.coatDeep);body.r(-5,-49,5,1,C.coatHi);
  // The female head narrows the jaw and lifts the chin slightly; crown, hair volume and hats are unchanged above the cheekbones.
- appearanceHead(female?tailor(g,side?2:quarter?1.5:-.5,JAW,-.5):g,back,quarter,side,look);if(female)femaleFace(g,back,quarter,side);c.restore();c.restore();
+ appearanceHead(headG,back,quarter,side,look);if(female)femaleFace(g,back,quarter,side);c.restore();c.restore();
 }

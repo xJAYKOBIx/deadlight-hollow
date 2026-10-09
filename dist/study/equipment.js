@@ -58,7 +58,8 @@ function elbow(s,h,out,lu=9,lf=9){const dx=h[0]-s[0],dy=h[1]-s[1],d=Math.min(Mat
 // shoulderX scales shoulder spread for narrower bodies.
 export function weaponArms(g,back,quarter,side,id,short=false,shoulderX=x=>x){if(!GUNS[id])return;const h=gunHands(id,back,quarter,side);
  // Far arm (support hand) first, then near arm (trigger hand); elbows bend outward and down, never across the chest.
- const far=side?[-1,-46]:[shoulderX(back&&quarter?-12:quarter?-9:-10),-46],near=side?[1,-45]:[shoulderX(quarter?9:10),-45];
+ // Front diagonals put the near (right) shoulder on screen-left, matching the walking arms and legs.
+ const fq=quarter&&!back,far=side?[-1,-46]:[shoulderX(back&&quarter?-12:fq?9:-10),-46],near=side?[1,-45]:[shoulderX(fq?-9:quarter?9:10),-45];
  const outward=(cx)=>p=>side?p[1]-Math.abs(p[0]-cx)*.2:Math.abs(p[0])+p[1]*.35;
  limb(g,far,elbow(far,h.support,outward(far[0])),h.support,false,short);
  limb(g,near,elbow(near,h.grip,outward(near[0])),h.grip,true,short);

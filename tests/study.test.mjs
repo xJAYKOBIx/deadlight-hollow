@@ -1,4 +1,4 @@
-import test from 'node:test';import assert from 'node:assert/strict';import {createRequire} from 'node:module';import {StudyModel,ROOM} from '../dist/study/model.js';import {survivor} from '../dist/study/character.js';
+import test from 'node:test';import assert from 'node:assert/strict';import {createRequire} from 'node:module';import {StudyModel,ROOM} from '../dist/study/model.js';import {survivor,legLayout} from '../dist/study/character.js';
 const require=createRequire(import.meta.url);const {createCanvas}=require((process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES||'/opt/codex/runtimes/codex-primary-runtime/dependencies/node/node_modules')+'/@napi-rs/canvas');
 test('study movement normalizes diagonals, runs faster and stops at room walls and furniture',()=>{const a=new StudyModel(),b=new StudyModel(),run=new StudyModel();for(let i=0;i<60;i++){a.update(1/60,{x:1});b.update(1/60,{x:1,y:1});run.update(1/60,{x:1,run:true});}assert.ok(Math.abs(a.x-460-126)<.001);assert.ok(Math.abs(Math.hypot(b.x-460,b.y-430)-126)<.001);assert.ok(run.x>a.x);a.x=620;a.y=240;for(let i=0;i<120;i++)a.update(1/30,{x:1,run:true});assert.ok(a.x<=638.001);assert.equal(a.blocked(a.x,a.y),false);a.x=220;a.y=350;for(let i=0;i<120;i++)a.update(1/30,{y:-1,run:true});assert.ok(a.y>=292-0.01);a.reset();for(let i=0;i<600;i++)a.update(1/30,{x:-1,run:true});assert.ok(a.x>=ROOM.left+a.radius);assert.equal(a.moving,false);assert.equal(a.frame,0);});
 test('doorway connects both rooms, eight directions are reachable and reset is safe',()=>{let m=new StudyModel();m.x=620;m.y=395;for(let i=0;i<80;i++)m.update(1/60,{x:1});assert.ok(m.x>760);assert.equal(m.blocked(m.x,m.y),false);for(let d=0;d<8;d++){m.reset();m.update(1/60,{x:Math.cos(d*Math.PI/4),y:Math.sin(d*Math.PI/4)});assert.equal(m.direction,d);}m.reset();assert.equal(m.blocked(m.x,m.y),false);assert.equal(m.frame,0);});
@@ -11,3 +11,11 @@ test('both hands stay visible in front, back and quarter views throughout the ga
  }
 });
 test('running advances its own longer-stride cycle and walking returns to the walk cycle',()=>{const m=new StudyModel(),seen=new Set();for(let i=0;i<60;i++){m.update(1/60,{x:1,run:true});seen.add(m.frame);}assert.ok([...seen].every(f=>f>=9&&f<=16));assert.ok(seen.size>=6);m.update(1/60,{x:1});assert.ok(m.frame>=1&&m.frame<=8);m.update(1/60,{});assert.equal(m.frame,0);});
+
+test('diagonal feet travel separate parallel tracks and never cross',()=>{for(const d of [1,3,5,7])for(let f=0;f<17;f++){const L=legLayout(d,f),foot=l=>[l.x+l.foot.dx,-l.depth+l.foot.dy];const n=foot(L.near),r=foot(L.far),back=d>=5;
+ // Screen-space track direction for the facing; the hips' offset across it must keep one sign and a clear gap.
+ const t=[.65,back?-.5:.5],len=Math.hypot(...t),across=((r[0]-n[0])*-t[1]+(r[1]-n[1])*t[0])/len;assert.ok(Math.abs(across)>=4,`dir ${d} frame ${f} gap ${across}`);
+ if(f===0)globalThis['sign'+d]=Math.sign(across);else assert.equal(Math.sign(across),globalThis['sign'+d],`dir ${d} frame ${f} crossed`);
+ // The near leg is the lower one on screen, so it is correctly drawn on top.
+ assert.ok(L.near.depth<=L.far.depth);}
+});
