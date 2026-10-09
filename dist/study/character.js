@@ -1,5 +1,6 @@
 import {GUNS,heldGun,weaponArms,grenadeArt} from './equipment.js';
 import {colorMaps,tint} from './palette.js';
+import {zombieFace,zombieTorso,zombieBite,zombieLegs} from './zombie.js';
 import {skull,faceFeatures,styledHead,hairBehind,facialHair as moreFacialHair} from './hair.js';
 // Survivor 01: authored pixel silhouettes, rasterized once into directional frames.
 // Source frames stay 160 × 192 and display at 80 × 96, anchored at (40, 85).
@@ -158,6 +159,7 @@ function appearanceHead(g,back,quarter,side,look){
  if(style===0){const map=look.color?new Map([[C.hair,H.hair],[C.hairDeep,H.hairDeep],[C.hairMid,H.hairMid],[C.hairLight,H.hairLight],['#3c2f33',H.hairMid],['#30272c',H.hair],['#3a2e33',H.hairMid],['#4c383b',H.hairLight]]):null;const tinted=map?{p:(pts,col)=>g.p(pts,map.get(col)||col),r:(x,y,w,h,col)=>g.r(x,y,w,h,map.get(col)||col)}:g;head(tinted,back,quarter,side);}
  else if(style<4)alternativeHead(g,back,quarter,side,style,H);
  else styledHead(g,back,quarter,side,style,H);
+ if(look.zombie)zombieFace(base,back,quarter,side,look);
  g=base;facialHair(g,back,quarter,side,look.beard||0,H);
  headwear(g,back,quarter,side,look.hat||0,H);
 }
@@ -285,10 +287,10 @@ function tailor(g,cx,profile,lift=0){const k=y=>lerpProfile(profile,y),w=(x,y)=>
  const split=pts=>{const out=[];for(let i=0;i<pts.length;i++){const a=pts[i],b=pts[(i+1)%pts.length],n=Math.max(1,Math.ceil(Math.abs(b[1]-a[1])/1.5));for(let j=0;j<n;j++)out.push([a[0]+(b[0]-a[0])*j/n,a[1]+(b[1]-a[1])*j/n]);}return out;};
  return {p:(pts,col)=>g.p(split(pts).map(([x,y])=>w(x,y)),col),r:(x,y,wd,h,col)=>{const [x0,y0]=w(x,y+h/2),[x1]=w(x+wd,y+h/2);g.r(x0,y0-h/2,Math.max(.5,x1-x0),h,col);}};}
 // Lashes and a softer mouth sit on top of the tailored face.
-function femaleFace(g,back,quarter,side){if(back&&!(quarter))return;const {r}=g;
- if(side){r(7,-58.5,1,.5,C.ink);r(7.5,-52,1,.5,C.skinLo);return;}
+function femaleFace(g,back,quarter,side,zombie){if(back&&!(quarter))return;const {r}=g;
+ if(side){r(7,-58.5,1,.5,C.ink);if(!zombie)r(7.5,-52,1,.5,C.skinLo);return;}
  if(back){r(9.5,-57.5,.5,.5,C.ink);return;}
- const x=quarter?2:0;r(-4.5+x,-58.5,1,.5,C.ink);r(4+x,-58.5,1,.5,C.ink);r(x+.5,-50.5,2,.5,C.skinLo);}
+ const x=quarter?2:0;r(-4.5+x,-58.5,1,.5,C.ink);r(4+x,-58.5,1,.5,C.ink);if(!zombie)r(x+.5,-50.5,2,.5,C.skinLo);}
 // A lowered hood lies behind the neck: a rim over the shoulders from the front, a folded hood on the upper back from behind.
 function hood(g,back,quarter,side){const {p,r}=g;
  if(side){p([[-11,-49],[-9,-54],[-3,-54],[-2,-47],[-6,-43],[-10,-44]],C.ink);p([[-10,-49],[-8.5,-53],[-4,-53],[-3,-47.5],[-6,-44.5],[-9,-45.5]],C.coat);p([[-8,-51],[-4.5,-51],[-4,-48],[-6,-46.5]],C.coatDeep);return;}
@@ -310,6 +312,8 @@ function neckline(g,back,quarter,side,T){const {p,r}=g;
  p([[.5+x,-46.5],[6.5+x,-48.5],[7+x,-45.5],[1.5+x,-42.5]],C.ink);p([[1+x,-46.2],[6+x,-47.8],[6.3+x,-45.7],[1.7+x,-43.5]],C.coatLight);
 }
 export function survivor(c,direction=1,frame=0,pack=true,look={}){
+ // Zombies drop whatever the survivor was carrying.
+ const zombie=look.zombie===1;if(zombie)look={...look,gun:null,grenade:null};
  let dir=((direction%8)+8)%8,side=dir===0||dir===4,back=dir>=5,quarter=dir%2===1,mirror=dir===3||dir===4||dir===5;
  const G=gait(frame,side,back,quarter),maps=colorMaps(look),T=TOPS[look.top]||TOPS[0],sleeve=T.sleeve,female=look.body===1;
  // Pack choice 1 removes the pack and its straps; the legacy pack argument only hides the pack itself.
@@ -318,7 +322,7 @@ export function survivor(c,direction=1,frame=0,pack=true,look={}){
  g.p([[-16,0],[-11,-3],[11,-3],[17,0],[15,3],[-12,3]],'#11152230');g.p([[-11,0],[-6,-2],[9,-2],[13,1],[9,3],[-9,2]],'#11152242');
  // Feet keep their own ground plane while the upper body rises, dips and (when running) leans into the stride.
  const L=legLayout(dir,frame);
- leg(g,L.far.x,L.far.foot,side,false,L.far.depth,boots,look.bottom||0,look.shoes||0);leg(g,L.near.x,L.near.foot,side,true,0,boots,look.bottom||0,look.shoes||0);
+ leg(g,L.far.x,L.far.foot,side,false,L.far.depth,boots,look.bottom||0,look.shoes||0);leg(g,L.near.x,L.near.foot,side,true,0,boots,look.bottom||0,look.shoes||0);if(zombie)zombieLegs(c,g,L,look.bottom||0,look);
  c.save();c.translate(G.lean,G.bob);g=tint(painter(c),maps.main);let packG=tint(painter(c),maps.pack);
  // Upper-body parts draw through the tailoring warp; arms keep their thickness and move in with the shoulders.
  const body=female?tailor(g,-.5,side?TORSO_SIDE:TORSO_FRONT):g,shoulder=x=>female&&!side?-.5+(x+.5)*.86:x;if(female)packG=tailor(packG,-.5,side?TORSO_SIDE:TORSO_FRONT);
@@ -327,7 +331,7 @@ export function survivor(c,direction=1,frame=0,pack=true,look={}){
  if(pack&&!back)backpack(packG,false,quarter,side);
  // Long hair falls behind the shoulders in forward views, so that part is painted before the torso.
  const headG=female?tailor(g,side?2:quarter?1.5:-.5,JAW,-.5):g;if(look.hair===7)hairBehind(headG,back,quarter,side,look.hair,hairPalette(look));
- torso(body,back,quarter,side,T,straps?packG:null);
+ torso(body,back,quarter,side,T,straps?packG:null);if(zombie)zombieTorso(c,body,back,quarter,side,look);
  if(back&&GUNS[look.gun]){weaponArms(g,back,quarter,side,look.gun,sleeve,shoulder);heldGun(g,look.gun,back,quarter,side);}
  if(pack&&back)backpack(packG,true,quarter,false);
  // Other views need a visible far sleeve and hand outside the torso/pack.
@@ -341,7 +345,7 @@ export function survivor(c,direction=1,frame=0,pack=true,look={}){
  if(look.grenade&&!back){const belt={p:(pts,col)=>g.p(pts.map(([x,y])=>[x*.6-8,y*.6-25]),col),r:(x,y,w,h,col)=>g.r(x*.6-8,y*.6-25,w*.6,h*.6,col)};grenadeArt(belt,look.grenade);}
  if(!back&&GUNS[look.gun]){weaponArms(g,back,quarter,side,look.gun,sleeve,shoulder);heldGun(g,look.gun,back,quarter,side);}
  // Neck/collar connect torso and skull; the head is the final silhouette layer.
- if(T.hood)hood(body,back,quarter,side,true);if(female)g.r(side?.5:-2.5,-51,5,4,C.skinLo);else g.r(side?0:-3,-51,6,4,C.skinLo);body.p([[-6,-51],[1,-50],[6,-51],[8,-48],[4,-46],[-5,-47],[-8,-49]],C.coatDeep);body.r(-5,-49,5,1,C.coatHi);neckline(body,back,quarter,side,T);
+ if(T.hood)hood(body,back,quarter,side,true);if(female)g.r(side?.5:-2.5,-51,5,4,C.skinLo);else g.r(side?0:-3,-51,6,4,C.skinLo);body.p([[-6,-51],[1,-50],[6,-51],[8,-48],[4,-46],[-5,-47],[-8,-49]],C.coatDeep);body.r(-5,-49,5,1,C.coatHi);neckline(body,back,quarter,side,T);if(zombie)zombieBite(c,body,back,quarter,side,look);
  // The female head narrows the jaw and lifts the chin slightly; crown, hair volume and hats are unchanged above the cheekbones.
- appearanceHead(headG,back,quarter,side,look);if(female)femaleFace(g,back,quarter,side);c.restore();c.restore();
+ appearanceHead(headG,back,quarter,side,look);if(female)femaleFace(g,back,quarter,side,zombie);c.restore();c.restore();
 }

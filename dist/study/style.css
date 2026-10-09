@@ -64,3 +64,10 @@ dialog.creator[open]{display:grid;grid-template-rows:auto minmax(0,1fr) auto}dia
 @media(prefers-reduced-motion:reduce){.creator *{transition:none!important;animation:none!important}}
 .cr-frame canvas,.cr-tile canvas{image-rendering:pixelated;image-rendering:crisp-edges}
 @media(min-width:1100px) and (min-height:600px){.cr-tiles{grid-template-columns:repeat(auto-fill,minmax(108px,1fr))}.cr-tile span{font-size:14px}.cr-swatch{width:46px;height:46px}.cr-panel{padding:16px 20px 22px;gap:22px}.cr-panel-head h2{font-size:26px}.cr-row h3{font-size:13px}.cr-row h3 b{font-size:16px}.cr-tiles{max-width:760px}}
+.zombie .ammo,.zombie #throwGrenade,.zombie #aimZone{display:none!important}
+.cr-stage{grid-template-rows:auto minmax(0,1fr) auto}
+.cr-kind{display:flex;gap:0;border:1px solid var(--edge);background:var(--panel)}.cr-kind button{flex:1;min-height:34px;padding:0 8px;border:0;border-radius:0;background:transparent;color:var(--dust);font:600 13px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase}
+.cr-kind button+button{border-left:1px solid var(--edge)}.cr-kind button[aria-pressed=true]{color:var(--ember-ink);background:var(--ember)}.cr-kind button[data-kind=zombie][aria-pressed=true]{color:#141a08;background:#9fc23a}
+@media(orientation:landscape) and (max-height:560px){.cr-kind button{min-height:30px;font-size:12px}.cr-stage{gap:6px}}
+@media(orientation:portrait){.cr-stage{grid-template-rows:auto minmax(0,1fr)}.cr-kind{grid-column:1/-1}}
+@media(orientation:portrait){.cr-main{grid-template-rows:minmax(220px,38%) auto minmax(0,1fr)}.cr-stage-controls .cr-turn,.cr-poses button{min-height:34px}.cr-stage-controls{gap:5px}.cr-poses{gap:5px}}

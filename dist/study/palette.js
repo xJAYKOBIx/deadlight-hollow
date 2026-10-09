@@ -40,11 +40,17 @@ export const DYES={
 export const SHIRT_TOPS=new Set([1,2,4,5,6]);
 const SHIRT_AS_COAT=['#b8a082','#ccb596','#d6c1a3','#c0a888','#8f775f','#7a6450'];
 
+// Zombie skin keeps the survivor's own lightness steps, so a deep-skinned survivor stays deep after turning.
+// Each rot tone sets the hue and caps the saturation; more decay drains and darkens the ramp.
+export const ROT_TONES=[{name:'Pallid',hue:52,sat:.13},{name:'Sickly green',hue:78,sat:.24},{name:'Bruised',hue:292,sat:.12},{name:'Corpse blue',hue:208,sat:.16}];
+export function rotRamp(ramp,rot=0,decay=1){const R=ROT_TONES[rot]||ROT_TONES[0];return ramp.map((c,i)=>{const [,s,l]=hexToHsl(c);
+ return hslToHex(R.hue+(i>=2?-8:0),Math.min(s,R.sat)*(1-decay*.18),clamp(l*(.97-decay*.05)-(i===3?.04:0)));});}
+
 const cache=new Map();
 // One map for skin/clothing (applied to the whole body) plus separate maps for boots and pack,
 // because both of those start from the same leather ramp.
-export function colorMaps(look={}){const key=[look.skin,look.top,look.coat,look.shirt,look.pants,look.boots,look.packColor].join('-');if(cache.has(key))return cache.get(key);
- const main=new Map(),add=m=>{for(const [a,b] of m)main.set(a,b);},skin=SKIN_TONES[look.skin]?.ramp||MATERIAL.skin,shirtHex=(DYES.shirt[look.shirt]||DYES.shirt[0])[1];
+export function colorMaps(look={}){const key=[look.skin,look.top,look.coat,look.shirt,look.pants,look.boots,look.packColor,look.zombie?`z${look.rot}${look.decay}`:''].join('-');if(cache.has(key))return cache.get(key);
+ const main=new Map(),add=m=>{for(const [a,b] of m)main.set(a,b);},tone=SKIN_TONES[look.skin]?.ramp||MATERIAL.skin,skin=look.zombie?rotRamp(tone,look.rot,look.decay):tone,shirtHex=(DYES.shirt[look.shirt]||DYES.shirt[0])[1];
  MATERIAL.skin.forEach((c,i)=>{if(skin[i]!==c)main.set(c,skin[i]);});
  if(SHIRT_TOPS.has(look.top)){const coatAsShirt=dyeRamp(SHIRT_AS_COAT,MATERIAL.shirt[0],shirtHex);MATERIAL.coat.forEach((c,i)=>main.set(c,coatAsShirt.get(SHIRT_AS_COAT[i])||SHIRT_AS_COAT[i]));}
  else add(dyeRamp(MATERIAL.coat,MATERIAL.coat[0],(DYES.coat[look.coat]||DYES.coat[0])[1]));
