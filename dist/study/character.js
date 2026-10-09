@@ -13,14 +13,54 @@ function painter(c){
  const p=(pts,col)=>{let top=Math.floor(Math.min(...pts.map(v=>v[1]))*2)/2,bottom=Math.ceil(Math.max(...pts.map(v=>v[1]))*2)/2;c.fillStyle=col;for(let y=top;y<bottom;y+=.5){let hits=[];for(let i=0;i<pts.length;i++){let a=pts[i],b=pts[(i+1)%pts.length],scan=y+.25;if((a[1]<=scan&&b[1]>scan)||(b[1]<=scan&&a[1]>scan))hits.push(a[0]+(scan-a[1])*(b[0]-a[0])/(b[1]-a[1]));}hits.sort((a,b)=>a-b);for(let i=0;i+1<hits.length;i+=2){let x=snap(hits[i]),end=snap(hits[i+1]);if(end>x)c.fillRect(x,y,end-x,.5);}}};
  return {r,p};
 }
+// Shoes: 0 work boots (original), 1 sneakers, 2 dress shoes, 3 hiking boots. Uppers use the leather ramp, so the shoe color dyes them.
+const SOLE='#e3ded3',SOLE_LO='#aaa59b',LACE='#d9d3c6';
+function shoe(g,x,y,side,near,style){if(!style){boot(g,x,y,side,near);return;}const {p,r}=g,tip=side?4:1,up=near?C.leather:C.leatherLo,hi=near?C.leatherHi:C.leather;
+ if(style===1){p([[x-4,y-4.5],[x+2,y-4.5],[x+3.5,y-2.5],[x+5+tip,y-1.5],[x+6+tip,y+.5],[x+5.5+tip,y+2.5],[x-4,y+2.5],[x-5,y+.5]],C.ink);
+  p([[x-3,y-3.5],[x+1.5,y-3.5],[x+3,y-1.5],[x+4.5+tip,y-.5],[x+5+tip,y+.5],[x-3.5,y+.5]],up);r(x-2.5,y-3,3,1.5,hi);
+  r(x-3.5,y+.5,9+tip,1.5,SOLE);r(x-3.5,y+1.5,9+tip,.5,SOLE_LO);r(x+(side?3:0),y-2,side?3:2.5,.5,LACE);r(x+(side?2:-1),y-3,side?1.5:2,.5,LACE);r(x+2+tip,y-.5,2,.5,hi);return;}
+ if(style===2){p([[x-3.5,y-3],[x+2.5,y-3],[x+4.5,y-1.5],[x+6+tip,y-.5],[x+6.5+tip,y+1],[x+5+tip,y+2],[x-3.5,y+2],[x-4.5,y+.5]],C.ink);
+  p([[x-2.5,y-2],[x+2,y-2],[x+4,y-.5],[x+5.5+tip,y+.3],[x+5+tip,y+1],[x-3,y+1]],up);r(x+1,y-1,2.5+tip,.5,near?C.leatherLight:C.leatherHi);r(x-2,y-1.5,1.5,.5,hi);r(x-3,y+1,8.5+tip,.8,'#17171c');return;}
+ // Hiking boots: taller padded collar, lug sole and laces up the front.
+ p([[x-4.5,y-7.5],[x+3.5,y-7.5],[x+3.5,y-2.5],[x+5.5+tip,y-1.5],[x+6+tip,y+2.5],[x-4.5,y+2.5],[x-5.5,y]],C.ink);
+ p([[x-3.5,y-6.5],[x+2.5,y-6.5],[x+2.5,y-1.5],[x+4.5+tip,y-.5],[x+5+tip,y+1],[x-3.5,y+1]],up);r(x-3.5,y-6.5,6,1.5,C.leatherLo);r(x-2.5,y-4.5,2.5,3,hi);
+ for(let i=0;i<3;i++)r(x+(side?1.5:-1),y-5.5+i*1.5,side?1.5:2.5,.5,'#c99a4a');r(x-4,y+1,9.5+tip,1.5,'#26262b');for(let i=0;i<4;i++)r(x-3+i*2.5,y+2,1,.5,'#3a3a40');}
 function boot(g,x,y,side,near){let {p,r}=g,tip=side?4:1;p([[x-4,y-6],[x+3,y-6],[x+3,y-2],[x+5+tip,y-1],[x+5+tip,y+2],[x-4,y+2],[x-5,y]],C.ink);p([[x-3,y-5],[x+2,y-5],[x+2,y-1],[x+4+tip,y],[x+4+tip,y+1],[x-3,y+1]],near?C.leather:C.leatherLo);r(x-2,y-5,3,3,near?C.leatherHi:C.leather);r(x-3,y+1,8+tip,1,'#17171c');r(x+1,y-1,3+tip,.5,C.leatherHi);}
 // Each foot follows the facing direction: forward/back along the stride, lifted while it swings through.
-function leg(g,x,foot,side,near,depth=0,bootG=g){const {p,r}=g,{dx,dy,lift,knee}=foot,y=-2-lift-depth+dy;
+// Pants: 0 work trousers (original), 1 jeans, 2 cargo pants, 3 slacks, 4 shorts.
+function leg(g,x,foot,side,near,depth=0,bootG=g,bottom=0,shoeStyle=0){const {p,r}=g,{dx,dy,lift,knee}=foot,y=-2-lift-depth+dy;
+ if(bottom){fittedLeg(g,x,foot,side,near,y,bottom);shoe(bootG,x+dx,y,side,near,shoeStyle);return;}
  p([[x-4,-27],[x+4,-27],[x+4+knee,-14],[x+3+dx,y-3],[x-4+dx,y-3],[x-5+knee,-14]],C.ink);
  p([[x-2.5,-25],[x+2.5,-25],[x+2.5+knee,-15],[x+1.5+dx,y-4],[x-2.5+dx,y-4],[x-3+knee,-14]],near?C.pants:C.pantsLo);
  p([[x-2,-24],[x,-24],[x-.5+knee,-15],[x-1+dx,y-6],[x-2.5+dx,y-6],[x-2+knee,-15]],near?C.pantsHi:C.pants);
  r(x-2+knee,-14,3,1,near?'#1b2d3b':'#13212c');if(near){r(x+.5,-23,2,5,'#263e50');r(x,-23,3,.5,'#40586a');}
- boot(bootG,x+dx,y,side,near);
+ shoe(bootG,x+dx,y,side,near,shoeStyle);
+}
+const STITCH='#b58a4e90',SOCK='#d8d3c8';
+function fittedLeg(g,x,foot,side,near,y,bottom){const {p,r}=g,{dx,knee}=foot,base=near?C.pants:C.pantsLo,hi=near?C.pantsHi:C.pants,lo=near?'#1b2d3b':'#13212c';
+ // Outer side of the leg on screen: the pocket and seam sit there. In profile the near side faces the viewer.
+ const out=side?0:x<0?-1:1;
+ if(bottom===4){ // Shorts end mid-thigh; bare knees and shins below, socks above the shoe.
+  const sk=near?C.skin:C.skinLo,skHi=near?C.skinHi:C.skin;
+  p([[x-3.5,-19],[x+3.5,-19],[x+3.5+knee,-14],[x+2.5+dx,y-3],[x-3.5+dx,y-3],[x-4+knee,-14]],C.ink);
+  p([[x-2.5,-18],[x+2.5,-18],[x+2.5+knee,-14.5],[x+1.5+dx,y-4],[x-2.5+dx,y-4],[x-3+knee,-14]],sk);
+  p([[x-2,-18],[x-.5,-18],[x-1+knee,-14.5],[x-1.5+dx,y-5],[x-2.5+dx,y-5],[x-2.5+knee,-14.5]],skHi);r(x-1.5+knee,-14.5,2,1,near?C.skinLo:C.skinDeep);
+  r(x-3+dx,y-6,5.5,1.5,SOCK);
+  const k=knee*.62;p([[x-4,-27],[x+4,-27],[x+4.5+k,-17.5],[x-5.5+k,-17.5]],C.ink);p([[x-2.5,-25],[x+2.5,-25],[x+3+k,-18.5],[x-4+k,-18.5]],base);
+  p([[x-2,-24],[x,-24],[x-.5+k,-18.5],[x-3+k,-18.5]],hi);r(x-4+k,-19,7.5,.5,lo);if(near){r(x+.5,-23,2,3,'#263e50');}return;}
+ const w=bottom===2?1:bottom===3?-.5:0; // cargo pants are roomier, slacks a little slimmer
+ p([[x-4-w,-27],[x+4+w,-27],[x+4+w+knee,-14],[x+3+w*.5+dx,y-3],[x-4-w*.5+dx,y-3],[x-5-w+knee,-14]],C.ink);
+ p([[x-2.5-w,-25],[x+2.5+w,-25],[x+2.5+w+knee,-15],[x+1.5+w*.5+dx,y-4],[x-2.5-w*.5+dx,y-4],[x-3-w+knee,-14]],base);
+ p([[x-2-w,-24],[x,-24],[x-.5+knee,-15],[x-1+dx,y-6],[x-2.5-w*.5+dx,y-6],[x-2-w+knee,-15]],hi);
+ if(bottom===1){ // Jeans: contrast stitching on the outer seam and pocket, a rolled cuff.
+  const sx=out<0?-2.5:out>0?2:0;p([[x+sx,-25],[x+sx+.5,-25],[x+sx+.5+knee,-14],[x+sx*.8+.5+dx,y-5],[x+sx*.8+dx,y-5],[x+sx+knee,-14]],STITCH);
+  r(x-2+knee,-14,3,1,lo);if(near){r(x+.5,-23,2.5,.5,STITCH);r(x+2.5,-23,.5,2,STITCH);}
+  r(x-3+dx,y-5.5,5.5,1.5,near?'#40586a':C.pantsHi);r(x-3+dx,y-4,5.5,.5,lo);return;}
+ if(bottom===2){ // Cargo: a flapped thigh pocket on the outer side and a reinforced knee.
+  const cx=x+out*2.5,k=knee*.55;p([[cx-2,-22],[cx+2,-22],[cx+2+k,-16],[cx-2+k,-16]],near?'#263e50':lo);r(cx-2,-22,4,1.5,hi);r(cx-.5,-21,1,.5,lo);r(cx-2+k,-16.5,4,.5,lo);
+  p([[x-2.5+knee,-14.5],[x+2+knee,-14.5],[x+1.5+knee*.9+dx*.25,-11],[x-2.5+knee*.9+dx*.25,-11]],near?'#263e50':lo);r(x-3+dx,y-4.5,6,1,lo);return;}
+ // Slacks: a pressed crease down the front and a clean break over the shoe.
+ p([[x-.25,-25],[x+.25,-25],[x+.25+knee,-14],[x-.25+dx*.9,y-4.5],[x-.75+dx*.9,y-4.5],[x-.75+knee,-14]],near?'#40586a':C.pantsHi);r(x-2.5+dx,y-4,4.5,.5,lo);
 }
 // The sleeve bends progressively below the shoulder; forearm and hand move rigidly with the swing.
 // Sleeves: 0 jacket (elbow patch), 1 short, 2 plain long, 3 ribbed hoodie cuff, 4 shirt cuff, 5 bare arm.
@@ -276,7 +316,7 @@ export function survivor(c,direction=1,frame=0,pack=true,look={}){
  g.p([[-16,0],[-11,-3],[11,-3],[17,0],[15,3],[-12,3]],'#11152230');g.p([[-11,0],[-6,-2],[9,-2],[13,1],[9,3],[-9,2]],'#11152242');
  // Feet keep their own ground plane while the upper body rises, dips and (when running) leans into the stride.
  const L=legLayout(dir,frame);
- leg(g,L.far.x,L.far.foot,side,false,L.far.depth,boots);leg(g,L.near.x,L.near.foot,side,true,0,boots);
+ leg(g,L.far.x,L.far.foot,side,false,L.far.depth,boots,look.bottom||0,look.shoes||0);leg(g,L.near.x,L.near.foot,side,true,0,boots,look.bottom||0,look.shoes||0);
  c.save();c.translate(G.lean,G.bob);g=tint(painter(c),maps.main);let packG=tint(painter(c),maps.pack);
  // Upper-body parts draw through the tailoring warp; arms keep their thickness and move in with the shoulders.
  const body=female?tailor(g,-.5,side?TORSO_SIDE:TORSO_FRONT):g,shoulder=x=>female&&!side?-.5+(x+.5)*.86:x;if(female)packG=tailor(packG,-.5,side?TORSO_SIDE:TORSO_FRONT);

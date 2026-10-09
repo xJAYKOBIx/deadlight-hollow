@@ -48,3 +48,11 @@ test('shirts take the shirt color, the jacket and hoodie take the jacket color',
  assert.ok(same(render(2,0,{top:3}),render(2,0,{top:3,shirt:3})),'shirt color ignored by hoodie');assert.ok(!same(render(2,0,{top:3}),render(2,0,{top:3,coat:3})),'jacket color dyes hoodie');});
 test('tank top arms are bare skin, walking and aiming',()=>{const sleeve=[0x29,0x46,0x5a],count=(a,c)=>{let n=0;for(let i=0;i<a.length;i+=4)if(a[i]===c[0]&&a[i+1]===c[1]&&a[i+2]===c[2])n++;return n;};
  for(const look of[{top:6,shirt:2},{top:6,shirt:2,gun:'tactical-ar'}])for(const d of[0,1,2,6])assert.equal(count(render(d,3,{...look,pants:1}),sleeve),0,`${d}/${JSON.stringify(look)}`);});
+test('pants and shoes change only the legs and feet, look distinct in every view and fit the atlas',()=>{const bottoms=APPEARANCE_OPTIONS.bottom.length,shoes=APPEARANCE_OPTIONS.shoes.length;
+ for(const d of[0,1,2,6,7]){const b=[...Array(bottoms)].map((_,i)=>Buffer.from(render(d,0,{bottom:i})).toString('base64')),s=[...Array(shoes)].map((_,i)=>Buffer.from(render(d,0,{shoes:i})).toString('base64'));assert.equal(new Set(b).size,bottoms,`pants dir ${d}`);assert.equal(new Set(s).size,shoes,`shoes dir ${d}`);}
+ for(let d=0;d<8;d++)for(const f of[0,2,6,11,15]){const original=render(d,f,{pack:1});for(let bottom=0;bottom<bottoms;bottom++)for(let sh=0;sh<shoes;sh++){if(!bottom&&!sh)continue;const a=render(d,f,{pack:1,bottom,shoes:sh});
+  assert.deepEqual(a.slice(0,104*160*4),original.slice(0,104*160*4),`upper body changed ${d}/${f}/${bottom}/${sh}`);for(let x=0;x<160;x++)assert.equal(a[(191*160+x)*4+3],0);for(let y=0;y<192;y++)assert.equal(a[y*160*4+3]+a[(y*160+159)*4+3],0);}}});
+test('shorts show bare knees in every skin tone and new pants and shoe colors dye',()=>{const skinTone=[0xd9,0x9b,0x73],count=(a,c)=>{let n=0;for(let i=0;i<a.length;i+=4)if(a[i]===c[0]&&a[i+1]===c[1]&&a[i+2]===c[2])n++;return n;};
+ for(const d of[0,2,6])assert.ok(count(render(d,0,{bottom:4,pack:1}).slice(130*160*4),skinTone)>count(render(d,0,{pack:1}).slice(130*160*4),skinTone),`knees ${d}`);
+ const same=(a,b)=>Buffer.from(a).equals(Buffer.from(b));assert.ok(!same(render(2,0,{bottom:1}),render(2,0,{bottom:1,pants:6})));assert.ok(!same(render(2,0,{shoes:1}),render(2,0,{shoes:1,boots:4})));
+ assert.deepEqual(normalizeAppearance({bottom:9,shoes:-1}),DEFAULT_APPEARANCE);});
