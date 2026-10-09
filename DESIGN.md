@@ -205,3 +205,7 @@ The weapon panel (`#weaponHud`) shows the gun, rounds left over the magazine wit
 ### v0.22.1 touch controls only while touching
 
 The touch overlay (move stick, fire stick, fan, action button) follows the last input you used instead of whether the device has a touchscreen. Phones and tablets (primary pointer coarse) start with it; a PC starts without it, even with a touchscreen. Touching the screen shows it; moving the mouse, pressing a key (except while typing in a text field) or using a controller hides it, so it never sits over the game catching clicks. Camp fishing hints follow the same switch.
+
+### v0.22.2 portrait control deck
+
+On a phone held upright (touch, height more than 1.15× width) the controls get their own deck along the bottom (`#deck`, 206px plus the safe area) and the game view ends above it, so nothing in play sits under your thumbs; the camera centers on the smaller view. The fire stick sits in the corner (130px), with Reload, Grenade and Swap on an arc 100px around it at 180°, 225° and 270°; the ammo readout takes the corner above the move stick. In camp the action button keeps its place on the deck, dimmed and reading Use until something is in reach. Landscape and PC are unchanged, and switching to the keyboard, mouse or a controller drops the deck.
