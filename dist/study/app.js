@@ -1,28 +1,21 @@
-import {GUNS,GRENADES,gunArt,grenadeArt,readLoadout,saveLoadout} from './equipment.js';
-import {APPEARANCE_OPTIONS,DEFAULT_APPEARANCE,readAppearance,saveAppearance,randomAppearance} from './appearance.js';
-import {SHIRT_TOPS} from './palette.js';
+import {GUNS,readLoadout,saveLoadout} from './equipment.js';
+import {readAppearance,saveAppearance} from './appearance.js';
+import {createCreator} from './creator.js';
 import {StudyModel} from './model.js';import {makeStudyScene} from './scene.js';import {DIRECTIONS} from './character.js';import {FloatingStick} from '../layout.js';
 const $=id=>document.getElementById(id),model=new StudyModel(),keys=new Set(),stick=new FloatingStick();let game,scene,ready=false,move={x:0,y:0},running=false,runPointer=null,zoomIndex=0,inspectDirection=1,pose='idle',lastInspect=0,contextMissing=false;const zooms=[1,1.5,2];
 let storage;try{storage=window.localStorage;}catch{}let appearance=readAppearance(storage),loadout=readLoadout(storage);const aimStick=new FloatingStick();let aim={x:0,y:0},firing=false,mouseFire=false,mousePoint=null;
-function syncAppearanceControls(){for(const key of Object.keys(APPEARANCE_OPTIONS))$('style'+key[0].toUpperCase()+key.slice(1)).value=String(appearance[key]);$('styleCoat').disabled=SHIRT_TOPS.has(appearance.top);$('styleShirt').disabled=appearance.top===3;$('stylePackColor').disabled=appearance.pack===1;}
-function applyAppearance(){scene?.setAppearance(appearance);lastInspect=0;paintInspection(performance.now());$('lookSaveStatus').textContent=saveAppearance(storage,appearance)?'Your look is saved on this device.':'Your look is active for this visit. Saving is unavailable.';}
-for(const [key,options] of Object.entries(APPEARANCE_OPTIONS)){const select=$('style'+key[0].toUpperCase()+key.slice(1));select.innerHTML=options.map((label,index)=>label?`<option value="${index}">${label}</option>`:'').join('');select.addEventListener('change',()=>{appearance={...appearance,[key]:Number(select.value)};syncAppearanceControls();applyAppearance();});}
-syncAppearanceControls();if(!storage)$('lookSaveStatus').textContent='Your look is active for this visit. Saving is unavailable.';
-$('resetLook').onclick=()=>{appearance={...DEFAULT_APPEARANCE};syncAppearanceControls();applyAppearance();};
-$('randomLook').onclick=()=>{appearance=randomAppearance();syncAppearanceControls();applyAppearance();};
-function showControls(tab){for(const name of ['view','style','gear']){$(name+'Controls').hidden=name!==tab;$(name+'Tab').setAttribute('aria-pressed',String(name===tab));}}
-$('viewTab').onclick=()=>showControls('view');$('styleTab').onclick=()=>showControls('style');$('gearTab').onclick=()=>showControls('gear');
-$('equipment').onclick=()=>{openDialog('inspection');showControls('gear');};
-$('gunChoice').innerHTML='<option value="none">Unarmed</option>'+Object.entries(GUNS).map(([id,g])=>`<option value="${id}">${g.name}</option>`).join('');
-$('grenadeChoice').innerHTML=Object.entries(GRENADES).map(([id,g])=>`<option value="${id}">${g.name}</option>`).join('');
-function paintGear(){const c=$('gearPreview').getContext('2d');c.clearRect(0,0,240,100);c.imageSmoothingEnabled=false;c.save();c.translate(66,43);c.scale(3.5,3.5);const g={r:(x,y,w,h,col)=>{c.fillStyle=col;c.fillRect(x,y,w,h);},p:(pts,col)=>{c.fillStyle=col;c.beginPath();pts.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.fill();}};gunArt(g,loadout.gun);c.restore();c.save();c.translate(208,47);c.scale(3,3);grenadeArt(g,loadout.grenade);c.restore();$('gunChoice').value=loadout.gun;$('grenadeChoice').value=loadout.grenade;$('gunDescription').textContent=GUNS[loadout.gun]?.description||'Hands free. Grenades remain available.';$('grenadeDescription').textContent=GRENADES[loadout.grenade].description;$('throwGrenade').textContent=loadout.grenade==='incendiary'?'Firebomb':loadout.grenade==='explosive'?'Frag':'Smoke';}
-function equip(){loadout={gun:$('gunChoice').value,grenade:$('grenadeChoice').value};scene?.practice.equip(loadout);scene?.setAppearance(appearance);lastInspect=0;paintGear();$('gearSaveStatus').textContent=saveLoadout(storage,loadout)?'Saved on this device. Unlimited practice reserves.':'Equipped for this visit. Saving is unavailable.';}
-$('gunChoice').addEventListener('change',equip);$('grenadeChoice').addEventListener('change',equip);paintGear();
+const SAVE_FAIL='Active for this visit. Saving is unavailable on this device.';
+function applyAppearance(){scene?.setAppearance(appearance);lastInspect=0;paintInspection(performance.now());$('lookSaveStatus').textContent=saveAppearance(storage,appearance)?'Look saved on this device.':SAVE_FAIL;creator.refresh();}
+function paintGear(){$('throwGrenade').textContent=loadout.grenade==='incendiary'?'Firebomb':loadout.grenade==='explosive'?'Frag':'Smoke';}
+function equip(){scene?.practice.equip(loadout);scene?.setAppearance(appearance);lastInspect=0;paintGear();$('lookSaveStatus').textContent=saveLoadout(storage,loadout)?'Gear saved on this device. Practice reserves are unlimited.':SAVE_FAIL;creator.refresh();}
+const creator=createCreator({$,storage,look:()=>appearance,setLook:l=>{appearance=l;applyAppearance();},loadout:()=>loadout,setLoadout:l=>{loadout=l;equip();}});
+creator.refresh();paintGear();if(!storage)$('lookSaveStatus').textContent=SAVE_FAIL;
+$('equipment').onclick=()=>{openDialog('inspection');creator.show('gear');};
 $('reload').onclick=()=>{if(!paused())scene.practice.reload();};$('throwGrenade').onclick=()=>{if(!paused())scene.practice.throwGrenade();};
 const touch=matchMedia('(pointer:coarse)').matches||navigator.maxTouchPoints>0;if(touch){document.body.classList.add('touch');$('instructions').textContent='Left thumb moves · Right thumb aims / fires · Tap grenade to throw';}
 function paused(){return !ready||document.hidden||contextMissing||$('inspection').open||$('options').open;}
 function resetInput(){mousePoint=null;aim={x:0,y:0};firing=false;mouseFire=false;aimStick.end();$('aimRing').style.left=$('aimRing').style.top='';$('aimThumb').style.transform='';keys.clear();move={x:0,y:0};running=false;runPointer=null;stick.end();$('run').classList.remove('active');$('moveZone').classList.remove('active');$('ring').style.left=$('ring').style.top='';$('thumb').style.transform='';}
-function openDialog(id){resetInput();if(id==='inspection'){inspectDirection=model.direction;pose='idle';setPose('idle');}$(id).showModal();if(id==='inspection')paintInspection(performance.now());}
+function openDialog(id){resetInput();if(id==='inspection'){inspectDirection=model.direction;pose='idle';setPose('idle');}$(id).showModal();if(id==='inspection'){creator.refresh();paintInspection(performance.now());}}
 function closeDialog(id){$(id).close();resetInput();}
 $('inspect').onclick=()=>openDialog('inspection');$('menu').onclick=()=>openDialog('options');$('closeInspect').onclick=$('returnRoom').onclick=()=>closeDialog('inspection');$('closeOptions').onclick=()=>closeDialog('options');for(let id of ['inspection','options'])$(id).addEventListener('close',resetInput);
 $('zoom').onclick=()=>{zoomIndex=(zoomIndex+1)%zooms.length;$('zoom').textContent=zooms[zoomIndex]+'×';};
@@ -30,8 +23,11 @@ $('reset').onclick=()=>{model.reset();scene?.practice.reset();closeDialog('optio
 $('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen&&document.fullscreenEnabled!==false)await document.documentElement.requestFullscreen();else $('fullscreenHelp').hidden=false;}catch{$('fullscreenHelp').hidden=false;}};
 function setPose(p){pose=p;for(let b of document.querySelectorAll('[data-pose]'))b.setAttribute('aria-pressed',String(b.dataset.pose===p));lastInspect=0;}
 for(let b of document.querySelectorAll('[data-pose]'))b.onclick=()=>setPose(b.dataset.pose);
+let turnFrom=null;const stage=$('stage');stage.addEventListener('pointerdown',e=>{turnFrom={id:e.pointerId,x:e.clientX};stage.setPointerCapture?.(e.pointerId);});
+stage.addEventListener('pointermove',e=>{if(!turnFrom||turnFrom.id!==e.pointerId)return;const dx=e.clientX-turnFrom.x;if(Math.abs(dx)>=26){inspectDirection=(inspectDirection+(dx>0?7:1))%8;turnFrom.x=e.clientX;lastInspect=0;}});
+for(const name of ['pointerup','pointercancel','lostpointercapture'])stage.addEventListener(name,()=>{turnFrom=null;});
 $('turnLeft').onclick=()=>{inspectDirection=(inspectDirection+7)%8;lastInspect=0;};$('turnRight').onclick=()=>{inspectDirection=(inspectDirection+1)%8;lastInspect=0;};
-function paintInspection(now){if(!scene||now-lastInspect<60)return;lastInspect=now;const c=$('portrait').getContext('2d');c.clearRect(0,0,480,400);c.imageSmoothingEnabled=false;let f=pose==='idle'?0:(pose==='run'?9:1)+Math.floor(now/(pose==='run'?60:85))%8;c.drawImage(scene.textures.get('survivor-01').canvas,inspectDirection*160,f*192,160,192,80,8,320,384);$('direction').textContent=DIRECTIONS[inspectDirection];$('portrait').setAttribute('aria-label',DIRECTIONS[inspectDirection]+' view, '+pose+' animation');}
+function paintInspection(now){if(!scene||now-lastInspect<60)return;lastInspect=now;const c=$('portrait').getContext('2d');c.clearRect(0,0,280,360);c.imageSmoothingEnabled=false;let f=pose==='idle'?0:(pose==='run'?9:1)+Math.floor(now/(pose==='run'?60:85))%8;c.drawImage(scene.textures.get('survivor-01').canvas,inspectDirection*160+10,f*192+4,140,180,0,0,280,360);$('direction').textContent=DIRECTIONS[inspectDirection];$('portrait').setAttribute('aria-label',DIRECTIONS[inspectDirection]+' view, '+pose+' animation');}
 const zone=$('moveZone');function paintStick(v){$('ring').style.left=v.baseX+'px';$('ring').style.top=v.baseY+'px';$('thumb').style.transform=`translate(-50%,-50%) translate(${v.thumbX}px,${v.thumbY}px)`;}
 zone.addEventListener('pointerdown',e=>{if(paused()||stick.pointer!==null)return;e.preventDefault();let b=zone.getBoundingClientRect();stick.start(e.pointerId,e.clientX-b.left,e.clientY-b.top,{w:b.width,h:b.height},44,36);zone.setPointerCapture(e.pointerId);zone.classList.add('active');paintStick({baseX:stick.base.x,baseY:stick.base.y,thumbX:0,thumbY:0});});
 zone.addEventListener('pointermove',e=>{let b=zone.getBoundingClientRect(),v=stick.move(e.pointerId,e.clientX-b.left,e.clientY-b.top);if(!v)return;e.preventDefault();paintStick(v);let d=Math.hypot(v.dx,v.dy),power=Math.min(1,Math.max(0,(d-4)/32));move={x:d?v.dx/d*power:0,y:d?v.dy/d*power:0};});

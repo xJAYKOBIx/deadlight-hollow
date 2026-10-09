@@ -147,8 +147,10 @@ function head(g,back,quarter,side){const {p,r}=g;
 // Crop crown art under fitted headwear instead of stacking a hat on the hair volume.
 function belowHatBand(g,band){return {r:(x,y,w,h,col)=>{const top=Math.max(y,band);if(y+h>top)g.r(x,top,w,y+h-top,col);},p:(pts,col)=>{const out=[];for(let i=0;i<pts.length;i++){const a=pts[i],b=pts[(i+1)%pts.length],inside=a[1]>=band,next=b[1]>=band;if(inside)out.push(a);if(inside!==next)out.push([a[0]+(b[0]-a[0])*(band-a[1])/(b[1]-a[1]),band]);}if(out.length>2)g.p(out,col);}};}
 // The approved swept head is retained intact. Other choices use the same face planes.
+// Hair tones: base, deep, mid, light. The first entry is the swatch color.
+export const HAIR_TONES=[['#282328','#201d23','#352a2e','#463439'],['#694936','#402f29','#80573e','#9c7252'],['#ab8755','#71593e','#c19d68','#d4b482'],['#9b969e','#66636f','#b2acb5','#ccc3ca'],['#7a3a26','#4e2419','#93492f','#ad5e3c'],['#d6cdb6','#9f957f','#e4ddca','#f2ecdc']];
 function hairPalette(look){
- const tones=[['#282328','#201d23','#352a2e','#463439'],['#694936','#402f29','#80573e','#9c7252'],['#ab8755','#71593e','#c19d68','#d4b482'],['#9b969e','#66636f','#b2acb5','#ccc3ca'],['#7a3a26','#4e2419','#93492f','#ad5e3c'],['#d6cdb6','#9f957f','#e4ddca','#f2ecdc']][look.color||0];
+ const tones=HAIR_TONES[look.color||0]||HAIR_TONES[0];
  return {...C,hair:tones[0],hairDeep:tones[1],hairMid:tones[2],hairLight:tones[3]};}
 function appearanceHead(g,back,quarter,side,look){
  const H=hairPalette(look),style=look.hat===5&&look.hair===2?1:look.hair||0;
