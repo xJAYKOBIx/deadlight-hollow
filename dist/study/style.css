@@ -96,3 +96,45 @@ dialog.creator[open]{display:grid;grid-template-rows:auto minmax(0,1fr) auto}dia
 @media(orientation:portrait){#talk{grid-template-columns:auto minmax(0,1fr);bottom:max(14px,env(safe-area-inset-bottom))}#talkNext{grid-column:1/-1;justify-self:end}#talkFace{width:64px;height:64px}#talk p{font-size:14px}.touch.camp #run{left:auto;right:30px;bottom:150px}}
 @media(orientation:landscape) and (max-height:560px){#talk{padding:9px 12px;gap:12px}#talkFace{width:60px;height:60px}#talk h2{font-size:18px;margin:3px 0 4px}#talk p{font-size:14px;line-height:1.35}}
 .talking #moveZone,.talking #run,.talking #act{display:none!important}
+/* v0.19: stamina, fishing and the grill. */
+#vitals{display:none;position:fixed;z-index:2;top:calc(var(--vy) + max(74px,calc(env(safe-area-inset-top) + 62px)));left:calc(var(--vx) + max(16px,env(safe-area-inset-left)));flex-direction:column;align-items:flex-start;gap:6px;pointer-events:none;font-family:var(--ui)}
+.camp #vitals{display:flex}
+.stamina{display:flex;align-items:center;gap:8px}.stamina>span:first-child,.fp-bars>span:not(.bar){font:600 11px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--dust);text-shadow:0 1px 3px #000}
+.bar{position:relative;display:block;width:calc(120px * var(--max,1));height:8px;background:#141311d9;border:1px solid var(--edge-hi);border-radius:1px;overflow:hidden;transition:width .4s}
+.bar>i{display:block;height:100%;transform-origin:left;background:linear-gradient(#ffb36b,var(--ember))}
+.winded #staminaFill{background:#8a3a2a}.winded .stamina>span:first-child{color:#ff7a5a}
+.chips{display:flex;gap:6px}.chips>span{font:600 11px/1 var(--ui);letter-spacing:.05em;text-transform:uppercase;padding:4px 7px;background:#141311d9;border:1px solid var(--edge);border-radius:2px;color:var(--bone)}
+#mealChip{border-color:var(--ember);color:var(--ember-hi)}
+#fishPanel{position:fixed;z-index:4;top:calc(var(--vy) + max(64px,calc(env(safe-area-inset-top) + 52px)));left:50%;transform:translateX(-50%);width:min(420px,calc(100% - 2 * max(16px,env(safe-area-inset-left))));padding:9px 14px 12px;font-family:var(--body);color:var(--bone);background:var(--grit),linear-gradient(160deg,#23201cf2,#161412f2);border:1px solid var(--edge);border-radius:4px;box-shadow:0 10px 30px #0009}
+.fp-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+#fishStop{min-height:32px;padding:0 12px;font:700 12px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;background:#141311;border-color:var(--edge-hi);border-radius:3px}
+#fishStatus{margin:5px 0 3px;font:400 22px/1.1 var(--display);letter-spacing:.03em;text-transform:uppercase}
+[data-tone=hot] #fishStatus{color:var(--ember-hi)}[data-tone=good] #fishStatus{color:#b8d98a}[data-tone=warn] #fishStatus{color:#ff7a5a}
+#fishHint{margin:0;min-height:1.3em;font-size:13px;line-height:1.35;color:#cfc6b6}
+.fp-bars{display:none}.hooked .fp-bars{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:6px 10px;margin-top:9px}.fp-bars .bar{width:auto;height:10px}
+#fishTension{background:#d8c9a0}#fishTension.danger{background:#e0503a}#fishLine{background:#9db4bb}
+#fishCatch{display:flex;align-items:center;gap:12px;margin-top:9px;padding-top:9px;border-top:1px solid var(--edge)}#fishCatch[hidden]{display:none}
+#fishCatch canvas,#cookSpit,#cookResult{width:96px;height:48px;flex-shrink:0;image-rendering:pixelated;background:radial-gradient(70% 70% at 50% 50%,#36312b,#1b1916);border:1px solid var(--edge)}
+#fishCatch b,#cookDone h3{display:block;margin:0 0 4px;font:400 19px/1.1 var(--display);letter-spacing:.03em;text-transform:uppercase}#fishCatch span{font-size:13px;line-height:1.35;color:#d8d0c2}
+.fishing #run,.fishing #prompt{display:none!important}
+.cooking #moveZone,.cooking #run,.cooking #act,.cooking #prompt{display:none!important}
+#cookPanel{position:fixed;z-index:5;left:50%;bottom:max(16px,calc(env(safe-area-inset-bottom) + 10px));transform:translateX(-50%);width:min(560px,calc(100% - 2 * max(16px,env(safe-area-inset-left))));max-height:calc(var(--vh) - 96px);overflow:auto;padding:12px 14px 14px;font-family:var(--body);color:var(--bone);background:var(--grit),linear-gradient(160deg,#23201c,#161412);border:1px solid var(--edge);border-radius:4px;box-shadow:0 10px 30px #000a;touch-action:pan-y}
+#cookPanel::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:repeating-linear-gradient(-45deg,var(--ember) 0 5px,transparent 5px 11px);opacity:.6}
+.cook-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.cook-head h2{margin:4px 0 0;font:400 21px/1 var(--display);letter-spacing:.03em;text-transform:uppercase}
+#cookClose{width:40px;min-height:40px;padding:0;font-size:22px;background:transparent;border-color:var(--edge)}
+.cook-note{margin:8px 0 10px;font-size:14px;line-height:1.4;color:#cfc6b6}
+.cook-fish{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.cook-fish button{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto;align-items:center;column-gap:9px;row-gap:2px;padding:7px 10px;text-align:left;background:#2a2520;border:1px solid var(--edge-hi);border-radius:3px}
+.cook-fish button:hover,.cook-fish button:focus-visible{border-color:var(--ember);outline:none}
+.cook-fish canvas{grid-row:span 2;width:64px;height:32px;image-rendering:pixelated}.cook-fish b{font:700 14px/1.1 var(--ui);letter-spacing:.04em;text-transform:uppercase}.cook-fish span{font-size:12px;color:var(--dust)}
+.cook-soon{display:flex;flex-direction:column;gap:3px;padding:8px 10px;border:1px dashed var(--edge-hi);border-radius:3px;opacity:.75}.cook-soon b{font:700 12px/1 var(--ui);letter-spacing:.06em;text-transform:uppercase;color:var(--dust)}.cook-soon span{font-size:12px;color:var(--dust)}
+#cookGrill,#cookDone{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px 14px;margin-top:10px}#cookGrill[hidden],#cookDone[hidden],#cookPick[hidden]{display:none}
+.cook-bar{position:relative;height:14px;background:#4a3a2a;border:1px solid var(--edge-hi)}.cook-bar i{position:absolute;top:0;bottom:0}.z-done{left:55%;width:17%;background:#8a5a2a}.z-perfect{left:72%;width:12%;background:var(--ember-hi)}.z-burnt{left:84%;right:0;background:#2a2220}
+#cookMark{position:absolute;top:-5px;bottom:-5px;left:0;width:3px;transform:translateX(-50%);background:var(--bone);box-shadow:0 0 0 1px #111319}
+#cookState{margin:7px 0 0;font:600 14px/1.2 var(--ui);letter-spacing:.05em;text-transform:uppercase;color:var(--dust)}[data-q=perfect] #cookState{color:var(--ember-hi)}[data-q=burnt] #cookState{color:#ff7a5a}[data-q=done] #cookState{color:var(--bone)}
+#cookDone p{margin:0;font-size:14px;line-height:1.4;color:#d8d0c2}
+.cook-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:8px}#cookTake{grid-column:1/-1;justify-self:end}
+#cookTake,#cookOk{min-height:42px;padding:0 18px;font:700 14px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;background:var(--ember);color:var(--ember-ink);border:1px solid var(--ember-hi);border-radius:3px}
+#cookAgain{min-height:42px;padding:0 14px;font:700 14px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;background:#141311;border-color:var(--edge-hi);border-radius:3px}
+@media(orientation:portrait){.fishing #vitals{display:none}#fishStatus{font-size:19px}#fishPanel{top:calc(var(--vy) + max(100px,calc(env(safe-area-inset-top) + 88px)))}}
+@media(orientation:landscape) and (max-height:560px){#vitals{top:calc(var(--vy) + 66px)}#fishPanel{top:calc(var(--vy) + 54px);padding:6px 12px 8px;width:min(380px,calc(100% - 360px))}#fishStatus{font-size:18px;margin:3px 0 2px}#fishHint{font-size:12px}.hooked .fp-bars{margin-top:5px;gap:4px 8px}#fishCatch{margin-top:5px;padding-top:5px}#fishCatch canvas{width:72px;height:36px}#cookPanel{padding:9px 12px 10px;max-height:calc(var(--vh) - 70px)}.cook-note{margin:5px 0 7px;font-size:13px}}

@@ -5,7 +5,9 @@ import {shoreX,westEdge,wallBottom,southEdge,groundArt,propArt,PROP_PAD,lightArt
 import {normalizeAppearance} from '../dist/study/appearance.js';
 const require=createRequire(import.meta.url);let createCanvas;try{({createCanvas}=require((process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES||'/opt/codex/runtimes/codex-primary-runtime/dependencies/node/node_modules')+'/@napi-rs/canvas'));}catch{}
 test('camp walk area sits on dry sand inside the cave walls',()=>{
- for(const [x,y] of WALK){assert.ok(x<shoreX(y)-20,`walk point ${x},${y} is in the water`);assert.ok(x>westEdge(y)+4,`walk point ${x},${y} is in the west rock`);assert.ok(y>wallBottom(x)+4,`walk point ${x},${y} is in the back wall`);assert.ok(y<southEdge(x),`walk point ${x},${y} is in the south rock`);}
+ // The pier is the one walkway over the water.
+ const pier=PROPS.find(o=>o.kind==='pier'),onPier=(x,y)=>x>=pier.x&&x<=pier.x+pier.w&&y>=pier.y&&y<=pier.y+pier.h;
+ for(const [x,y] of WALK){if(onPier(x,y)){assert.ok(x>shoreX(y)-60,`walk point ${x},${y} starts the pier near the shore`);continue;}assert.ok(x<shoreX(y)-20,`walk point ${x},${y} is in the water`);assert.ok(x>westEdge(y)+4,`walk point ${x},${y} is in the west rock`);assert.ok(y>wallBottom(x)+4,`walk point ${x},${y} is in the back wall`);assert.ok(y<southEdge(x),`walk point ${x},${y} is in the south rock`);}
  for(const o of PROPS){assert.ok(o.x>=0&&o.y>=0&&o.x+o.w<=CAMP.w&&o.y+o.h<=CAMP.h,o.id);assert.ok(o.y-o.z-PROP_PAD>=0,`${o.id} art fits in the world`);}});
 test('everyone and everything in camp can be reached and used',()=>{
  const m=new CampModel();assert.equal(m.blocked(CAMP_START.x,CAMP_START.y),false);
@@ -25,4 +27,4 @@ test('camp art paints every prop, the light map, the flame and the badges',{skip
  assert.ok(fire[0]>dark[0]+40&&fire[0]>fire[2],'fire light is brighter and warm');
  for(const [draw,w,h] of [[flameArt,FLAME.w*FLAME.frames,FLAME.h],[iconArt,ICON.w*ICONS.length,ICON.h]]){const c=createCanvas(w*2,h*2);draw(c.getContext('2d'));const px=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let n=0;for(let i=3;i<px.length;i+=4)n+=px[i]>0;assert.ok(n>500);}});
 test('the page offers the camp and its talk controls',()=>{const html=fs.readFileSync(new URL('../dist/index.html',import.meta.url),'utf8');
- for(const id of ['travel','act','prompt','talk','talkFace','talkName','talkRole','talkLine','talkNext','placeName'])assert.match(html,new RegExp(`id="${id}"`));assert.match(html,/0\.18\.0/);});
+ for(const id of ['travel','act','prompt','talk','talkFace','talkName','talkRole','talkLine','talkNext','placeName'])assert.match(html,new RegExp(`id="${id}"`));assert.match(html,/0\.19\.0/);});

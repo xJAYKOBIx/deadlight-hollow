@@ -1,14 +1,14 @@
 // Firelight Camp: stage 1 of Deadlight Hollow. A small beach camp inside the sea cave.
 // World units match the characters: 1 unit = 1 painter unit, art snapped to a 0.5 grid.
-export const CAMP={w:1200,h:880};
+export const CAMP={w:1320,h:880};
 export const CAMP_START={x:560,y:600,direction:6};
 // Where feet may stand. Back wall to the north (with the barred gate), rock to the west, boulders to the south, the inlet to the east.
-export const WALK=[[100,228],[880,226],[934,268],[962,334],[974,420],[968,520],[940,606],[890,684],[826,752],[720,778],[300,776],[160,770],[104,700],[98,560]];
+export const WALK=[[100,228],[880,226],[934,268],[962,334],[967,368],[1104,368],[1104,396],[971,396],[974,420],[968,520],[940,606],[890,684],[826,752],[720,778],[300,776],[160,770],[104,700],[98,560]];
 // The waterline, north to south. Everything east of it is the inlet.
 export const SHORE=[[930,150],[984,240],[1012,330],[1022,430],[1016,530],[990,622],[944,706],[884,782],[820,880]];
 // Lights are baked into a banded light map: [x, y, radius, r, g, b] with 1 = untouched color.
 export const AMBIENT=[.6,.64,.8];
-export const LIGHTS=[[560,470,250,1,.86,.64],[742,606,120,1,.8,.58],[356,452,120,.98,.86,.66],[748,522,110,.98,.86,.66],[300,590,115,.98,.86,.66],[239,174,110,.98,.84,.62],[820,330,120,.92,.95,.98],[1110,120,330,.62,.72,.95]];
+export const LIGHTS=[[560,470,250,1,.86,.64],[742,606,120,1,.8,.58],[356,452,120,.98,.86,.66],[748,522,110,.98,.86,.66],[300,590,115,.98,.86,.66],[239,174,110,.98,.84,.62],[820,330,120,.92,.95,.98],[1110,120,330,.62,.72,.95],[1100,346,90,.98,.86,.66]];
 // Solid props: footprint (x, y, w, h) and painted height z above it. flat props are walked over.
 export const PROPS=[
  {id:'fire',kind:'fire',x:532,y:458,w:56,h:28,z:16},
@@ -30,14 +30,19 @@ export const PROPS=[
  {id:'stash',kind:'stash',x:300,y:640,w:48,h:32,z:32},
  {id:'gate',kind:'gate',x:112,y:212,w:104,h:16,z:88},
  {id:'boat',kind:'boat',x:914,y:430,w:52,h:112,z:22},
- {id:'rack',kind:'rack',x:868,y:612,w:62,h:10,z:56},
+ {id:'rack',kind:'rack',x:868,y:612,w:62,h:10,z:56,fish:0},
  {id:'lamp-1',kind:'lantern',x:351,y:450,w:10,h:8,z:72},
  {id:'lamp-2',kind:'lantern',x:743,y:520,w:10,h:8,z:72},
  {id:'lamp-3',kind:'lantern',x:302,y:588,w:10,h:8,z:72},
  {id:'lamp-4',kind:'lantern',x:234,y:240,w:10,h:8,z:72},
  {id:'rock-a',kind:'rock',x:420,y:700,w:40,h:22,z:20},
  {id:'rock-b',kind:'rock',x:620,y:734,w:30,h:16,z:14},
- {id:'rock-c',kind:'rock',x:300,y:300,w:28,h:18,z:16},
+ {id:'rock-c',kind:'rock',x:116,y:604,w:28,h:18,z:16},
+ {id:'pier',kind:'pier',x:958,y:362,w:154,h:40,z:8,flat:true},
+ {id:'laundry',kind:'laundry',x:250,y:292,w:100,h:8,z:62},
+ {id:'sacks',kind:'sacks',x:478,y:258,w:30,h:22,z:20},
+ {id:'pool-a',kind:'tidepool',x:930,y:560,w:40,h:20,z:2,flat:true},
+ {id:'pool-b',kind:'tidepool',x:900,y:640,w:30,h:16,z:2,flat:true},
  {id:'drift',kind:'driftwood',x:476,y:640,w:80,h:14,z:6,flat:true}
 ];
 // Residents are placeholders until the cast is redesigned. Looks use the character creator's options.
@@ -50,7 +55,7 @@ export const RESIDENTS=[
   lines:['Sit down before you fall down. Let me look at you.','Bites go bad fast. If you get one out there, you come to me first. Not the cook, not your bunk. Me.','I\'m short on everything. Herbs, bandages, clean water. Anything you find helps.']},
  {id:'pike',name:'Pike',role:'Cook',icon:'bowl',x:716,y:608,direction:1,
   look:{body:0,skin:1,hair:1,color:4,beard:2,hat:2,top:3,shirt:0,coat:5,bottom:2,pants:2,shoes:3,boots:0,pack:1,packColor:0},
-  lines:['Soup\'s thin, but it\'s hot.','Eat before you head out. A full stomach keeps your hands steady.','Bring back something with meat on it and I\'ll make it worth your while.']},
+  lines:['Soup\'s thin, but it\'s hot.','Grill a fish on the fire before you head out. It keeps your legs under you.','Your catch goes in my basket. I salt it, so nothing spoils.','Once we have more than fish, I\'ll cook real meals. Those patch you up, too. Not yet, though.']},
  {id:'wren',name:'Wren',role:'Camp steward',icon:'lantern',x:640,y:324,direction:2,
   look:{body:1,skin:2,hair:2,color:1,beard:0,hat:1,top:0,shirt:0,coat:1,bottom:1,pants:6,shoes:0,boots:0,pack:0,packColor:1},
   lines:['You\'re the new one. Good. We need people who come back.','Jobs get pinned to the board. Nothing\'s up yet. We\'re still counting what we have.','When that gate opens, you\'ll be the first one through it.']}
@@ -62,6 +67,8 @@ export const OBJECTS=[
  {id:'bedroll',verb:'Rest',my:640,name:'Your bedroll',role:'Bunk',x:222,y:676,lines:['Your bedroll. Thin, damp, and yours.','Rest and saved loadouts will live here.']},
  {id:'gate',verb:'Check',my:112,name:'The gate',role:'Way out',x:164,y:252,lines:['Planks, a car door and sandbags, barred from this side.','Wren\'s voice from across the camp: "It stays shut until we have a plan."']},
  {id:'boat',verb:'Look',my:404,mx:940,name:'Rowboat',role:'The inlet',x:902,y:486,lines:['A rowboat, patched with tar and stubbornness.','Someday it\'ll carry you past the mouth of the cave.']},
+ {id:'basket',verb:'Check',my:566,name:'Fish basket',role:'Pike\'s salt crate',x:818,y:648,lines:['Empty. The pier\'s past the medic tent.']},
+ {id:'pier',verb:'Fish',my:322,name:'Fishing pier',role:'The inlet',x:1086,y:382,lines:['The water\'s deep off the end of the pier.']},
  {id:'fire',verb:'Sit',my:418,name:'Campfire',role:'Firelight Camp',x:560,y:506,lines:['The fire crackles. For a moment, everything is quiet.']}
 ];
 export const USE_RANGE=44;

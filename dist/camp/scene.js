@@ -1,8 +1,10 @@
 import {survivor,FRAME,FRAME_COUNT} from '../study/character.js';
 import {CAMP,PROPS,RESIDENTS,LIGHTS} from './data.js';
-import {groundArt,frontArt,FRONT_Y,propArt,PROP_PAD,flameArt,FLAME,lightArt,LIGHT_SCALE,glowArt,iconArt,ICON,ICONS,shoreX,hash} from './art.js';
+import {groundArt,frontArt,FRONT_Y,propArt,PROP_PAD,flameArt,FLAME,lightArt,LIGHT_SCALE,glowArt,iconArt,ICON,ICONS,shoreX,hash,fishArt} from './art.js';
+import {PIER_END} from './play.js';
 // Residents turn to face you when you come close.
 const FACE_RANGE=130;
+const mixColor=(a,b,k)=>[16,8,0].reduce((n,sh)=>n|Math.round(((a>>sh)&255)+(((b>>sh)&255)-((a>>sh)&255))*k)<<sh,0);
 const facing=(dx,dy)=>(Math.round(Math.atan2(dy,dx)/(Math.PI/4))+8)%8;
 export function makeCampScene(model,bridge){return class Camp extends Phaser.Scene{
  constructor(){super('Camp');}
@@ -10,7 +12,7 @@ export function makeCampScene(model,bridge){return class Camp extends Phaser.Sce
  create(){
   this.texture('camp-ground',CAMP.w*2,CAMP.h*2,groundArt);this.add.image(0,0,'camp-ground').setOrigin(0).setScale(.5).setDepth(-10);
   this.water=this.add.graphics().setDepth(-5);
-  for(const o of PROPS){this.texture('camp-'+o.id,(o.w+PROP_PAD*2)*2,(o.h+o.z+PROP_PAD*2)*2,c=>propArt(c,o));this.add.image(o.x-PROP_PAD,o.y-o.z-PROP_PAD,'camp-'+o.id).setOrigin(0).setScale(.5).setDepth(o.flat?0:o.y+o.h);}
+  this.rackFish=bridge.rackFish?.()||0;for(const o of PROPS){this.texture('camp-'+o.id,(o.w+PROP_PAD*2)*2,(o.h+o.z+PROP_PAD*2)*2,c=>propArt(c,o.id==='rack'?{...o,fish:this.rackFish}:o));this.add.image(o.x-PROP_PAD,o.y-o.z-PROP_PAD,'camp-'+o.id).setOrigin(0).setScale(.5).setDepth(o.flat?0:o.y+o.h);}
   const flames=this.texture('camp-flame',FLAME.w*2*FLAME.frames,FLAME.h*2,flameArt);for(let f=0;f<FLAME.frames;f++)if(!flames.has(f))flames.add(f,0,f*FLAME.w*2,0,FLAME.w*2,FLAME.h*2);
   const fire=PROPS.find(o=>o.id==='fire'),pot=PROPS.find(o=>o.id==='pot');
   this.flame=this.add.image(fire.x+fire.w/2,fire.y+16,'camp-flame',0).setOrigin(FLAME.ax/FLAME.w,FLAME.ay/FLAME.h).setScale(.5).setDepth(fire.y+fire.h+1);
@@ -31,22 +33,73 @@ export function makeCampScene(model,bridge){return class Camp extends Phaser.Sce
   const icons=this.texture('camp-icons',ICON.w*2*ICONS.length,ICON.h*2,iconArt);ICONS.forEach((k,i)=>{if(!icons.has(k))icons.add(k,0,i*ICON.w*2,0,ICON.w*2,ICON.h*2);});
   this.badges=this.residents.map(r=>this.add.image(r.data.x,r.data.y-92,'camp-icons',r.data.icon).setScale(.5).setOrigin(.5,1).setDepth(7000));
   this.marker=this.add.image(0,0,'camp-icons','chevron').setScale(.5).setOrigin(.5,1).setDepth(7001).setVisible(false);
-  this.sparkles=Array.from({length:46},(_,i)=>{const y=236+hash(i,201)*560;return {x:shoreX(y)+14+hash(i,202)*220,y,phase:hash(i,203)*6.28,speed:.0015+hash(i,204)*.002};}).filter(s=>s.x<CAMP.w-4);
+  this.sparkles=Array.from({length:64},(_,i)=>{const y=236+hash(i,201)*560;return {x:shoreX(y)+14+hash(i,202)*320,y,phase:hash(i,203)*6.28,speed:.0015+hash(i,204)*.002};}).filter(s=>s.x<CAMP.w-4);
+  // Fishing: ripples and the fish under the water, the rod and line in the survivor's hands, cues above the lighting.
+  this.fishWater=this.add.graphics().setDepth(-4);this.rod=this.add.graphics();this.cues=this.add.graphics().setDepth(7002);this.drops=[];this.camOff=0;this.landedAt=0;this.lastPull=null;this.pullOff={x:0,y:0};
+  this.dangle=this.add.image(0,0,'__DEFAULT').setVisible(false).setScale(.5);
+  // Grilling: a fish on a spit over the fire.
+  this.texture('camp-spit',80,40,()=>{});this.spit=this.add.image(fire.x+fire.w/2,fire.y-6,'camp-spit').setScale(.5).setDepth(fire.y+fire.h+3).setVisible(false);this.spitG=this.add.graphics().setDepth(fire.y+fire.h+2);this.spitShown=-1;
   this.cameras.main.setBackgroundColor('#0b0c10').setBounds(0,0,CAMP.w,CAMP.h).setZoom(this.zoom()).centerOn(model.x,model.y-20);
   this.events.on('wake',()=>{this.setPlayerLook(bridge.look());bridge.ready(this);});
   bridge.ready(this);}
  setPlayerLook(look){const t=this.textures.get('survivor-01'),c=t.context;c.clearRect(0,0,FRAME.w*8,FRAME.h*FRAME_COUNT);c.imageSmoothingEnabled=false;for(let f=0;f<FRAME_COUNT;f++)for(let d=0;d<8;d++){c.save();c.translate(d*FRAME.w,f*FRAME.h);c.scale(2,2);survivor(c,d,f,true,{...look,zombie:0,gun:'none',grenade:null});c.restore();}t.refresh();}
  update(now,delta){const dt=Math.min(.05,delta/1000);
-  if(!bridge.paused())model.update(dt,bridge.input());
+  if(!bridge.paused())model.update(dt,bridge.input());bridge.step?.(dt);const fishing=bridge.fishing?.();
   this.actor.setPosition(model.x,model.y).setDepth(model.y).setFrame(model.direction+model.frame*8);
   for(const r of this.residents){const dx=model.x-r.data.x,dy=model.y-r.data.y;r.sprite.setFrame(Math.hypot(dx,dy)<FACE_RANGE?facing(dx,dy):r.data.direction);}
-  const target=bridge.paused()&&this.target?this.target:model.target();this.target=target;
+  const target=bridge.busy?.()?null:bridge.paused()&&this.target?this.target:model.target();this.target=target;
   this.badges.forEach((b,i)=>b.setY(this.residents[i].data.y-92+Math.round(Math.sin(now/600+i)*1.5*2)/2));
   if(target){const bob=Math.round(Math.sin(now/180)*2*2)/2,x=target.mx??target.x,y=target.kind==='resident'?target.y-116:target.my;this.marker.setVisible(true).setPosition(x,y+bob);}else this.marker.setVisible(false);
   this.flame.setFrame(Math.floor(now/90)%FLAME.frames);this.potFlame.setFrame((Math.floor(now/110)+3)%FLAME.frames);
   this.glow.setAlpha(.34+.05*Math.sin(now*.013)+.03*Math.sin(now*.037));this.lampGlows.forEach((g,i)=>g.setAlpha(.16+.03*Math.sin(now*.005+i*2)));
-  this.effects(now,dt);
-  const cam=this.cameras.main;cam.setZoom(this.zoom());cam.centerOn(model.x,model.y-20);bridge.tick(now,this);}
+  this.effects(now,dt);this.drawFishing(fishing,now,dt);this.drawSpit(bridge.cooking?.(),now);
+  // While fishing, the camera moves in close and leans out over the water so the bobber and the fish stay in view.
+  this.camOff+=((fishing?1:0)-this.camOff)*Math.min(1,dt*3);this.cookOff=(this.cookOff||0)+((bridge.busy?.()&&!fishing?1:0)-(this.cookOff||0))*Math.min(1,dt*3);const cam=this.cameras.main,z=this.zoom(),fz=Math.max(z,Math.min(2.4,this.scale.height/220,this.scale.width/220)),k=this.camOff;
+  cam.setZoom(z+(fz-z)*k);cam.centerOn(model.x+44*k+30*this.cookOff,model.y-20-42*k+56*this.cookOff);bridge.tick(now,this);}
+ setRackFish(n){n=Math.min(9,n);if(n===this.rackFish)return;this.rackFish=n;const o=PROPS.find(p=>p.id==='rack'),t=this.textures.get('camp-rack'),c=t.context;c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,t.width,t.height);propArt(c,{...o,fish:n});t.refresh();}
+ fishTexture(id){const key='camp-fish-'+id;this.texture(key,80,40,c=>{c.imageSmoothingEnabled=false;c.save();c.scale(2,2);c.translate(22.5,10);fishArt(c,id);c.restore();});return key;}
+ drawSpit(v,now){const g=this.spitG;g.clear();this.spit.setVisible(!!v);if(!v)return;const fire=PROPS.find(o=>o.id==='fire'),cx=fire.x+fire.w/2,y=fire.y-6;
+  const step=Math.floor(v.p*40);if(step!==this.spitShown||this.spitId!==v.id){this.spitShown=step;this.spitId=v.id;const t=this.textures.get('camp-spit'),c=t.context;c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,80,40);c.imageSmoothingEnabled=false;c.save();c.scale(2,2);c.translate(22.5,10);fishArt(c,v.id,v.p);c.restore();t.refresh();}
+  // Turned now and then, so both sides cook.
+  this.spit.setPosition(cx+2.5,y).setFlipY(Math.floor(now/1400)%2===1);
+  for(const x of [cx-24,cx+24]){g.fillStyle(0x191b21);g.fillRect(x-1,y-3,2,fire.y+22-y);g.fillRect(x-3,y-4,2,3);g.fillRect(x+1,y-4,2,3);g.fillStyle(0x6b5233);g.fillRect(x-.5,y-2.5,1,fire.y+21-y);}
+  g.fillStyle(0x191b21);g.fillRect(cx-27,y-1,54,2);g.fillStyle(0x8a6a44);g.fillRect(cx-26.5,y-.5,53,1);}
+ // The rod bends toward the fish and the line reddens under strain. The fish's pull and the way to hold are drawn above the lighting.
+ drawFishing(v,now,dt){const W=this.fishWater,R=this.rod,X=this.cues;W.clear();R.clear();X.clear();if(!v){this.dangle.setVisible(false);this.drops.length=0;return;}
+  const px=model.x,py=model.y,hand={x:px+7,y:py-30},rest={x:hand.x+24,y:hand.y-27},T=v.target||{x:PIER_END+50,y:py},t=now/1000,s=v.state;let hook,tip=rest,sag=6,under=false;
+  const unit=(a,b)=>{const dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||1;return {x:dx/d,y:dy/d};},lerp=(a,b,k)=>({x:a.x+(b.x-a.x)*k,y:a.y+(b.y-a.y)*k});
+  if(s==='fight'||s==='slack'){const base=lerp({x:PIER_END+4,y:py+2},T,Math.max(.12,v.line)),want=s==='fight'&&v.pull?{x:v.pull.x*14,y:v.pull.y*9}:{x:0,y:0};this.pullOff.x+=(want.x-this.pullOff.x)*Math.min(1,dt*2.5);this.pullOff.y+=(want.y-this.pullOff.y)*Math.min(1,dt*2.5);
+   hook={x:base.x+this.pullOff.x+Math.sin(t*7)*(s==='fight'?1.5:.5),y:base.y+this.pullOff.y+Math.cos(t*5)*(s==='fight'?1:.4)};under=true;const k=s==='fight'?.3+.55*v.tension:.15;tip=lerp(rest,{x:hand.x+unit(hand,hook).x*34,y:hand.y+unit(hand,hook).y*34},k);sag=s==='fight'?0:4;
+   if(s==='fight'&&v.pull!==this.lastPull){this.lastPull=v.pull;this.splash(hook.x,hook.y,10);}if(Math.random()<dt*(s==='fight'?3+v.tension*6:.8))this.splash(hook.x,hook.y,s==='fight'?3:1);}
+  else if(s==='cast'){const k=Math.min(1,v.t/.7);hook={x:rest.x+(T.x-rest.x)*k,y:rest.y+(T.y-rest.y)*k-Math.sin(k*Math.PI)*36};tip=lerp(rest,{x:hand.x+20,y:hand.y-30},1-k);sag=0;}
+  else if(s==='wait'||s==='early'||s==='bite'||s==='lost'){hook={x:T.x,y:T.y};if(s==='bite'){under=true;tip=lerp(rest,{x:hand.x+30,y:hand.y-14},.3+.2*Math.sin(t*30));}}
+  else if(s==='landed'){if(!this.landedAt)this.landedAt=now;const k=Math.min(1,(now-this.landedAt)/450);tip=lerp(rest,{x:hand.x+30,y:hand.y-30},k);hook={x:tip.x+Math.sin(t*4)*3,y:tip.y+14};sag=0;}
+  else {tip=rest;hook={x:rest.x+3,y:rest.y+(s==='snapped'?10:16)};sag=0;}
+  if(s!=='landed')this.landedAt=0;
+  // Bobber, ripples and the fish's shadow.
+  if(s==='wait'||s==='early'||s==='lost'||(s==='cast'&&v.t>.66)){const bob=Math.sin(t*3)*.4+(v.nibble||0)*5,b={x:T.x,y:T.y+bob};hook=b;
+   const ring=(t*.7)%1;W.lineStyle(.5,0xb9c7c1,.5*(1-ring));W.strokeEllipse(b.x,b.y+1.5,4+ring*14,2+ring*6);if(v.nibble>.1){W.lineStyle(.5,0xd8e2dd,.8);W.strokeEllipse(b.x,b.y+1.5,7,3);}
+   W.fillStyle(0x191b21);W.fillCircle(b.x,b.y,2.3);W.fillStyle(0xc8452f);W.fillCircle(b.x,b.y,1.7);W.fillStyle(0xe8e0d1);W.fillRect(b.x-1.5,b.y-1.8,3,1.4);W.fillStyle(0x191b21);W.fillRect(b.x-.25,b.y-4,.5,2.2);}
+  if(s==='bite'){for(let i=0;i<3;i++){const r=((t*1.6+i/3)%1);W.lineStyle(.75,0xd8e2dd,.8*(1-r));W.strokeEllipse(T.x,T.y+1,4+r*22,2+r*9);}if(Math.random()<dt*14)this.splash(T.x,T.y,2);}
+  if(under&&s!=='bite'){W.fillStyle(0x0a1820,.55);W.fillEllipse(hook.x+(this.pullOff.x>0?2:-2),hook.y+2,14,4.5);W.lineStyle(.5,0xb9c7c1,.45);W.strokeEllipse(hook.x,hook.y+1.5,12+Math.sin(t*9)*2,5);}
+  this.drops=this.drops.filter(d=>(d.life-=dt)>0);for(const d of this.drops){d.vy+=60*dt;d.x+=d.vx*dt;d.y+=d.vy*dt;W.fillStyle(0xe2ece8,Math.min(1,d.life*3));W.fillRect(Math.round(d.x*2)/2,Math.round(d.y*2)/2,.5+(d.big?.5:0),.5+(d.big?.5:0));}
+  // Rod and line.
+  const ctrl=lerp(hand,rest,.55),pts=[];for(let i=0;i<=8;i++){const k=i/8,a=lerp(hand,ctrl,k),b=lerp(ctrl,tip,k);pts.push(lerp(a,b,k));}
+  R.setDepth(model.y+1);R.lineStyle(2,0x191b21,1);R.strokePoints(pts);R.lineStyle(1,0x8a6a44,1);R.strokePoints(pts.slice(0,6));R.lineStyle(.6,0x6b5233,1);R.strokePoints(pts.slice(5));
+  if(hook){const strain=s==='fight'?Math.max(0,(v.tension-.45)/.55):0,c=mixColor(0xd8d4c8,0xff5a3a,strain);
+   const mid=lerp(tip,hook,.5),line=[];mid.y+=sag;for(let i=0;i<=10;i++){const k=i/10,a=lerp(tip,mid,k),b=lerp(mid,hook,k);line.push(lerp(a,b,k));}if(s==='fight'&&v.tension>.75)for(const p of line.slice(1,-1))p.y+=(Math.random()-.5)*.8;
+   R.lineStyle(.5,c,.9);R.strokePoints(line);R.fillStyle(0xffd2a0,1);R.fillRect(Math.round(tip.x*2)/2-.25,Math.round(tip.y*2)/2-.25,.5,.5);}
+  // The catch, swinging from the line.
+  if(s==='landed'&&v.catch){this.dangle.setTexture(this.fishTexture(v.catch.id)).setOrigin(.83,.5).setRotation(-Math.PI/2+Math.sin(t*4)*.15).setPosition(hook.x,hook.y).setDepth(model.y+2).setVisible(true);}else this.dangle.setVisible(false);
+  // Cues: "!" on a bite, the fish's pull, and which way to hold.
+  if(s==='bite'&&Math.floor(t*8)%2===0)this.glyph(X,T.x,T.y-22,'!',0xff9a52);
+  if(s==='bite')this.arrow(X,px-30,py-42,{x:-1,y:0},0xff9a52,1);
+  if(s==='fight'&&v.pull){this.arrow(X,hook.x+v.pull.x*12,hook.y-14+v.pull.y*8,v.pull,0xe0503a,.95);const good=v.stance==='counter';this.arrow(X,px-30,py-42,{x:-v.pull.x,y:-v.pull.y},good?0xff9a52:0xe8e0d1,good?1:(Math.floor(t*6)%2?.9:.35));}}
+ splash(x,y,n){for(let i=0;i<n;i++)this.drops.push({x:x+(Math.random()-.5)*6,y,vx:(Math.random()-.5)*30,vy:-20-Math.random()*30,life:.35+Math.random()*.3,big:Math.random()<.3});}
+ // A chunky pixel arrow, outlined in ink so it reads on water and sand.
+ arrow(g,x,y,d,color,alpha){const P=(u,v)=>({x:x+u*d.x-v*d.y,y:y+u*d.y+v*d.x}),shape=(o)=>[P(-7-o,-1.5-o),P(1,-1.5-o),P(1,-5-o*1.6),P(7+o*1.6,0),P(1,5+o*1.6),P(1,1.5+o),P(-7-o,1.5+o)];
+  g.fillStyle(0x111319,alpha);g.fillPoints(shape(1),true);g.fillStyle(color,alpha);g.fillPoints(shape(0),true);}
+ glyph(g,x,y,ch,color){g.fillStyle(0x111319);g.fillRect(x-2.5,y-10,5,11);g.fillRect(x-2.5,y+2,5,5);g.fillStyle(color);g.fillRect(x-1.5,y-9,3,9);g.fillRect(x-1.5,y+3,3,3);}
  // Never show past the cave: on a wide screen the camera zooms in until the camp fills it.
  zoom(){const s=this.scale;return Math.max(bridge.zoom(),s.width/CAMP.w,s.height/CAMP.h);}
  effects(now,dt){const fx=this.fx,s=this.smoke,w=this.water;fx.clear();s.clear();

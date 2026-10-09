@@ -64,7 +64,7 @@ export function groundArt(c){
  e(1098,54,11,11,'#c9cbbd');e(1096,52,9,9,'#dcdccc');r(1100,50,3,2,'#c2c3b4');r(1093,57,2,2,'#c7c8b9');
  for(let i=0;i<14;i++){const y=HORIZON+6+i*6,wd=24-i*1.2+hash(i,3)*8;if(inMouth(1098,y)||y<200)r(1098-wd/2+hash(i,9)*6,y,wd,1,i<5?'#8b98a6':'#5d7484');}
  // Stalactites hang from the ceiling edge; damp streaks run down the wall.
- for(let x=10;x<1180;x+=14+Math.floor(hash(x,1)*22)){if(inMouth(x,wallTop(x)+6))continue;const y=wallTop(x),len=10+hash(x,2)*26,wd=4+hash(x,3)*6;p([[x-wd/2,y-2],[x+wd/2,y-2],[x+1,y+len]],R[0]);p([[x-wd/2+1,y-1],[x,y-1],[x+.5,y+len-3]],R[1]);}
+ for(let x=10;x<CAMP.w-20;x+=14+Math.floor(hash(x,1)*22)){if(inMouth(x,wallTop(x)+6))continue;const y=wallTop(x),len=10+hash(x,2)*26,wd=4+hash(x,3)*6;p([[x-wd/2,y-2],[x+wd/2,y-2],[x+1,y+len]],R[0]);p([[x-wd/2+1,y-1],[x,y-1],[x+.5,y+len-3]],R[1]);}
  for(let x=20;x<900;x+=30+Math.floor(hash(x,4)*40)){const y=wallTop(x)+12+hash(x,5)*20,len=wallBottom(x)-y-12;r(x,y,1,len,'#2f3b3d');r(x+1,y+len*.3,.5,len*.5,'#3d4a4a');if(hash(x,6)>.5)r(x,y+len-2,1,1,'#8fa6a6');}
  for(let i=0;i<60;i++){const x=hash(i,11)*900,y=wallTop(x)+20+hash(i,12)*(wallBottom(x)-wallTop(x)-34);r(x,y,2+hash(i,13)*6,.5,R[1]);r(x+1,y+.5,1+hash(i,13)*4,.5,R[4]);}
  // Tunnel behind the barred gate, cut into the back wall.
@@ -86,17 +86,17 @@ export function groundArt(c){
  // Footprints between the stations.
  for(let i=0;i<46;i++){const line=PATHS[i%PATHS.length],t=hash(i,71),a=line[0],b=line.at(-1),x=a[0]+(b[0]-a[0])*t+(hash(i,72)-.5)*10,y=a[1]+(b[1]-a[1])*t+(hash(i,73)-.5)*8;r(x,y,2,1,'#6a5e4b');r(x+3,y+2,2,1,'#6a5e4b');}
  // Ripples and glints on the water.
- for(let i=0;i<160;i++){const y=230+hash(i,81)*650,sx=shoreX(y),x=sx+12+hash(i,82)*240;if(x>1200)continue;r(x,y,3+hash(i,83)*8,.5,hash(i,84)>.7?'#4a7584':'#2f5a69');}
+ for(let i=0;i<160;i++){const y=230+hash(i,81)*650,sx=shoreX(y),x=sx+12+hash(i,82)*340;if(x>CAMP.w)continue;r(x,y,3+hash(i,83)*8,.5,hash(i,84)>.7?'#4a7584':'#2f5a69');}
  c.restore();
 }
 // The south edge of the cave, drawn in front of everyone.
 export const FRONT_Y=740;
 export function frontArt(c){c.save();c.scale(2,2);c.translate(0,-FRONT_Y);const {e,p,r}=painter(c);
- const rocks=[];for(let x=-30;x<1230;x+=26+Math.floor(hash(x,91)*46)){rocks.push([x,812+hash(x,92)*30,14+hash(x,93)*34,10+hash(x,94)*16]);if(hash(x,95)>.55)rocks.push([x+20,840+hash(x,96)*16,8+hash(x,97)*12,6+hash(x,98)*8]);}
+ const rocks=[];for(let x=-30;x<CAMP.w+30;x+=26+Math.floor(hash(x,91)*46)){rocks.push([x,812+hash(x,92)*30,14+hash(x,93)*34,10+hash(x,94)*16]);if(hash(x,95)>.55)rocks.push([x+20,840+hash(x,96)*16,8+hash(x,97)*12,6+hash(x,98)*8]);}
  rocks.sort((a,b)=>a[1]-b[1]);for(const [x,cy,rx,ry] of rocks){const wet=x>shoreX(cy)-10;
   e(x,cy+ry*.5,rx+2,ry,EDGE);e(x,cy,rx,ry,R[1]);e(x-rx*.15,cy-ry*.3,rx*.75,ry*.6,R[2]);e(x-rx*.3,cy-ry*.45,rx*.35,ry*.28,R[3]);r(x-rx*.4,cy-ry*.6,rx*.3,.5,R[4]);
   if(wet){e(x,cy+ry*.7,rx+3,2,'#9fb0ab66');}}
- for(let x=0;x<1200;x+=6)r(x,872,6,8,R[0]);c.restore();}
+ for(let x=0;x<CAMP.w;x+=6)r(x,872,6,8,R[0]);c.restore();}
 // Props. Each draws with the footprint's top left corner at (0, 0); height rises into negative y.
 function box(g,w,h,z,top,front,edge=EDGE){const {r}=g;r(-.5,-z-.5,w+1,h+z+1,edge);r(.5,-z+.5,w-1,h-1,top);r(.5,h-z+.5,w-1,z-1,front);r(.5,h-z,w-1,.5,'#ffffff22');}
 const ART={
@@ -188,7 +188,27 @@ const ART={
   l(cx-30,58,cx+18,18,2.5,EDGE);l(cx-30,58,cx+18,18,1.5,W[3]);p([[cx+14,14],[cx+22,10],[cx+26,18],[cx+18,22]],EDGE);p([[cx+15,15],[cx+22,11.5],[cx+24.5,17.5],[cx+18,20.5]],W[3]);},
  rack(g,o){const {e,r,l}=g;e(31,8,34,4,SHADOW);for(const x of [2,56]){r(x,-56,5,64,EDGE);r(x+1,-55,3,62,W[2]);}r(-2,-56,66,3.5,EDGE);r(-1,-55.5,64,2.5,W[3]);
   for(let i=0;i<9;i++){const x=6+i*6;l(x,-53,x+3,-26+Math.sin(i)*3,.5,'#3b4044');l(x+6,-53,x+3,-26+Math.sin(i)*3,.5,'#3b4044');}
-  for(let y=-48;y<-28;y+=5)r(6,y,50,.5,'#3b404488');for(const x of [16,30,44]){r(x,-52,.5,6,M[3]);r(x-1.5,-46,4,10,EDGE);r(x-1,-45.5,3,9,'#9aa3a6');r(x-1,-45.5,1,9,'#c3cacc');r(x-2,-36,5,2,'#6f7a7e');}},
+  for(let y=-48;y<-28;y+=5)r(6,y,50,.5,'#3b404488');
+  // One drying fish per basket fish, up to nine: the camp shows its own food stock.
+  for(let i=0;i<Math.min(9,o.fish||0);i++){const x=8.5+i*5.6,y=-49,len=9+hash(i,5)*3,col=i%3===2?'#8a5a43':i%3===1?'#5f8a8a':'#b9a77d';r(x,-53,.5,4,M[3]);
+   // Hung by the tail: a forked tail at the top, the body widening, the head at the bottom.
+   const {p}=g;p([[x-2,y],[x+.25,y+2],[x+2.5,y],[x+1.5,y+3],[x+2.5,y+6],[x+2,y+len-1],[x+.25,y+len+.5],[x-1.5,y+len-1],[x-2,y+6],[x-1,y+3]],EDGE);
+   p([[x-1.5,y+.8],[x+.25,y+2.6],[x+2,y+.8],[x+1,y+3.2],[x+2,y+6],[x+1.5,y+len-1.2],[x+.25,y+len-.2],[x-1,y+len-1.2],[x-1.5,y+6],[x-.5,y+3.2]],col);r(x-1,y+5,1,len-6,'#d8d4c855');r(x-.5,y+len-2.5,1,1,'#14161a');}},
+ pier(g,o){const {e,r,p,l}=g,w=o.w,h=o.h,z=o.z,top=-z,deck=h-z;
+  for(let x=10;x<w;x+=30){r(x,deck-2,5,z+12,EDGE);r(x+1,deck,3,z+10,W[1]);e(x+2.5,h+10,6,2,'#9fb0ab66');}
+  r(-.5,top-.5,w+1,h+1,EDGE);for(let x=0,i=0;x<w;x+=6,i++){const miss=i===19;if(miss){r(x,top,6,deck-top,'#0f2532');continue;}r(x+.5,top+.5,5,deck-top-1,i%3?W[2]:W[3]);r(x+.5,top+.5,5,.5,W[4]);r(x+1.5,top+3,1,1,M[1]);r(x+1.5,deck-4,1,1,M[1]);if(hash(i,3)>.6)r(x+2,top+8+hash(i,4)*14,.5,6,W[1]);}
+  r(0,deck,w,z,W[1]);r(0,deck,w,1,W[0]);for(let x=4;x<w;x+=12)r(x,deck+1,.5,z-2,W[0]);
+  // Bait bucket, a coil of rope and the pier lantern at the end.
+  r(w-30,top+2,10,9,EDGE);r(w-29.5,top+2.5,9,8,M[2]);e(w-25,top+3,4.5,1.6,'#3b3530');r(w-29.5,top+5,9,1,M[1]);
+  e(20,top+10,7,4,'#5a4128');e(20,top+10,4,2.2,W[3]);e(20,top+10,1.5,.8,'#5a4128');
+  r(w-8,top-58,3.5,60,EDGE);r(w-7.5,top-57,2.5,58,W[2]);r(w-14,top-58,9,2,EDGE);r(w-13.5,top-57.5,8,1,W[2]);r(w-13,top-56,.5,3,M[1]);r(w-16,top-53,6,8,EDGE);r(w-15,top-52,4,6,GLASS);r(w-14.5,top-51,2,4,GLASS_HI);r(w-16.5,top-54,7,1.5,M[1]);},
+ laundry(g,o){const {e,r,l,p}=g;e(50,6,52,4,SHADOW);for(const x of [0,94]){r(x,-62,5,70,EDGE);r(x+1,-61,3,68,W[2]);r(x+1,-61,1,68,W[3]);}
+  const sag=x=>-58+Math.sin(x/96*Math.PI)*7;for(let x=4;x<94;x+=1)r(x,sag(x),1,.5,'#a39a84');
+  const cloth=(x,w,h,col,hi)=>{const y=sag(x+w/2)+.5;p([[x,y],[x+w,y],[x+w-.5,y+h],[x+.5,y+h]],EDGE);r(x+.5,y+.5,w-1,h-1,col);r(x+.5,y+.5,w-1,1.5,hi);r(x+1,y-1,1,2,'#c9c0aa');r(x+w-2,y-1,1,2,'#c9c0aa');};
+  cloth(10,16,18,'#5f6f80','#73859a');r(14,-30,8,.5,'#4c5a6a');cloth(32,12,24,'#5a4a3c','#6e5c4b');r(37.5,-36,1,13,'#4a3c30');cloth(50,18,14,'#a39a84','#bdb39b');cloth(74,6,9,'#7a3a2a','#8f4a38');cloth(82,6,9,'#7a3a2a','#8f4a38');},
+ sacks(g,o){const {e,r,p}=g;e(15,20,17,4,SHADOW);for(const [x,y,col] of [[2,-6,'#8a7a5a'],[14,-4,'#a08f6a'],[7,-16,'#968563']]){p([[x,y+18],[x+1,y+4],[x+3,y],[x+11,y],[x+13,y+4],[x+14,y+18]],EDGE);p([[x+1,y+17],[x+2,y+4.5],[x+4,y+1],[x+10,y+1],[x+12,y+4.5],[x+13,y+17]],col);r(x+5,y-2,4,3,EDGE);r(x+5.5,y-1.5,3,2,'#6b5d40');r(x+3,y+8,8,.5,'#6b5d40');r(x+3,y+12,8,.5,'#6b5d40');r(x+2,y+5,1,10,'#ffffff18');}},
+ tidepool(g,o){const {e,r}=g,w=o.w,h=o.h;e(w/2,h/2,w/2+2,h/2+2,R[1]);e(w/2,h/2-.5,w/2,h/2,R[3]);e(w/2,h/2,w/2-3,h/2-2.5,'#1a3a4b');e(w/2-2,h/2-1,w/2-7,h/2-5,'#22485a');r(w*.3,h*.3,4,.5,'#7fa3ad');r(w*.55,h*.55,3,.5,'#5d8693');
+  r(w*.62,h*.35,1.5,1.5,'#c46a4a');r(w*.62-1.5,h*.35+.5,4.5,.5,'#c46a4a');r(w*.3,h*.6,1.5,1,'#6b8a5a');r(w*.3+2,h*.62,1,1,'#7f9f6a');for(let i=0;i<6;i++){const a=i/6*6.28;r(w/2+Math.cos(a)*(w/2+1),h/2+Math.sin(a)*(h/2+1)-1,2,1,R[4]);}},
  lantern(g,o){const {e,r}=g;e(5,6,8,3,SHADOW);e(5,5,5,2.5,R[2]);r(3.5,-70,3,76,EDGE);r(4,-69,2,74,W[2]);r(4,-69,.5,74,W[3]);r(4,-71,10,2,EDGE);r(4,-70.5,9,1,W[2]);r(11.5,-69,.5,3,M[1]);
   r(8.5,-66.5,7,1.5,M[1]);r(9,-65,6,9,EDGE);r(10,-64,4,7,GLASS);r(11,-63,2,5,GLASS_HI);r(9,-56.5,6,1,M[1]);},
  rock(g,o){const {e,p,r}=g,w=o.w,h=o.h,z=o.z;e(w/2+2,h-1,w/2+3,h/3,SHADOW);const pts=[[1,h-2],[2,h-z*.5-4],[w*.3,-z+h*.4],[w*.68,-z+h*.3],[w-2,h-z*.55],[w,h-3],[w*.6,h],[w*.2,h]];
@@ -227,3 +247,18 @@ export function iconArt(c){c.save();c.scale(2,2);const {r,p,l,e}=painter(c);
   if(kind==='bowl'){p([[4.5,9],[15.5,9],[13,13.5],[7,13.5]],BONE);r(4.5,9,11,1,'#a2998a');l(8,8,7,4,.8,'#a2998a');l(11,8,12,4,.8,'#a2998a');}
   if(kind==='lantern'){r(9.5,3,1,2,BONE);r(7,5,6,1,BONE);r(7,6,6,7,BONE);r(8,7,4,5,GLASS);r(9,8,2,3,GLASS_HI);r(7,13,6,1,BONE);}
   c.restore();});c.restore();}
+// Fish for the basket, the catch card and the spit. Facing right, about 26 x 12 units, centered on (0, 0).
+// cook (0..1) browns the fish; past the burn mark it chars.
+const mix=(a,b,t)=>{const A=rgb(a),B=rgb(b);return '#'+A.map((v,i)=>Math.round(v+(B[i]-v)*t).toString(16).padStart(2,'0')).join('');};
+export const FISH_COLORS={perch:['#8a7a55','#b9a77d','#d8cfb4','#6b5d40','#9a8a60'],mackerel:['#2f5a5f','#5f8a8a','#c9d0cc','#1f3d40','#4a7072'],cod:['#6b4030','#8a5a43','#c9a98a','#5a3424','#7a4a35'],moonfin:['#8aa0bf','#b9c8dc','#e6eef5','#7088a8','#8fd3ff']};
+export function fishArt(c,id,cook=null,scale=1){const {p,r,e}=painter(c);let [back,body,belly,mark,fin]=FISH_COLORS[id]||FISH_COLORS.perch;
+ if(cook!==null){const t=cook<.55?cook/.55*.55:cook<.84?.55+(cook-.55)/.29*.45:1,burn=Math.max(0,(cook-.84)/.16);const tone=(col)=>mix(mix(col,'#c08a46',Math.min(1,t)),'#2a2220',Math.min(1,burn));back=tone(back);body=tone(body);belly=tone(belly);mark=tone(mark);fin=tone(fin);}
+ const s=scale,P=pts=>pts.map(([x,y])=>[x*s,y*s]);
+ p(P([[-13,0],[-9,-4.5],[0,-6],[8,-4.5],[13,-1],[13,1.5],[8,5],[0,6],[-9,4.5]]),EDGE);p(P([[-13,0],[-18,-6],[-16.5,0],[-18,6]]),EDGE);
+ p(P([[-12,0],[-9,-3.8],[0,-5],[8,-3.8],[12,-.5],[12,1],[8,4],[0,5],[-9,3.8]]),body);p(P([[-12,0],[-9,-3.8],[0,-5],[8,-3.8],[11,-1.5],[0,-2.2],[-9,-1.5]]),back);p(P([[-9,2],[0,2.8],[8,2.5],[11,1.2],[8,4],[0,5],[-9,3.8]]),belly);
+ p(P([[-12.5,0],[-17,-5],[-15.5,0],[-17,5]]),fin);p(P([[-4,-5],[2,-8.5],[5,-5]]),EDGE);p(P([[-3,-5],[2,-7.5],[4,-5]]),fin);
+ if(id==='perch')for(const x of [-6,-2,2,6])r(x*s,-4*s,1*s,6*s,mark);
+ if(id==='mackerel')for(let x=-8;x<8;x+=3)r(x*s,(-4+(x%2?1:0))*s,2*s,1*s,mark);
+ if(id==='cod')for(const [x,y] of [[-6,-2],[-2,-3],[3,-1.5],[6,-3],[-4,1]])r(x*s,y*s,1.5*s,1*s,mark);
+ if(id==='moonfin'&&cook===null){r(-4*s,-1*s,12*s,.5*s,'#d9f3ff');p(P([[-12.5,0],[-17,-5],[-15.5,0],[-17,5]]),'#8fd3ffcc');}
+ r(8*s,-2*s,2*s,2*s,'#14161a');r(8.5*s,-2*s,.6*s,.6*s,'#e8e0d1');r(10.5*s,1*s,2*s,.5*s,mark);}
