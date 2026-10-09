@@ -2,6 +2,7 @@ import {survivor,FRAME,FRAME_COUNT} from '../study/character.js';
 import {CAMP,PROPS,RESIDENTS,LIGHTS} from './data.js';
 import {groundArt,frontArt,FRONT_Y,propArt,PROP_PAD,flameArt,FLAME,lightArt,LIGHT_SCALE,glowArt,iconArt,ICON,ICONS,shoreX,hash,fishArt} from './art.js';
 import {PIER_END} from './play.js';
+import {addPet,placePet,petSheet,drawHearts} from '../companion/sprite.js';
 // Residents turn to face you when you come close.
 const FACE_RANGE=130;
 const mixColor=(a,b,k)=>[16,8,0].reduce((n,sh)=>n|Math.round(((a>>sh)&255)+(((b>>sh)&255)-((a>>sh)&255))*k)<<sh,0);
@@ -23,6 +24,8 @@ export function makeCampScene(model,bridge){return class Camp extends Phaser.Sce
    for(let d=0;d<8;d++)if(!t.has(d))t.add(d,0,d*FRAME.w,0,FRAME.w,FRAME.h);return {data:p,sprite:this.add.image(p.x,p.y,key,p.direction).setOrigin(.5,FRAME.footY/FRAME.displayH).setScale(.5).setDepth(p.y)};});
   if(!this.textures.exists('survivor-01')){const t=this.textures.createCanvas('survivor-01',FRAME.w*8,FRAME.h*FRAME_COUNT);for(let f=0;f<FRAME_COUNT;f++)for(let d=0;d<8;d++)t.add(f*8+d,0,d*FRAME.w,f*FRAME.h,FRAME.w,FRAME.h);}
   this.setPlayerLook(bridge.look());
+  // Your companion, a step behind you.
+  this.pet=addPet(this,bridge.petLook());this.petFx=this.add.graphics().setDepth(7003);
   this.actor=this.add.image(model.x,model.y,'survivor-01',model.direction).setOrigin(.5,FRAME.footY/FRAME.displayH).setScale(.5);
   // Lighting multiplies everything below it. Glows, embers and markers sit above it, so they stay bright.
   this.texture('camp-light',Math.ceil(CAMP.w/LIGHT_SCALE),Math.ceil(CAMP.h/LIGHT_SCALE),lightArt);this.add.image(0,0,'camp-light').setOrigin(0).setScale(LIGHT_SCALE).setDepth(6000).setBlendMode(Phaser.BlendModes.MULTIPLY);
@@ -40,22 +43,23 @@ export function makeCampScene(model,bridge){return class Camp extends Phaser.Sce
   // Grilling: a fish on a spit over the fire.
   this.texture('camp-spit',80,40,()=>{});this.spit=this.add.image(fire.x+fire.w/2,fire.y-6,'camp-spit').setScale(.5).setDepth(fire.y+fire.h+3).setVisible(false);this.spitG=this.add.graphics().setDepth(fire.y+fire.h+2);this.spitShown=-1;
   this.cameras.main.setBackgroundColor('#0b0c10').setBounds(0,0,CAMP.w,CAMP.h).setZoom(this.zoom()).centerOn(model.x,model.y-20);
-  this.events.on('wake',()=>{this.setPlayerLook(bridge.look());bridge.ready(this);});
+  this.events.on('wake',()=>{this.setPlayerLook(bridge.look());this.setPetLook(bridge.petLook());bridge.ready(this);});
   bridge.ready(this);}
  setPlayerLook(look){const t=this.textures.get('survivor-01'),c=t.context;c.clearRect(0,0,FRAME.w*8,FRAME.h*FRAME_COUNT);c.imageSmoothingEnabled=false;for(let f=0;f<FRAME_COUNT;f++)for(let d=0;d<8;d++){c.save();c.translate(d*FRAME.w,f*FRAME.h);c.scale(2,2);survivor(c,d,f,true,{...look,zombie:0,gun:'none',grenade:null});c.restore();}t.refresh();}
  update(now,delta){const dt=Math.min(.05,delta/1000);
-  if(!bridge.paused())model.update(dt,bridge.input());bridge.step?.(dt);const fishing=bridge.fishing?.();
+  if(!bridge.paused())model.update(dt,bridge.input());bridge.step?.(dt);bridge.petStep?.(dt);const fishing=bridge.fishing?.(),pal=bridge.pet();placePet(this.pet,pal);
   this.actor.setPosition(model.x,model.y).setDepth(model.y).setFrame(model.direction+model.frame*8);
   for(const r of this.residents){const dx=model.x-r.data.x,dy=model.y-r.data.y;r.sprite.setFrame(Math.hypot(dx,dy)<FACE_RANGE?facing(dx,dy):r.data.direction);}
-  const target=bridge.busy?.()?null:bridge.paused()&&this.target?this.target:model.target();this.target=target;
+  const target=bridge.busy?.()?null:bridge.paused()&&this.target?this.target:model.target(pal.happy?[]:[bridge.petTarget()]);this.target=target;
   this.badges.forEach((b,i)=>b.setY(this.residents[i].data.y-92+Math.round(Math.sin(now/600+i)*1.5*2)/2));
   if(target){const bob=Math.round(Math.sin(now/180)*2*2)/2,x=target.mx??target.x,y=target.kind==='resident'?target.y-116:target.my;this.marker.setVisible(true).setPosition(x,y+bob);}else this.marker.setVisible(false);
   this.flame.setFrame(Math.floor(now/90)%FLAME.frames);this.potFlame.setFrame((Math.floor(now/110)+3)%FLAME.frames);
   this.glow.setAlpha(.34+.05*Math.sin(now*.013)+.03*Math.sin(now*.037));this.lampGlows.forEach((g,i)=>g.setAlpha(.16+.03*Math.sin(now*.005+i*2)));
-  this.effects(now,dt);this.drawFishing(fishing,now,dt);this.drawSpit(bridge.cooking?.(),now);
+  this.effects(now,dt);this.petFx.clear();drawHearts(this.petFx,pal,bridge.petTarget().my+6,now);this.drawFishing(fishing,now,dt);this.drawSpit(bridge.cooking?.(),now);
   // While fishing, the camera moves in close and leans out over the water so the bobber and the fish stay in view.
   this.camOff+=((fishing?1:0)-this.camOff)*Math.min(1,dt*3);this.cookOff=(this.cookOff||0)+((bridge.busy?.()&&!fishing?1:0)-(this.cookOff||0))*Math.min(1,dt*3);const cam=this.cameras.main,z=this.zoom(),fz=Math.max(z,Math.min(2.4,this.scale.height/220,this.scale.width/220)),k=this.camOff;
   cam.setZoom(z+(fz-z)*k);cam.centerOn(model.x+44*k+30*this.cookOff,model.y-20-42*k+56*this.cookOff);bridge.tick(now,this);}
+ setPetLook(look){petSheet(this,look);}
  setRackFish(n){n=Math.min(9,n);if(n===this.rackFish)return;this.rackFish=n;const o=PROPS.find(p=>p.id==='rack'),t=this.textures.get('camp-rack'),c=t.context;c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,t.width,t.height);propArt(c,{...o,fish:n});t.refresh();}
  fishTexture(id){const key='camp-fish-'+id;this.texture(key,80,40,c=>{c.imageSmoothingEnabled=false;c.save();c.scale(2,2);c.translate(22.5,10);fishArt(c,id);c.restore();});return key;}
  drawSpit(v,now){const g=this.spitG;g.clear();this.spit.setVisible(!!v);if(!v)return;const fire=PROPS.find(o=>o.id==='fire'),cx=fire.x+fire.w/2,y=fire.y-6;

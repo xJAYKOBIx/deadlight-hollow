@@ -136,5 +136,8 @@ dialog.creator[open]{display:grid;grid-template-rows:auto minmax(0,1fr) auto}dia
 .cook-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:8px}#cookTake{grid-column:1/-1;justify-self:end}
 #cookTake,#cookOk{min-height:42px;padding:0 18px;font:700 14px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;background:var(--ember);color:var(--ember-ink);border:1px solid var(--ember-hi);border-radius:3px}
 #cookAgain{min-height:42px;padding:0 14px;font:700 14px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;background:#141311;border-color:var(--edge-hi);border-radius:3px}
-@media(orientation:portrait){.fishing #vitals{display:none}#fishStatus{font-size:19px}#fishPanel{top:calc(var(--vy) + max(100px,calc(env(safe-area-inset-top) + 88px)))}}
+@media(orientation:portrait){#vitals{top:calc(var(--vy) + max(96px,calc(env(safe-area-inset-top) + 84px)))}.fishing #vitals{display:none}#fishStatus{font-size:19px}#fishPanel{top:calc(var(--vy) + max(100px,calc(env(safe-area-inset-top) + 88px)))}}
 @media(orientation:landscape) and (max-height:560px){#vitals{top:calc(var(--vy) + 66px)}#fishPanel{top:calc(var(--vy) + 54px);padding:6px 12px 8px;width:min(380px,calc(100% - 360px))}#fishStatus{font-size:18px;margin:3px 0 2px}#fishHint{font-size:12px}.hooked .fp-bars{margin-top:5px;gap:4px 8px}#fishCatch{margin-top:5px;padding-top:5px}#fishCatch canvas{width:72px;height:36px}#cookPanel{padding:9px 12px 10px;max-height:calc(var(--vh) - 70px)}.cook-note{margin:5px 0 7px;font-size:13px}}
+/* v0.20: companion pages in the creator. */
+.cr-pet-only{display:none}.cr-pet .cr-poses .cr-pet-only{display:block}
+.cr-kind button{letter-spacing:.08em}.cr-kind button[data-kind=companion][aria-pressed=true]{color:var(--ember-ink);background:var(--ember-hi)}

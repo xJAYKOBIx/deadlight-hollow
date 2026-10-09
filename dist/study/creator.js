@@ -4,6 +4,7 @@ import {APPEARANCE_OPTIONS,DEFAULT_APPEARANCE,randomAppearance,readAppearance} f
 import {survivor,HAIR_TONES} from './character.js';
 import {GUNS,GRENADES,gunArt,grenadeArt} from './equipment.js';
 import {SKIN_TONES,DYES,SHIRT_TOPS,ROT_TONES,rotRamp} from './palette.js';
+import {SPECIES,PET_OPTIONS,COATS,EYES,COLLARS,DEFAULT_PET,petLook,withLook,randomPet,cleanName} from '../companion/look.js';import {pet,PET_FRAME} from '../companion/pet.js';
 
 export const NAME_KEY='deadlight-character-room-name-v1';
 // Square crops in world units around the foot anchor: [x, y, size, facing].
@@ -21,14 +22,21 @@ export const SECTIONS=[
  {id:'gear',name:'Gear',rows:[{gear:'gun'},{gear:'grenade'}],survivor:true},
  {id:'infect',name:'Infection',rows:[{key:'rot'},{key:'decay',crop:'full'},{key:'eyes',crop:'face'},{key:'wounds',crop:'torso'}],zombie:true}
 ];
+// The companion has its own short set of pages.
+export const PET_SECTIONS=[
+ {id:'pkind',name:'Companion',rows:[{pet:'species'},{pet:'breed'}]},
+ {id:'pcoat',name:'Coat',rows:[{pet:'coat'},{pet:'marking'}]},
+ {id:'pdetail',name:'Eyes and collar',rows:[{pet:'eyes'},{pet:'collar'}]}];
+const PET_LABEL={species:'Dog or cat',breed:'Breed',coat:'Coat',marking:'Markings',eyes:'Eyes',collar:'Collar'};
+const PET_SWATCH={coat:COATS.map(c=>c.ramp[2]),eyes:EYES.map(e=>e.col)};
 // Survivors carry gear; zombies swap that tab for their infection.
 const sectionsFor=l=>SECTIONS.filter(s=>l.zombie?!s.survivor:!s.zombie);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const painter=c=>({r:(x,y,w,h,col)=>{c.fillStyle=col;c.fillRect(x,y,w,h);},p:(pts,col)=>{c.fillStyle=col;c.beginPath();pts.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.fill();}});
 const make=(w,h)=>{if(typeof OffscreenCanvas!=='undefined')return new OffscreenCanvas(w,h);const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
 
-export function createCreator({$,storage,look,setLook,loadout,setLoadout}){
- let section='body',history=[],name='';
+export function createCreator({$,storage,look,setLook,loadout,setLoadout,companion=()=>null,setCompanion=()=>{}}){
+ let section='body',history=[],name='',mode='person',petSection='pkind',petHistory=[];
  try{name=storage?.getItem(NAME_KEY)||'';}catch{}
  const cache=new Map();
  function frame(l,dir){const key=dir+JSON.stringify(l);if(cache.has(key))return cache.get(key);if(cache.size>160)cache.clear();
@@ -44,6 +52,15 @@ export function createCreator({$,storage,look,setLook,loadout,setLoadout}){
   for(let y=0;y<120;y++)for(let x=0;x<240;x++)if(d[(y*240+x)*4+3]>8){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;}
   if(x1<x0)return;const w=x1-x0+1,h=y1-y0+1,k=Math.min(W*.84/w,W*.6/h,kind==='gun'?1.2:1.4),dw=w*k,dh=h*k;
   g.drawImage(s,x0,y0,w,h,Math.round((W-dw)/2),Math.round((W-dh)/2),Math.round(dw),Math.round(dh));}
+ // Companion thumbnails: the real companion painter, cropped around the body.
+ const petCache=new Map();
+ function petFrame(l,dir,frame){const key=dir+':'+frame+JSON.stringify(l);if(petCache.has(key))return petCache.get(key);if(petCache.size>120)petCache.clear();
+  const c=make(PET_FRAME.w,PET_FRAME.h),g=c.getContext('2d');g.scale(2,2);pet(g,dir,frame,l);petCache.set(key,c);return c;}
+ function petThumb(canvas,l){const g=canvas.getContext('2d'),[x,y,s]=l.species?[40,50,80]:[22,16,116];g.clearRect(0,0,canvas.width,canvas.height);g.imageSmoothingEnabled=false;g.drawImage(petFrame(l,1,0),x,y,s,s,0,0,canvas.width,canvas.height);}
+ function petRowHtml(row,c){const l=petLook(c),key=row.pet,opts=key==='species'?SPECIES:PET_OPTIONS(c.species)[key],cur=key==='species'?c.species:l[key],title=PET_LABEL[key];
+  if(PET_SWATCH[key])return `<div class="cr-row"><h3>${title}<b>${esc(opts[cur])}</b></h3><div class="cr-swatches">${opts.map((n,i)=>`<button class="cr-swatch" data-pet="${key}" data-value="${i}" aria-pressed="${i===cur}" aria-label="${esc(n)}" title="${esc(n)}" style="--c:${PET_SWATCH[key][i]}"></button>`).join('')}</div></div>`;
+  return `<div class="cr-row"><h3>${title}<b>${esc(opts[cur])}</b></h3><div class="cr-tiles">${opts.map((n,i)=>`<button class="cr-tile" data-pet="${key}" data-value="${i}" aria-pressed="${i===cur}" aria-label="${esc(n)}"><canvas width="96" height="96" data-petthumb="${key}:${i}"></canvas><span>${esc(n)}</span></button>`).join('')}</div></div>`;}
+ function petVariant(c,key,v){if(key==='species')return petLook({...c,species:v});return {...petLook(c),[key]:v};}
  function rowHtml(row,l){
   if(row.gear){const items=row.gear==='gun'?[['none','Unarmed'],...Object.entries(GUNS).map(([id,g])=>[id,g.name])]:Object.entries(GRENADES).map(([id,g])=>[id,g.name]),cur=loadout()[row.gear];
    const title=row.gear==='gun'?'Firearm':'Grenade',desc=row.gear==='gun'?(GUNS[cur]?.description||'Hands free. Grenades stay available.'):GRENADES[cur].description;
@@ -52,7 +69,14 @@ export function createCreator({$,storage,look,setLook,loadout,setLoadout}){
   const opts=APPEARANCE_OPTIONS[row.key],cur=l[row.key],title=row.label?row.label(l):LABEL[row.key],sw=row.key==='rot'?ROT_TONES.map((t,i)=>rotRamp(SKIN_TONES[l.skin]?.ramp||SKIN_TONES[0].ramp,i,l.decay)[0]):SWATCH[row.key];
   if(!row.crop)return `<div class="cr-row"><h3>${title}<b>${esc(opts[cur])}</b></h3><div class="cr-swatches">${opts.map((n,i)=>n?`<button class="cr-swatch" data-key="${row.key}" data-value="${i}" aria-pressed="${i===cur}" aria-label="${esc(n)}" title="${esc(n)}" style="--c:${sw[i]}"></button>`:'').join('')}</div></div>`;
   return `<div class="cr-row"><h3>${title}<b>${esc(opts[cur])}</b></h3><div class="cr-tiles">${opts.map((n,i)=>n?`<button class="cr-tile" data-key="${row.key}" data-value="${i}" aria-pressed="${i===cur}" aria-label="${esc(n)}"><canvas width="96" height="96" data-thumb="${row.key}:${i}:${row.crop}"></canvas><span>${esc(n)}</span></button>`:'').join('')}</div></div>`;}
- function render(){const l=look(),list=sectionsFor(l);if(!list.some(x=>x.id===section))section=section==='gear'?'infect':section==='infect'?'gear':'body';const s=list.find(x=>x.id===section),panel=$('creatorPanel');
+ function renderPet(){const c=companion(),list=PET_SECTIONS;if(!list.some(x=>x.id===petSection))petSection='pkind';const s=list.find(x=>x.id===petSection),panel=$('creatorPanel');
+  panel.innerHTML=`<div class="cr-panel-head"><h2>${s.name}</h2><span>${list.indexOf(s)+1} / ${list.length}</span></div>`+s.rows.map(r=>petRowHtml(r,c)).join('');
+  for(const b of $('categoryRail').querySelectorAll?.('[data-section]')||[]){b.setAttribute('aria-pressed',String(b.dataset.section===petSection));b.hidden=!list.some(x=>x.id===b.dataset.section);}
+  for(const b of $('kindSwitch').querySelectorAll?.('[data-kind]')||[])b.setAttribute('aria-pressed',String(b.dataset.kind==='companion'));
+  $('creatorKicker')&&($('creatorKicker').textContent=(c.species?'Cat':'Dog')+' · Companion file');
+  for(const cv of panel.querySelectorAll?.('canvas[data-petthumb]')||[]){const [key,v]=cv.dataset.petthumb.split(':');petThumb(cv,petVariant(c,key,Number(v)));}
+  const field=$('survivorName');field.placeholder=c.species?'Name your cat':'Name your dog';$('undoLook').disabled=!petHistory.length;}
+ function render(){document.body.classList?.toggle?.('cr-pet',mode==='pet');if(mode==='pet'){renderPet();return;}const l=look(),list=sectionsFor(l);$('survivorName').placeholder='Survivor 01';if(!list.some(x=>x.id===section))section=section==='gear'?'infect':section==='infect'?'gear':'body';const s=list.find(x=>x.id===section),panel=$('creatorPanel');
   panel.innerHTML=`<div class="cr-panel-head"><h2>${s.name}</h2><span>${list.indexOf(s)+1} / ${list.length}</span></div>`+s.rows.map(r=>rowHtml(r,l)).join('');
   for(const b of $('categoryRail').querySelectorAll?.('[data-section]')||[]){b.setAttribute('aria-pressed',String(b.dataset.section===section));b.hidden=!list.some(x=>x.id===b.dataset.section);}
   for(const b of $('kindSwitch').querySelectorAll?.('[data-kind]')||[])b.setAttribute('aria-pressed',String((b.dataset.kind==='zombie')===!!l.zombie));
@@ -61,18 +85,24 @@ export function createCreator({$,storage,look,setLook,loadout,setLoadout}){
   for(const c of panel.querySelectorAll?.('canvas[data-gearthumb]')||[]){const [kind,id]=c.dataset.gearthumb.split(':');gearThumb(c,kind,id);}
   $('undoLook').disabled=!history.length;}
  function change(next){history.push(look());if(history.length>40)history.shift();setLook(next);}
- function pick(t){if(!t)return;if(t.dataset?.gear){setLoadout({...loadout(),[t.dataset.gear]:t.dataset.value});return;}
+ function changePet(next){petHistory.push(companion());if(petHistory.length>40)petHistory.shift();setCompanion(next);}
+ function pickPet(t){const key=t.dataset.pet,v=Number(t.dataset.value),c=companion();if(key==='species'){if(c.species!==v){changePet({...c,species:v});}return;}if(petLook(c)[key]!==v)changePet(withLook(c,{...petLook(c),[key]:v}));}
+ function pick(t){if(!t)return;if(t.dataset?.pet){pickPet(t);return;}if(t.dataset?.gear){setLoadout({...loadout(),[t.dataset.gear]:t.dataset.value});return;}
   if(t.dataset?.key){const key=t.dataset.key,v=Number(t.dataset.value);if(look()[key]!==v)change({...look(),[key]:v});}}
- $('creatorPanel').addEventListener('click',e=>pick(e.target?.closest?e.target.closest('[data-key],[data-gear]'):e.target));
+ $('creatorPanel').addEventListener('click',e=>pick(e.target?.closest?e.target.closest('[data-key],[data-gear],[data-pet]'):e.target));
  $('categoryRail').addEventListener('click',e=>{const t=e.target?.closest?e.target.closest('[data-section]'):e.target;if(t?.dataset?.section)show(t.dataset.section);});
- $('randomLook').onclick=()=>change({...randomAppearance(),body:look().body,zombie:look().zombie});
- $('resetLook').onclick=()=>change({...DEFAULT_APPEARANCE,zombie:look().zombie});
+ const field=$('survivorName');
+ $('randomLook').onclick=()=>{if(mode==='pet'){const c=companion();changePet(withLook(c,randomPet(c.species)));return;}change({...randomAppearance(),body:look().body,zombie:look().zombie});};
+ $('resetLook').onclick=()=>{if(mode==='pet'){const c=companion();changePet(withLook(c,DEFAULT_PET[c.species?'cat':'dog']));return;}change({...DEFAULT_APPEARANCE,zombie:look().zombie});};
  // Each kind keeps its own saved look; the first zombie is the current survivor, turned.
- function setKind(kind){if((kind==='zombie')===!!look().zombie)return;history=[];setLook(readAppearance(storage,kind));}
+ // The third choice opens the companion's pages; the survivor or zombie stays as it was.
+ function setKind(kind){if(kind==='companion'){if(mode!=='pet'){mode='pet';field.value=companion().name;render();}return;}
+  const wasPet=mode==='pet';if(wasPet){mode='person';field.value=name;}
+  if((kind==='zombie')===!!look().zombie){if(wasPet)render();return;}history=[];setLook(readAppearance(storage,kind));}
  $('kindSwitch').addEventListener('click',e=>{const t=e.target?.closest?e.target.closest('[data-kind]'):e.target;if(t?.dataset?.kind)setKind(t.dataset.kind);});
- $('undoLook').onclick=()=>{if(!history.length)return;setLook(history.pop());};
- const field=$('survivorName');field.value=name;
- field.addEventListener('input',()=>{name=field.value.replace(/\s+/g,' ').trimStart().slice(0,18);try{storage?.setItem(NAME_KEY,name.trim());}catch{}});
- function show(id){if(SECTIONS.some(s=>s.id===id))section=id;render();}
- return {show,refresh:render,setKind,name:()=>name.trim(),section:()=>section};
+ $('undoLook').onclick=()=>{if(mode==='pet'){if(petHistory.length)setCompanion(petHistory.pop());return;}if(!history.length)return;setLook(history.pop());};
+ field.value=name;
+ field.addEventListener('input',()=>{if(mode==='pet'){const n=cleanName(field.value);setCompanion({...companion(),name:n.trim()},{name:true});return;}name=field.value.replace(/\s+/g,' ').trimStart().slice(0,18);try{storage?.setItem(NAME_KEY,name.trim());}catch{}});
+ function show(id){if(PET_SECTIONS.some(s=>s.id===id)){petSection=id;mode='pet';field.value=companion().name;}else if(SECTIONS.some(s=>s.id===id)){section=id;if(mode==='pet'){mode='person';field.value=name;}}render();}
+ return {show,refresh:render,setKind,name:()=>name.trim(),section:()=>section,mode:()=>mode};
 }

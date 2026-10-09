@@ -13,7 +13,9 @@ export class CampModel extends StudyModel{
  // Running spends stamina. Once it runs dry the survivor walks until it is partly back.
  update(dt,input={}){super.update(dt,{...input,run:!!input.run&&this.stamina.canRun()});this.stamina.update(Math.max(0,Math.min(.05,Number(dt)||0)),this.running&&this.moving);}
  // The closest person or thing within reach, preferring what the survivor is facing.
- target(){let best=null,score=Infinity;const a=this.direction*Math.PI/4,fx=Math.cos(a),fy=Math.sin(a);
-  for(const t of TARGETS){const dx=t.x-this.x,dy=t.y-this.y,d=Math.hypot(dx,dy);if(d>t.range)continue;const s=d-(d?((dx*fx+dy*fy)/d)*12:0);if(s<score){score=s;best=t;}}
+ target(extra=[]){let best=null,score=Infinity;const a=this.direction*Math.PI/4,fx=Math.cos(a),fy=Math.sin(a);
+  for(const t of extra.length?[...TARGETS,...extra]:TARGETS){const dx=t.x-this.x,dy=t.y-this.y,d=Math.hypot(dx,dy);if(d>t.range)continue;
+   // Some targets, like your companion at your heels, only count when you turn to them.
+   if(t.facing&&d&&(dx*fx+dy*fy)/d<.35)continue;const s=d-(d?((dx*fx+dy*fy)/d)*12:0);if(s<score){score=s;best=t;}}
   return best;}
 }
