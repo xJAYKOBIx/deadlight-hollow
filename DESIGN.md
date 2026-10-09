@@ -171,3 +171,7 @@ The creator preview now runs its own animation loop while the creator is open. B
 ### v0.20.3 companion build fixes (from a turnaround video)
 
 Body: the middle of the body chain is slimmer and a little higher, giving a deep chest and a tucked waist. Each standing leg now has a thigh or shoulder mass that joins the body without a seam: far ones are drawn under the body, near ones over it. The old round joint balls are gone. Neck: thinner (0.72 of the head radius) and set further back, and the collar sits lower on the neck. From behind, the head now draws over the neck, so it shows above the shoulders instead of disappearing behind a collar band. Lab ears hang at the sides of the head, not over the face. A saddle-backed dog has a dark stripe down the top of its tail, so from behind the tail no longer reads as a fifth leg. The husky's curled tail leans to one side.
+
+### v0.20.4 chest and legs
+
+The chest no longer hangs out in front of the front legs like a ball. The front of the body chain now ends 0.3 of the chest radius further back, and the front legs sit further forward (at 0.84 of the half body length, was 0.72), so the forechest only just clears the forearms. The waist is tucked more for dogs (0.22, cats 0.1), so the underline rises from a deep chest to the hips and the Lab no longer reads as a tube. The thigh and shoulder masses keep only a soft shadow along their lower edge, with no full ring.

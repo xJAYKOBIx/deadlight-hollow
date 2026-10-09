@@ -30,7 +30,7 @@ const mix=(a,b,t)=>{const h=s=>[1,3,5].map(i=>parseInt(s.slice(i,i+2),16)),A=h(a
 // The skeleton for one pose: joint positions in animal space.
 function skeleton(P,pose,cat){const {kind,t}=pose,TAU=Math.PI*2;
  let hipF=-P.L,chestF=P.L,cU=P.S-P.rc*.85,hU=P.S*.94-P.rh*.85,headF=P.L+P.rc*.55,headU=P.S+P.rH*.75,bob=0,headDip=0,wag=Math.sin(t*TAU)*.6,tailLift=0,legs;
- const reach=P.L*.72,hind=-P.L*.78,lw=P.w;
+ const reach=P.L*.84,hind=-P.L*.78,lw=P.w;
  const leg=(front,side,dF,lift)=>({front,side,jf:(front?reach:hind),ju:front?cU-P.rc*.2:hU,pf:(front?reach:hind)+dF,pu:lift,s:side*lw});
  if(kind==='walk'||kind==='run'){const run=kind==='run',A=run?P.L*.55:P.L*.32,lift=run?3.4:1.8,ph=run?[0,.12,.55,.67]:[0,.5,.25,.75];
   // Front left, front right, hind left, hind right. A walk is a four-beat gait; a run is a bounding gallop.
@@ -75,7 +75,7 @@ export function pet(c,direction=2,frame=0,look={}){
  // Body: a chain of spheres from the hips to the chest, shaded low, base, then a band of light along the back.
  const body=[],n=6,chest=V(sk.chestF,0,sk.cU),hip=V(sk.hipF,0,sk.hU);
  // A deep chest and a tucked waist: the middle of the chain is slimmer and sits a little higher, so the underline rises toward the hips.
- const bodyAt=k=>{const w=Math.sin(Math.PI*k)**2*(cat?.08:.15),r=(P.rh+(P.rc-P.rh)*k*k+P.fluff*.6)*(1-w);return {f:sk.hipF+(sk.chestF-sk.hipF)*k,u:sk.hU+(sk.cU-sk.hU)*k+r*w*.9,r};};
+ const bodyAt=k=>{const w=Math.sin(Math.PI*k)**2*(cat?.1:.22),r=(P.rh+(P.rc-P.rh)*k*k+P.fluff*.6)*(1-w);const front=sk.chestF-P.rc*.3;return {f:sk.hipF+(front-sk.hipF)*k,u:sk.hU+(sk.cU-sk.hU)*k+r*w*1.1,r};};
  for(const pass of [0,1,2])for(let i=0;i<=n;i++){const b=bodyAt(i/n),p=V(b.f,0,b.u);
   if(pass===0)body.push(ball(p,b.r,coat[1],{sil:1}));else if(pass===1)body.push(ball({x:p.x,y:p.y-.5},b.r-.8,coat[2]));else body.push(ball({x:p.x,y:p.y-b.r*.5},b.r*.45,coat[3]));}
  // Markings on the body.
@@ -108,7 +108,7 @@ export function pet(c,direction=2,frame=0,look={}){
    sh.push(limb(j,paw,P.leg,col[1],{sil:1}),limb({x:j.x,y:j.y-.4},{x:paw.x,y:paw.y-.4},P.leg-1.2,col[2]),{k:'e',x:paw.x,y:paw.y,rx:P.leg*.8,ry:P.leg*.5,col:pawCol?pawCol[2]:col[2],sil:1});group(paw.d,sh);continue;}
   const j=V(L.jf,L.s,L.ju),p=V(L.pf,L.s,L.pu),front=L.front;
   const mp=front?V(L.jf+.3,L.s*1.05,L.ju-P.rc*.15):V(L.jf-.3,L.s+L.side*.8,L.ju-P.rh*.1),mr=front?P.rc*.42:P.rh*.62;
-  (near?nearMass:farMass).push(ball(mp,mr,col[1],{sil:1}),ball({x:mp.x,y:mp.y-.4},mr-.5,col[2]));
+  (near?nearMass:farMass).push(ball(mp,mr,col[1],{sil:1}),ball({x:mp.x,y:mp.y-.5},mr-.3,col[2]));
   // Front legs run nearly straight; hind legs bend back at the hock.
   const knee=front?V(L.jf+(L.pf-L.jf)*.45-.6,L.s,L.ju*.45+L.pu*.55):V(L.jf+(L.pf-L.jf)*.4-2.2,L.s,L.ju*.4+L.pu*.6);
   const top=front?P.leg*1.25:P.leg*1.6;
