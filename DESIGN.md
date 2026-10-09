@@ -189,3 +189,15 @@ Cave life (`life.js`, `CaveLife`), all decoration: drops fall and ring out in th
 The lean-to, bedroll and stash crate are replaced by one shared shelter (`shelter`): a patched tarp on a ridge pole, sagging between three posts, with a coat and a pack hung on its back wall and a lantern at the front corner. Under it are four sleeping spots (`BED_SPOTS`), east to west. Each is a bed (`bed`, flat: a pad, a plump pillow, a patchwork quilt with the sheet turned down and a corner folded back) and a footlocker at its foot (`chest`: plank lid, leather straps, iron corners, a lock). Each spot has its own bedding colors (`BED_COLORS`); yours, spot 0, is the warm brown one nearest the fire, with an ember band on the quilt and chest, a brass lock and a candle beside it.
 
 Your chest is your stash (Open, from the foot of the chest); Rest is on your bed. The other three spots stay empty until co-op players join: `CampModel.campers` (1 to `MAX_CAMPERS`, 4) sets how many show, and an empty spot's chest does not block. The gaps between chests are wide enough to walk through. Until co-op exists, "Preview co-op beds" in the camp's options menu shows all four.
+
+### v0.22.0 controls: phone, PC and controller
+
+The controls are rebuilt to feel like a twin-stick shooter, with the left thumb only ever moving and everything else under the right thumb.
+
+Phone: the left side is a floating move stick (it appears where you touch); pushing it past about 90% of its reach runs, and easing back below about 70% walks again, so there is no Run button. The right side is a fixed fire stick: a small push turns your aim, a fuller push (past 14 px of its 40 px reach) also fires. Reload, Grenade and Swap sit in a fan just above and left of the fire stick, all reachable without lifting the left thumb. Reload and Grenade show their cooldown as a ring; buttons act on press (not release) and buzz on supported phones. In camp the fan and fire stick give way to the big action button. The top bar keeps only Character and Menu; Room/Camp travel, zoom, full screen and reset live in the pause menu, along with a full controls table. Health is not shown because there is no health system yet.
+
+PC: WASD or arrows move, Shift runs, the mouse aims (with a crosshair cursor) and the left button or Space fires; E uses, R reloads, G throws, Q or the wheel swaps, 1 to 5 pick a gun, Z zooms, I opens the character, Esc pauses. Every HUD button shows its key.
+
+Controller (`pad.js`, standard mapping): left stick moves (L3 or LT runs), right stick aims past 30% and fires past 55% (or RT), X reload, Y swap, RB/LB grenade, A use, Start pause, Back character, R3 zoom; the D-pad and A/B work the menus. Firing, reloading, swapping and throwing rumble. The HUD's key prompts switch to controller glyphs as soon as a controller is used, and back when you touch the keyboard, mouse or screen.
+
+The weapon panel (`#weaponHud`) shows the gun, rounds left over the magazine with a bar, the reload state and the grenade with its cooldown; it turns ember when low and red when empty.

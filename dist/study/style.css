@@ -141,3 +141,101 @@ dialog.creator[open]{display:grid;grid-template-rows:auto minmax(0,1fr) auto}dia
 /* v0.20: companion pages in the creator. */
 .cr-pet-only{display:none}.cr-pet .cr-poses .cr-pet-only{display:block}
 .cr-kind button{letter-spacing:.08em}.cr-kind button[data-kind=companion][aria-pressed=true]{color:var(--ember-ink);background:var(--ember-hi)}
+/* v0.22 HUD: one look for every control. Dark plates with an ink edge, ember for what is live or yours, stencil numbers.
+   Phones: the left thumb only moves; everything else is a fan around the right thumb's fire stick. */
+:root{--hud:#161513e6;--hud-edge:#3a352e;--hud-hi:#ffffff14;--sl:max(14px,env(safe-area-inset-left));--sr:max(14px,env(safe-area-inset-right));--sb:max(14px,env(safe-area-inset-bottom));--st:max(10px,env(safe-area-inset-top))}
+kbd{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 4px;font:700 10px/1 var(--ui);letter-spacing:.02em;color:var(--ember-ink);background:var(--bone);border-radius:3px;box-shadow:inset 0 -2px 0 #0004}
+.pad kbd{border-radius:999px;background:#2b2a27;color:var(--bone);box-shadow:inset 0 0 0 1.5px #ffffff38}
+.pad kbd[data-glyph="A"]{background:#4c8a3c;color:#fff}.pad kbd[data-glyph="B"]{background:#b4473a;color:#fff}.pad kbd[data-glyph="X"]{background:#3d6fb0;color:#fff}.pad kbd[data-glyph="Y"]{background:#c9a227;color:var(--ember-ink)}
+/* Top: where you are on the left, Character and Menu on the right. */
+.topbar{top:calc(var(--vy) + var(--st));left:calc(var(--vx) + var(--sl));right:var(--sr);align-items:flex-start}
+.identity{min-width:0}.identity>b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar nav{gap:8px}
+.topbar .hud-btn{position:relative;width:46px;height:46px;min-height:46px;padding:0;display:grid;place-items:center;border-radius:12px;background:var(--hud);border:1px solid var(--hud-edge);box-shadow:0 4px 14px #0006,inset 0 1px 0 var(--hud-hi)}
+.hud-btn svg{width:22px;height:22px;fill:none;stroke:var(--bone);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.hud-btn kbd{position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);height:15px;min-width:15px;font-size:9px}
+.touch:not(.pad) .hud-btn kbd{display:none}
+.topbar .hud-btn:hover{border-color:var(--edge-hi)}.topbar .hud-btn:active{transform:scale(.94);background:#3a2a1f}
+/* The hint line fades after a few seconds. On phones it sits under the top bar, clear of both thumbs. */
+.instructions{transition:opacity .8s;font:500 11px/1.4 var(--ui);letter-spacing:.04em;color:#d8cfbf;bottom:calc(var(--sb) + 2px)}
+.instructions.fade{opacity:0}
+.touch:not(.pad) .instructions{top:calc(var(--vy) + var(--st) + 58px);bottom:auto;font-size:10px;max-width:70%}
+.camp.touch:not(.pad) .instructions{top:calc(var(--vy) + var(--st) + 146px)}
+/* Touch controls hide while a controller is in use. */
+#moveZone,#rightPad,#weaponHud{display:none}
+.touch:not(.pad) #moveZone{display:block;position:fixed;left:var(--vx);bottom:0;width:50vw;height:62%;touch-action:none;z-index:1}
+.touch #moveZone #ring{left:calc(var(--sl) + 76px);top:calc(100% - var(--sb) - 82px);width:112px;height:112px;border:2px solid #e8e0d133;background:radial-gradient(circle,#16151340 0 58%,#16151380 60%);box-shadow:0 0 0 1px #0005;transition:border-color .15s,box-shadow .15s}
+.touch #moveZone #thumb{width:46px;height:46px;border:2px solid #e8e0d1a0;background:radial-gradient(circle at 40% 35%,#e8e0d155,#e8e0d114 70%);box-shadow:0 2px 8px #0008}
+.touch #moveZone.active #ring{border-color:#e8e0d166}
+.touch #moveZone.sprint #ring{border-color:var(--ember-hi);box-shadow:0 0 0 3px #dd6f2c44,0 0 18px #dd6f2c55}
+.touch #moveZone.sprint #thumb{border-color:var(--ember-hi);background:radial-gradient(circle at 40% 35%,#ff9a52bb,#dd6f2c55 70%)}
+.sprint-mark{position:absolute;left:50%;top:-18px;transform:translateX(-50%);font:700 10px/1 var(--ui);letter-spacing:.16em;color:var(--ember-hi);opacity:0;transition:opacity .15s;text-shadow:0 1px 4px #000}
+#moveZone.sprint .sprint-mark{opacity:1}
+.touch #moveZone>span{left:calc(var(--sl) + 76px);top:auto;bottom:calc(var(--sb) + 2px);width:auto;transform:translateX(-50%);white-space:nowrap;font:600 9px/1 var(--ui);letter-spacing:.12em;text-transform:uppercase;color:#e8e0d170}
+/* The right thumb: a fixed fire stick with Reload, Grenade and Swap fanned around its upper left. */
+.touch:not(.pad) #rightPad{display:block;position:fixed;right:calc(var(--sr) + 2px);bottom:calc(var(--sb) + 2px);width:236px;height:236px;pointer-events:none;z-index:2}
+#rightPad>*{pointer-events:auto}
+#rightPad #aimZone{display:block;position:absolute;right:0;bottom:0;width:150px;height:150px;border-radius:50%;touch-action:none}
+#rightPad #aimRing{position:absolute;left:50%;top:50%;width:124px;height:124px;transform:translate(-50%,-50%);border-radius:50%;border:2px solid #e8e0d133;background:radial-gradient(circle,#16151340 0 58%,#16151380 60%);box-shadow:0 0 0 1px #0005;transition:border-color .12s,box-shadow .12s}
+#rightPad #aimThumb{position:absolute;left:50%;top:50%;width:54px;height:54px;transform:translate(-50%,-50%);border-radius:50%;border:2px solid #e8e0d1a0;background:radial-gradient(circle at 40% 35%,#e8e0d150,#e8e0d114 70%);box-shadow:0 2px 8px #0008}
+#rightPad #aimThumb::before,#rightPad #aimThumb::after{content:'';position:absolute;left:50%;top:50%;background:#e8e0d1cc;transform:translate(-50%,-50%)}
+#rightPad #aimThumb::before{width:16px;height:2px}#rightPad #aimThumb::after{width:2px;height:16px}
+#rightPad #aimZone.firing #aimRing{border-color:var(--ember-hi);box-shadow:0 0 0 3px #dd6f2c44,0 0 22px #dd6f2c66}
+#rightPad #aimZone.firing #aimThumb{background:radial-gradient(circle at 40% 35%,#ffb37a,#dd6f2c 72%);border-color:#ffd2a0}
+#rightPad #aimLabel{position:absolute;left:50%;bottom:-13px;transform:translateX(-50%);white-space:nowrap;font:600 9px/1 var(--ui);letter-spacing:.12em;text-transform:uppercase;color:#e8e0d170;pointer-events:none}
+#rightPad #aimZone.active #aimLabel{opacity:0}
+#rightPad .fan.fan{position:absolute;right:auto;bottom:auto;width:58px;height:58px;min-width:0;min-height:0;padding:0;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 50% 30%,#2c2925f2,#141311f2);border:1.5px solid #e8e0d140;box-shadow:0 4px 12px #0008,inset 0 1px 0 #ffffff1a;color:var(--bone);touch-action:none;transition:transform .06s}
+#rightPad .fan svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;margin-top:-9px}
+#rightPad .fan>span{position:absolute;bottom:8px;left:0;right:0;text-align:center;font:700 8px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--dust)}
+#rightPad .fan.f1{left:30px;top:95px}#rightPad .fan.f2{left:78px;top:38px}#rightPad .fan.f3{left:151px;top:26px}
+#rightPad .fan.down{transform:scale(.9);background:#3a2a1f}
+.fan-ring{position:absolute;inset:-5px;border-radius:50%;pointer-events:none;background:conic-gradient(var(--ring,#e8e0d1aa) calc(var(--p,1) * 360deg),#ffffff10 0);-webkit-mask:radial-gradient(circle,transparent 31px,#000 32px);mask:radial-gradient(circle,transparent 31px,#000 32px)}
+#reload.low,#reload.busy{color:var(--ember-hi)}#reload.low{border-color:var(--ember)}#reload.low .fan-ring,#reload.busy .fan-ring{--ring:var(--ember-hi)}
+#reload.busy svg{animation:hud-spin .9s linear infinite}
+#throwGrenade.busy{color:var(--dust)}#throwGrenade .fan-ring{--ring:#e8e0d1cc}
+@keyframes hud-spin{to{transform:rotate(360deg)}}
+/* In camp the big action button takes the fire stick's place. */
+.camp #rightPad #aimZone,.camp #rightPad .fan.fan,.zombie #rightPad #aimZone,.zombie #rightPad .fan.fan{display:none}
+#rightPad #act{position:absolute;left:115px;top:115px;right:auto;bottom:auto;width:92px;height:92px;box-shadow:0 0 0 3px #dd6f2c33,0 6px 18px #000a}
+/* The weapon panel: bottom right on a computer, compact above the fan on a phone. */
+#weaponHud{display:block;position:fixed;z-index:2;right:calc(var(--sr) + 6px);bottom:calc(var(--sb) + 10px);width:240px;padding:10px 12px 9px;background:linear-gradient(180deg,#1b1a17f0,#121110f0);border:1px solid var(--hud-edge);border-radius:10px;box-shadow:0 8px 24px #0009,inset 0 1px 0 var(--hud-hi);font-family:var(--ui);pointer-events:none}
+.camp #weaponHud,.zombie #weaponHud{display:none!important}
+.wh-top,.wh-bot{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.wh-top b{font:700 12px/1 var(--ui);letter-spacing:.1em;text-transform:uppercase;color:var(--bone);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wh-key,.wh-gren{display:inline-flex;align-items:center;gap:5px;font:600 10px/1 var(--ui);letter-spacing:.06em;text-transform:uppercase;color:var(--dust);white-space:nowrap}
+.wh-key em{font-style:normal}
+.wh-mid{display:flex;align-items:baseline;gap:6px;margin:7px 0}
+#ammoNow{font:400 34px/1 var(--display);color:var(--bone);min-width:2ch;text-align:right}
+#ammoMag{font:600 14px/1 var(--ui);color:var(--dust)}
+.wh-mag{flex:1;align-self:center;height:6px;margin-left:6px;background:#ffffff14;border-radius:3px;overflow:hidden}
+.wh-mag i{display:block;height:100%;background:linear-gradient(90deg,#cfc6b0,#fff);transition:width .08s}
+#weaponHud.low #ammoNow,#weaponHud.low .wh-key em{color:var(--ember-hi)}#weaponHud.low .wh-mag i{background:var(--ember)}
+#weaponHud.reloading .wh-mag i{background:repeating-linear-gradient(90deg,var(--ember-hi) 0 6px,var(--ember) 6px 10px)}
+#weaponHud.reloading .wh-key em{color:var(--ember-hi)}
+#weaponHud.empty #ammoNow{color:#ff6a4a;animation:hud-blink .7s steps(2) infinite}
+@keyframes hud-blink{50%{opacity:.35}}
+.wh-gren{color:var(--bone)}#grenadeDot{width:9px;height:9px;border-radius:50%;box-shadow:0 0 0 1.5px #0009}
+.wh-cool{display:block;width:34px;height:4px;background:#ffffff14;border-radius:2px;overflow:hidden}.wh-cool i{display:block;height:100%;background:var(--bone)}
+#weaponHud.swapped{animation:hud-swap .3s ease-out}
+@keyframes hud-swap{from{transform:translateX(12px);opacity:.25}to{transform:none;opacity:1}}
+.touch:not(.pad) #weaponHud{right:calc(var(--sr) + 6px);bottom:calc(var(--sb) + 246px);width:156px;padding:7px 10px}
+.touch:not(.pad) #weaponHud .wh-key,.touch:not(.pad) #weaponHud .wh-bot{display:none}
+.touch:not(.pad) #ammoNow{font-size:26px}
+@media(orientation:landscape) and (max-height:560px){.touch:not(.pad) #weaponHud{right:calc(var(--sr) + 248px);bottom:calc(var(--sb) + 8px)}}
+/* A computer gets an ember crosshair for a cursor in the practice room. */
+body:not(.camp):not(.zombie):not(.touch) #game{cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cg fill='none' stroke-linecap='round'%3E%3Cg stroke='%23111319' stroke-width='4'%3E%3Ccircle cx='16' cy='16' r='7'/%3E%3Cpath d='M16 2v7M16 23v7M2 16h7M23 16h7'/%3E%3C/g%3E%3Cg stroke='%23ff9a52' stroke-width='2'%3E%3Ccircle cx='16' cy='16' r='7'/%3E%3Cpath d='M16 2v7M16 23v7M2 16h7M23 16h7'/%3E%3C/g%3E%3C/g%3E%3Ccircle cx='16' cy='16' r='1.5' fill='%23ffe4a0'/%3E%3C/svg%3E") 16 16,crosshair}
+/* Prompts show the right glyph for a controller even on a phone. */
+.pad #prompt kbd{display:inline-grid}.pad #prompt{padding-left:4px}
+/* The pause menu. */
+.pause .pause-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.pause-grid button{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:48px;padding:10px 14px;font:600 14px/1 var(--ui);letter-spacing:.06em;text-transform:uppercase;text-align:left;background:#1c1a17;border:1px solid var(--hud-edge);border-radius:8px}
+.pause-grid .wide{grid-column:1/-1}.pause-grid .primary{justify-content:center;gap:12px;background:var(--ember);color:var(--ember-ink);border-color:var(--ember-hi)}
+.pause-grid .primary kbd{background:#1b0f0722;color:var(--ember-ink)}
+.pause-grid button:hover,.pause-grid button:focus-visible{border-color:var(--ember-hi)}.pause-grid button:not(.primary):hover{background:#2a211a}
+#travel{color:var(--ember-hi)}
+.controls-ref summary{cursor:pointer;display:flex;align-items:center;min-height:44px;font:700 12px/1 var(--ui);letter-spacing:.12em;text-transform:uppercase;color:var(--ember-hi)}
+.cref{overflow-x:auto}.cref table{border-collapse:collapse;width:100%;font:500 12px/1.35 var(--ui);color:var(--dust)}
+.cref th,.cref td{padding:6px 8px;border-bottom:1px solid #ffffff10;text-align:left;vertical-align:top}
+.cref thead th{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}.cref tbody th{color:var(--bone);white-space:nowrap}
+body:not(.touch):not(.pad) .cref td:nth-child(2),.pad .cref td:nth-child(3),.touch:not(.pad) .cref td:nth-child(4){color:var(--bone)}
+body:not(.touch):not(.pad) .cref thead th:nth-child(2),.pad .cref thead th:nth-child(3),.touch:not(.pad) .cref thead th:nth-child(4){color:var(--ember-hi)}
