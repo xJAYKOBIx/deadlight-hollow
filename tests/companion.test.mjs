@@ -30,17 +30,31 @@ test('every breed paints every facing and frame inside its cell',()=>{
 test('coat, markings, eyes and collar each change the picture',()=>{
  const base={species:0,...DEFAULT_PET.dog},key=look=>Buffer.from(sheet(look).data).toString('base64'),plain=key(base);
  for(const k of ['coat','marking','eyes','collar'])assert.notEqual(key({...base,[k]:(base[k]+1)%PET_OPTIONS(0)[k].length}),plain,k);});
-test('the companion trots after you, sits when you stop, lies down, and catches up when left behind',()=>{
- const p=new Follower(()=>false),you={x:0,y:0,direction:0,moving:true,running:false};p.place(-30,0);
- for(let i=0;i<120;i++){you.x+=1.5;p.update(1/60,you);}assert.ok(Math.hypot(you.x-p.x,you.y-p.y)<FOLLOW.behind+20,'keeps up');assert.ok(p.x<you.x,'stays behind');assert.equal(p.direction,0);assert.ok(PET_ANIM.walk.includes(p.frame)||PET_ANIM.run.includes(p.frame));
- you.moving=false;for(let i=0;i<120;i++)p.update(1/60,you);assert.equal(p.state,'sit');for(let i=0;i<60*FOLLOW.lie;i++)p.update(1/60,you);assert.equal(p.state,'lie');assert.equal(p.frame,PET_ANIM.lie[0]);
- p.pet();p.update(1/60,you);assert.equal(p.state,'sit','petting wakes it up');assert.ok(p.happy>0);
- const x=p.x,y=p.y;for(const d of [2,4,6]){you.direction=d;for(let i=0;i<30;i++)p.update(1/60,you);}assert.deepEqual([p.x,p.y],[x,y],'turning on the spot to face it does not chase it away');
+// Walks you for a while; returns the follower and the owner.
+const run=(p,you,secs,each=()=>{})=>{for(let i=0;i<secs*60;i++){each(i);p.update(1/60,you);}};
+test('the companion walks at your side, then sits and stays put while you walk around it',()=>{
+ const p=new Follower(()=>false,seeded(4)),you={x:0,y:0,direction:0,moving:true,running:false};p.place(-30,0);
+ run(p,you,3,()=>{you.x+=126/60;});const ahead=p.x-you.x,beside=Math.abs(p.y-you.y);
+ assert.ok(Math.abs(ahead)<12,`level with you, not trailing (${ahead.toFixed(1)})`);assert.ok(beside>10&&beside<24,`at your side (${beside.toFixed(1)})`);assert.equal(p.direction,0);assert.ok(PET_ANIM.walk.includes(p.frame));
+ you.moving=false;run(p,you,1.5);assert.equal(p.mode,'stay');assert.equal(p.state,'sit');const spot=[p.x,p.y];
+ // Circle round it, close enough to pat: it stays where it is and turns to watch you.
+ you.moving=true;const cx=p.x,cy=p.y;run(p,you,4,i=>{const a=i/60*1.5;you.x=cx+Math.cos(a)*40;you.y=cy+Math.sin(a)*40;you.direction=(Math.round(a/(Math.PI/4))+2)%8;});
+ assert.deepEqual([p.x,p.y],spot,'it stays put while you walk around it');assert.equal(p.mode,'stay');
+ you.moving=false;p.pet();p.update(1/60,you);assert.equal(p.state,'sit');assert.ok(p.happy>0);
+ run(p,you,FOLLOW.lie+1,()=>{});assert.notEqual(p.mode,'heel');
+ // Walk off past the leash and it gets up and catches up.
+ you.moving=true;run(p,you,4,()=>{you.x+=126/60;});assert.equal(p.mode,'heel');assert.ok(Math.hypot(you.x-p.x,you.y-p.y)<30,'caught up');
  you.x+=1000;p.update(1/60,you);assert.ok(Math.hypot(you.x-p.x,you.y-p.y)<FOLLOW.behind+20,'a long way behind, it simply arrives');});
+test('standing around, it wanders nearby, sniffs, comes back and lies down; walking off calls it back',()=>{
+ const p=new Follower(()=>false,seeded(9)),you={x:200,y:200,direction:2,moving:false};p.place(200-17,200);
+ let wandered=0,maxOut=0,lay=false;run(p,you,60,()=>{if(p.mode==='wander'){wandered++;maxOut=Math.max(maxOut,Math.hypot(p.x-you.x,p.y-you.y));}if(p.state==='lie')lay=true;});
+ assert.ok(wandered>60,'it went for a wander');assert.ok(maxOut<FOLLOW.wander.roam+8,`it stays close (${maxOut.toFixed(0)})`);assert.ok(lay,'it settles down between wanders');
+ const q=new Follower(()=>false,seeded(9));q.place(183,200);run(q,you,FOLLOW.wander.first+2);assert.equal(q.mode,'wander');you.moving=true;q.update(1/60,you);assert.equal(q.mode,'heel','moving off calls it back to your side');
+ const busy=new Follower(()=>false,seeded(9)),fisher={x:0,y:0,direction:0,moving:false,busy:true};busy.place(-3,17);run(busy,fisher,40);assert.notEqual(busy.mode,'wander');assert.equal(busy.state,'lie','it lies by you while you fish');});
 test('the companion steps around things and comes free if it gets stuck',()=>{
  const wall=(x,y)=>x>-6&&x<6&&y>-40&&y<40,p=new Follower(wall),you={x:40,y:0,direction:0,moving:true};p.place(-40,0);
  for(let i=0;i<600;i++)p.update(1/60,you);assert.ok(!wall(p.x,p.y));assert.ok(p.x>0,'it gets to your side of the wall');
- const box=new Follower((x,y)=>Math.hypot(x,y)>3);box.place(0,0);const far={x:60,y:0,direction:0,moving:true};for(let i=0;i<60*(FOLLOW.stuck+.5);i++)box.update(1/60,far);assert.ok(box.x>20,'stuck too long, it hops to you');});
+ const box=new Follower((x,y)=>{const r=Math.hypot(x,y);return r>3&&r<12;});box.place(0,0);const far={x:60,y:0,direction:0,moving:true};for(let i=0;i<60*(FOLLOW.stuck+.5);i++)box.update(1/60,far);assert.ok(box.x>20,'stuck too long, it hops to you');});
 test('the page offers the companion pages, the sit pose and the pet action',()=>{
  const html=fs.readFileSync(new URL('../dist/index.html',import.meta.url),'utf8');assert.match(html,/data-kind="companion"/);assert.match(html,/data-pose="sit"/);for(const id of ['pkind','pcoat','pdetail'])assert.match(html,new RegExp(`data-section="${id}"`),id);
  const app=fs.readFileSync(new URL('../dist/study/app.js',import.meta.url),'utf8');assert.match(app,/'Pet'/);});
