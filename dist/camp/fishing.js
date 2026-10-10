@@ -55,7 +55,7 @@ export class Stamina{
  get max(){return STAMINA.base+(this.buff?.max||0);}
  setBuff(b){const full=this.value>=this.max-.01;this.buff=b||null;if(full||this.value>this.max)this.value=this.max;}
  canRun(){return !this.winded&&this.value>0;}
- update(dt,running){dt=Math.max(0,Math.min(.1,dt));if(running){this.value-=STAMINA.drain*dt;this.rest=0;if(this.value<=0){this.value=0;this.winded=true;}}
+ update(dt,running,drain=1){dt=Math.max(0,Math.min(.1,dt));if(running){this.value-=STAMINA.drain*drain*dt;this.rest=0;if(this.value<=0){this.value=0;this.winded=true;}}
   else if((this.rest+=dt)>STAMINA.delay)this.value+=STAMINA.regen*(this.buff?.regen||1)*dt;
   this.value=Math.min(this.max,this.value);if(this.winded&&this.value>=this.max*STAMINA.recover)this.winded=false;}
 }

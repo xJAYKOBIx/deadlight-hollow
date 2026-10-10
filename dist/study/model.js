@@ -15,11 +15,11 @@ export class StudyModel{
  face(aim,move){if(aim!==null){this.aim=aim;this.direction=facingOf(aim);}else{if(move!==null)this.direction=move;this.aim=this.direction*Math.PI/4;}
   const turn=move===null?0:((move-this.direction+12)%8)-4;this.backpedal=Math.abs(turn)>2;this.legDir=move===null?this.direction:this.backpedal?(move+4)%8:move;}
  // With a stamina pool attached (camp and arena share one), running spends it; run it dry and you walk until it is partly back.
- update(dt,input={}){const st=this.stamina;if(!st)return this.walk(dt,input);this.walk(dt,{...input,run:!!input.run&&st.canRun()});st.update(Math.max(0,Math.min(.05,Number(dt)||0)),this.running&&this.moving);}
+ update(dt,input={}){const st=this.stamina;if(!st)return this.walk(dt,input);this.walk(dt,{...input,run:!!input.run&&st.canRun()});st.update(Math.max(0,Math.min(.05,Number(dt)||0)),this.running&&this.moving,this.burden?.drain||1);}
  walk(dt,input={}){dt=Math.max(0,Math.min(.05,Number(dt)||0));let mx=Number(input.x)||0,my=Number(input.y)||0,d=Math.hypot(mx,my);this.running=!!input.run;this.moving=false;
  const ax=Number(input.aimX),ay=Number(input.aimY),aim=Number.isFinite(ax)&&Number.isFinite(ay)&&Math.hypot(ax,ay)>.1?Math.atan2(ay,ax):null;
  if(d<.12){this.frame=0;this.phase=0;this.face(aim,null);return;}mx/=Math.max(1,d);my/=Math.max(1,d);this.face(aim,(Math.round(Math.atan2(my,mx)/(Math.PI/4))+8)%8);// Zombies shamble and lurch: slower, with a shorter step per animation cycle.
- let z=this.zombie,speed=this.running?(z?150:215):(z?70:126),dx=mx*speed*dt,dy=my*speed*dt,oldX=this.x,oldY=this.y;
+ let z=this.zombie,speed=(this.running?(z?150:215):(z?70:126))*(this.burden?.speed||1),dx=mx*speed*dt,dy=my*speed*dt,oldX=this.x,oldY=this.y;
  // Small substeps prevent thin-wall tunnelling while independent axes allow sliding.
  let n=Math.max(1,Math.ceil(Math.max(Math.abs(dx),Math.abs(dy))/4));for(let i=0;i<n;i++){if(!this.blocked(this.x+dx/n,this.y))this.x+=dx/n;if(!this.blocked(this.x,this.y+dy/n))this.y+=dy/n;}let dist=Math.hypot(this.x-oldX,this.y-oldY);this.moving=dist>.001;if(this.moving){this.phase=(this.phase+dist/(this.running?(z?64:72):(z?40:54)))%1;const step=Math.floor(this.phase*8);this.frame=(this.running?9:1)+(this.backpedal?(8-step)%8:step);}else{this.frame=0;this.phase=0;this.legDir=this.direction;}}
 }

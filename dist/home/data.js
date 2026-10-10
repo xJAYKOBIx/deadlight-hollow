@@ -71,12 +71,16 @@ export const PATH={x:502,y:514,w:30,h:86};
 export const START={x:206,y:226,direction:1};
 export const USE_RANGE=40;
 const at=(id,dy=12)=>{const o=PROPS.find(p=>p.id===id);return {x:o.x+o.w/2,y:o.y+o.h+dy,mx:o.x+o.w/2,my:o.y-o.z-4};};
-// Things to look at and use. The nightstand and the closet hold the guns; picking them up comes next.
+// Things to look at and use. The nightstand and the closet hold the guns; the kitchen drawers, under the sink and the laundry
+// basket hold supplies for the bag (see kit.js).
 export const OBJECTS=[
  {id:'tv',verb:'Look',name:'The TV',role:'Living room',...at('tv',60),lines:['Dead since the power went. A second before it did, the anchor was shouting about the bridges.','You can still hear sirens outside. More of them than before.']},
  {id:'window',prop:'north-window330',verb:'Look',name:'Front window',role:'Living room',...at('north-window330',28),lines:['Your street, under the moon. Every porch light is out.','Somebody\'s car alarm is going, a few houses down. Nobody comes out to stop it.']},
  {id:'nightstand',verb:'Open',name:'Nightstand',role:'Bedroom',...at('nightstand',10),lines:['The top drawer sticks, like always.','Something heavy rolls around inside.']},
  {id:'closet',verb:'Open',name:'Hall closet',role:'Front hall',...at('closet',10),lines:['Coats, boxes of who-knows-what, and the vacuum nobody uses.','The lockbox is on the floor at the back. Your fingers still know the code.']},
+ {id:'counter',verb:'Search',name:'Kitchen drawers',role:'Kitchen',...at('counter',10),lines:['The junk drawer. Takeout menus, rubber bands and a lot of screws.']},
+ {id:'sink',verb:'Search',name:'Under the sink',role:'Kitchen',...at('sink',10),lines:['Dish soap, sponges and a mousetrap nobody set.']},
+ {id:'laundry',verb:'Search',name:'Laundry basket',role:'Bedroom',...at('laundry',10),lines:['Clean, folded, and never put away.']},
  {id:'fridge',verb:'Open',name:'Fridge',role:'Kitchen',...at('fridge',10),lines:['Still cold, for now.','Leftover pizza, mustard and a jar of pickles nobody remembers buying.']},
  {id:'bookshelf',verb:'Look',name:'Bookcase',role:'Living room',...at('bookshelf',12),lines:['Paperbacks, a dog-training book with the spine cracked at chapter two, and a first-aid manual still in its plastic.']},
  {id:'frontdoor',prop:'south-front500',verb:'Leave',name:'Front door',role:'Front hall',x:517,y:452,mx:517,my:INSIDE.bottom-Z-6,lines:['You put your hand on the lock and stop.','Not without something to protect yourself with.']}];
