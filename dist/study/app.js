@@ -86,9 +86,12 @@ let inspectLoop=0;function loopInspection(now){inspectLoop=0;if(!$('inspection')
 function paintInspection(now){if(!scene||now-lastInspect<60)return;lastInspect=now;const c=$('portrait').getContext('2d');c.clearRect(0,0,280,360);c.imageSmoothingEnabled=false;if(creator.mode?.()==='pet'){petPreview(c,now);return;}if(pose==='sit')pose='idle';const z=appearance.zombie;let f=pose==='idle'?0:(pose==='run'?9:1)+Math.floor(now/(pose==='run'?(z?80:60):(z?125:85)))%8;scene.portrait(c,inspectDirection,f,140,332,2);$('direction').textContent=DIRECTIONS[inspectDirection];$('portrait').setAttribute('aria-label',DIRECTIONS[inspectDirection]+' view, '+pose+' animation');}
 const zone=$('moveZone');function paintStick(v){$('ring').style.left=v.baseX+'px';$('ring').style.top=v.baseY+'px';$('thumb').style.transform=`translate(-50%,-50%) translate(${v.thumbX}px,${v.thumbY}px)`;}
 zone.addEventListener('pointerdown',e=>{if(paused()||stick.pointer!==null)return;e.preventDefault();let b=zone.getBoundingClientRect();stick.start(e.pointerId,e.clientX-b.left,e.clientY-b.top,{w:b.width,h:b.height},56,40);zone.setPointerCapture(e.pointerId);zone.classList.add('active');paintStick({baseX:stick.base.x,baseY:stick.base.y,thumbX:0,thumbY:0});});
-zone.addEventListener('pointermove',e=>{let b=zone.getBoundingClientRect(),v=stick.move(e.pointerId,e.clientX-b.left,e.clientY-b.top);if(!v)return;e.preventDefault();paintStick(v);let d=Math.hypot(v.dx,v.dy),power=Math.min(1,Math.max(0,(d-4)/33));move={x:d?v.dx/d*power:0,y:d?v.dy/d*power:0};});
-for(let name of ['pointerup','pointercancel','lostpointercapture'])zone.addEventListener(name,e=>{if(stick.end(e.pointerId)){move={x:0,y:0};zone.classList.remove('active');$('ring').style.left=$('ring').style.top='';$('thumb').style.transform='';}});
+zone.addEventListener('pointermove',e=>{let b=zone.getBoundingClientRect(),v=stick.move(e.pointerId,e.clientX-b.left,e.clientY-b.top);if(!v)return;e.preventDefault();paintStick(v);let d=Math.hypot(v.dx,v.dy),power=Math.min(1,Math.max(0,(d-4)/33));edgeRun(d);move={x:d?v.dx/d*power:0,y:d?v.dy/d*power:0};});
+for(let name of ['pointerup','pointercancel','lostpointercapture'])zone.addEventListener(name,e=>{if(stick.end(e.pointerId)){move={x:0,y:0};if(docked()&&running)setRun(false);zone.classList.remove('active');$('ring').style.left=$('ring').style.top='';$('thumb').style.transform='';}});
 // Run is a toggle on touch: tap it to run, tap again to walk. It stays on through stops, menus and trips between places.
+// On the portrait console there is no Run button: push the move stick out to its rim to sprint, ease back in to walk.
+const docked=()=>document.body.classList.contains('deck')&&touch();
+function edgeRun(d){if(!docked()||paused())return;const want=running?d>42:d>56;if(want!==running)setRun(want);}
 function setRun(on){running=on;$('runToggle').classList.toggle('on',on);$('runToggle').setAttribute('aria-pressed',String(on));zone.classList.toggle('sprint',on);buzz(on?12:6);}
 $('runToggle').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(!paused())setRun(!running);});$('runToggle').onclick=e=>{if(!e?.pointerType&&!paused())setRun(!running);};
 // The fire stick sits in a fixed place so the fan of buttons around it never moves. Push it to aim; past a small dead zone it fires.
@@ -216,7 +219,9 @@ const campBridge={quality,paused,zoom,res:RES,look:()=>survivorLook,
 // The Use prompt floats over whatever is in reach.
 function placePrompt(s,t){const pr=$('prompt'),cam=s.cameras.main,b=game.canvas.getBoundingClientRect(),k=b.width/s.scale.width,v=cam.worldView,x=((t.mx??t.x)-v.x)*cam.zoom*k,y=((t.kind==='resident'?t.y-118:t.my-2)-v.y)*cam.zoom*k;pr.style.transform=`translate(${Math.round(x)}px,${Math.round(y)}px) translate(-50%,-100%)`;}
 // On the range the shooting controls stay put, so the prompt itself is the button on a touch screen.
-function roomPrompt(s){const t=s.target,show=!!t&&!paused()&&place!=='camp',pr=$('prompt');if(t!==lastTarget){lastTarget=t;if(t){$('promptVerb').textContent=verbOf(t);$('promptName').textContent=t.name;}}pr.hidden=!show;pr.classList.toggle('tap',show&&touch());if(show)placePrompt(s,t);}
+function roomPrompt(s){const t=s.target,show=!!t&&!paused()&&place!=='camp',pr=$('prompt'),dock=docked();if(t!==lastTarget){lastTarget=t;const verb=t?verbOf(t):'Use';$('promptVerb').textContent=$('actVerb').textContent=verb;$('promptName').textContent=$('actName').textContent=t?t.name:'';$('act').setAttribute('aria-label',t?verb+': '+t.name:'Nothing to use here');}
+ // On the portrait console the Use key in the bottom row does the job, so nothing floats over the game.
+ $('act').hidden=!dock;$('act').classList.toggle('idle',!show);pr.hidden=!show||dock;pr.classList.toggle('tap',show&&touch());if(show&&!dock)placePrompt(s,t);}
 $('prompt').addEventListener('pointerdown',e=>{if(place==='camp'||!touch())return;e.preventDefault();e.stopPropagation();interact();});
 // Controller: polled every frame whatever is open. Dialogs and panels are walked with the D-pad and A; B backs out.
 const zeroPad=()=>({move:{x:0,y:0},aim:{x:0,y:0},fire:false,run:false});let padRun=false;

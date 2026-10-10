@@ -506,3 +506,67 @@ body.touch:not(.pad) #runToggle.on{background:radial-gradient(circle at 50% 30%,
 @media(orientation:portrait){#banner{top:calc(var(--vy) + 25%)}#banner b{font-size:32px;padding:0 44px}#banner b::before,#banner b::after{width:32px;height:5px}#banner span{font-size:11px}}
 @media(prefers-reduced-motion:reduce){#banner.show{animation:banner-fade 2s linear forwards}@keyframes banner-fade{0%,85%{opacity:1}100%{opacity:0}}}
 .camp #banner{display:none!important}
+/* v0.30 concept: the whole console. On a phone held upright everything that used to sit over the game moves into the deck, so the
+   view above it is clear. Zones (y from the top of the deck, which is --dk tall above the home bar):
+   top band (8-44): place name left, weapon and ammo (or camp stamina) right · sticks centred at 104, raised and pulled in ·
+   between the sticks: Holdout status · bottom row (168-212): Character and Menu bottom-left, Use / Reload / Grenade / Swap along the
+   bottom toward the right thumb. Pushing the move stick to its rim sprints, so there is no Run button. */
+:root{--dk:222px;--sy:104px;--sx:80px}
+html body.deck #deck{height:calc(var(--dk) + var(--sb))}
+html body.deck.touch:not(.pad) #runToggle,html body.deck.touch:not(.pad) .instructions,html body.deck.touch:not(.pad) #prompt,html body.deck.touch:not(.pad) #moveZone>span,html body.deck.touch:not(.pad) #rightPad #aimLabel,html body.deck .identity>span,html body.deck .identity i{display:none!important}
+/* Sticks. */
+html body.deck.touch:not(.pad) #moveZone{left:var(--vx);bottom:calc(var(--sb) + 58px);height:calc(var(--dk) - 58px);width:calc(var(--vw) * .5 - 20px)}
+html body.deck.touch #moveZone #ring{left:calc(var(--sl) + var(--sx));top:var(--sy);width:112px;height:112px}
+html body.deck.touch:not(.pad) #rightPad{left:var(--vx);right:auto;bottom:0;width:var(--vw);height:calc(var(--dk) + var(--sb))}
+html body.deck.touch:not(.pad) #rightPad #aimZone{left:auto;top:auto;right:calc(var(--sr) + var(--sx) - 65px);bottom:calc(var(--sb) + var(--dk) - var(--sy) - 65px);width:130px;height:130px}
+/* Buttons along the bottom, toward the right thumb. */
+html body.deck.touch:not(.pad) #rightPad .fan.fan{left:auto;top:auto;bottom:calc(var(--sb) + 10px);width:46px;height:46px}
+html body.deck.touch:not(.pad) #rightPad .fan svg{width:19px;height:19px;margin-top:-7px}
+html body.deck.touch:not(.pad) #rightPad .fan>span{bottom:6px;font-size:7px}
+html body.deck.touch:not(.pad) .fan-ring{-webkit-mask:radial-gradient(circle,transparent 21px,#000 22px);mask:radial-gradient(circle,transparent 21px,#000 22px)}
+html body.deck.touch:not(.pad) #rightPad .fan.f3{right:calc(var(--sr) + 12px)}
+html body.deck.touch:not(.pad) #rightPad .fan.f2{right:calc(var(--sr) + 64px)}
+html body.deck.touch:not(.pad) #rightPad .fan.f1{right:calc(var(--sr) + 116px)}
+/* Use: a wide key in the bottom row on the range; in camp, where there is no aim stick, the big button takes the right stick's place. */
+html body.deck.touch:not(.pad) #rightPad #act{left:auto;top:auto;right:calc(var(--sr) + 168px);bottom:calc(var(--sb) + 10px);width:calc(var(--vw) - var(--sl) - var(--sr) - 284px);min-width:0;max-width:none;height:46px;padding:0 10px;border-radius:4px;flex-direction:row;gap:6px;box-shadow:0 0 0 1px #000a,inset 0 1px 0 #ffffff17,0 4px 10px #0007}
+html body.deck.touch:not(.pad) #rightPad #act b{font-size:14px}
+html body.deck.touch:not(.pad) #rightPad #act span{max-width:none;min-width:0;font-size:9px;line-height:1.1;white-space:normal;text-align:left;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+html body.deck.touch:not(.pad) #rightPad #act.idle{opacity:.28}
+html body.deck.camp.touch:not(.pad) #rightPad #act,html body.deck.zombie.touch:not(.pad) #rightPad #act{right:calc(var(--sr) + var(--sx) - 46px);bottom:calc(var(--sb) + var(--dk) - var(--sy) - 46px);width:92px;min-width:0;max-width:none;height:92px;padding:6px;border-radius:50%;flex-direction:column;gap:2px}
+html body.deck.camp.touch:not(.pad) #rightPad #act b{font-size:16px}
+html body.deck.camp.touch:not(.pad) #rightPad #act span{max-width:70px;font-size:9px;text-align:center}
+/* Character and Menu, bottom-left. */
+html body.deck .topbar{position:fixed;top:auto;left:calc(var(--vx) + var(--sl) + 12px);right:auto;bottom:calc(var(--sb) + 12px);padding:0;gap:0;z-index:4}
+html body.deck .topbar nav{gap:8px}
+html body.deck .topbar .hud-btn{width:40px;height:40px;min-height:40px}
+html body.deck .topbar .hud-btn svg{width:18px;height:18px}
+html body.deck .topbar .hud-btn kbd{display:none}
+/* Place name, top-left of the deck. */
+html body.deck .identity{position:fixed;left:calc(var(--vx) + var(--sl) + 12px);bottom:calc(var(--sb) + var(--dk) - 36px);padding:2px 0 2px 8px;background:none;border-left:2px solid var(--ember);max-width:calc(var(--vw) * .5 - 30px)}
+html body.deck .identity>b{margin:0;font-size:13px;line-height:1}
+/* Weapon and ammo, top-right of the deck. */
+html body.deck.touch:not(.pad) #weaponHud{left:auto;top:auto;right:calc(var(--vx) + var(--sr) + 12px);bottom:calc(var(--sb) + var(--dk) - 46px);width:132px;padding:0;background:none;border:0;box-shadow:none}
+html body.deck.touch:not(.pad) #weaponHud::before{display:none}
+html body.deck.touch:not(.pad) #weaponHud .wh-top{justify-content:flex-end}
+html body.deck.touch:not(.pad) #weaponHud .wh-top b{font-size:9px}
+html body.deck.touch:not(.pad) #weaponHud .wh-mid{margin:3px 0 0;justify-content:flex-end}
+/* Camp stamina and supplies take the weapon's place. */
+html body.deck #vitals{top:auto;left:auto;right:calc(var(--vx) + var(--sr) + 12px);bottom:calc(var(--sb) + var(--dk) - 50px);align-items:flex-end;gap:5px}
+html body.deck #vitals .stamina>span:first-child{font-size:8px;letter-spacing:.16em}
+html body.deck #vitals .bar{width:92px}
+html body.deck #vitals .chips>span{font-size:9px;padding:3px 8px 3px 6px}
+/* Holdout and drill status between the sticks. */
+html body.deck #drillHud{top:auto;left:50%;bottom:calc(var(--sb) + 64px);width:calc(var(--vw) - var(--sl) - var(--sr) - 300px);min-width:96px;transform:translateX(-50%);flex-direction:column;align-items:center;gap:4px;padding:6px 6px 7px;font-size:10px;text-align:center;background:#0d0c0bcc;box-shadow:0 0 0 1px #000a,inset 0 1px 0 #ffffff12}
+html body.deck #drillHud b{font-size:15px}
+html body.deck #drillHud>span::before,html body.deck #drillHud .row span::before{display:none}
+html body.deck #drillHud .row,html body.deck #drillHud .vitals{flex-wrap:wrap;justify-content:center;gap:2px 8px}
+html body.deck #drillHud .hp{width:84px;height:8px}
+/* Conversations dock over the deck: the controls are put away while you talk anyway. */
+html body.deck #talk{left:calc(var(--vx) + 8px);right:auto;bottom:calc(var(--sb) + 8px);transform:none;width:calc(var(--vw) - 16px);min-height:calc(var(--dk) - 12px);max-height:calc(var(--vh) * .62);overflow:auto;align-content:start}
+html body.deck.talking #rightPad,html body.deck.talking .topbar{visibility:hidden}
+/* Fishing: the line readout takes the move stick's half of the deck. Dragging there still walks you off the pier. */
+html body.deck.fishing #moveZone:not(.active) #ring{opacity:0}
+html body.deck #fishPanel{pointer-events:none}html body.deck #fishPanel button{pointer-events:auto}
+html body.deck #fishPanel{top:auto;left:calc(var(--vx) + var(--sl) + 10px);right:auto;bottom:calc(var(--sb) + 62px);width:calc(var(--vw) - var(--sl) - var(--sr) - 190px);transform:none;padding:6px 10px 8px}
+html body.deck #fishStatus{font-size:15px;margin:3px 0 2px}
+html body.deck #fishHint{font-size:10px}
