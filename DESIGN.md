@@ -14,12 +14,35 @@ Two rooms provide movement space and collision/occlusion checks. The inspection 
 
 - Mobile/browser first; iPhone landscape is the primary control/layout target.
 - Keep the angled camera and twin-stick shooting feel. More visual richness without a Blender production dependency.
-- Solo game with optional co-op in the future. Party scaling remains undecided.
+- Up to 4-player co-op is a goal (decided 2026-10-10), playable solo. Build every fight for it from now on; see "The plan: co-op, big maps and the aim stick" below. How enemy counts scale with party size is still to be tuned.
 - Central persistent community and large instanced open-world regions, inspired structurally by Monster Hunter; objective combat inspiration from No More Room in Hell 2. Original content and story.
 - Build the hub and a training area before designing or implementing expedition missions.
 - Hub: a beautiful large cave with an ocean inlet and a little beach inside. Locally once known as Moonlight Hollow; after the disaster a large bustling survivor village called Deadlight Hollow.
 - Equipment should determine roles. Class/discipline leveling and eventually combining mastered disciplines remain candidate systems, not finalized mechanics.
 - Customizable characters; meaningful gathering/crafting for weapons, armor, consumables, and community needs. Balance to be developed through playtests.
+
+## The plan: co-op, big maps and the aim stick (decided 2026-10-10)
+
+Jaykobi, 2026-10-10: "this will be the plan moving forward." The goals are Helldivers 1 combat, 4-player co-op and large Helldivers-style maps, on phones (iPhone first), with tight memory and no leaks. Every new fight, map and system follows these rules. Older code is brought in line when it is next touched, not all at once.
+
+**Aim stick (next control change).** A light push on the right stick turns you and shows a faint laser line. Pushing past about 85% fires, but only once you face within a few degrees of the stick, so a quick flick cannot fire behind you mid-turn. A light pull toward the nearest zombie in a narrow cone in front helps on a small screen. Mouse and controller keep their own aiming. Today the stick fires past a small dead zone (`study/app.js`), which is what makes shots go the wrong way.
+
+**Co-op: what every fight is built on.**
+- *Simulation apart from drawing.* Models and fights (`street/fight.js`, `street/model.js`) never touch Phaser, the page or storage; scenes only draw what they report. This is already true and stays true.
+- *A fixed clock.* The fight steps at a fixed rate (30 steps a second), whatever the screen's frame rate; drawing smooths between steps. Today `Fight.update` takes the frame's time.
+- *Players are a list.* Every player and every zombie has an id. Fights take a list of players, each with its own input, health, guns, bag and position; zombies pick the nearest or noisiest player. Nothing new assumes a single "you".
+- *Input is data.* Each player's controls arrive as a plain object per step (move, aim, fire, reload, swap, use), as `fightInput` already makes. Anything that changes the game goes through an input or a command, never straight from a button handler.
+- *Events are data.* Fights report what happened as events (shot, hit, kill, hurt, stage…), as they do now, so sound, shake, thoughts and the HUD react the same way on every phone.
+- *Seeded randomness.* Spawns, spread and drops come from seeded generators, never `Math.random`, so a fight replays the same from the same inputs.
+- *The host decides.* One player's phone is the host and runs the real fight; it decides hits, damage, deaths and loot. The other phones send their inputs, move their own survivor at once so it feels instant, and draw the rest from the host's updates. Shared progress (the map's state, objectives) lives with the host; personal progress (looks, bag, guns, camp) stays with each player. Reconnecting and the host leaving are designed when networking is built.
+- *A small server, later.* Phones need a server to find and connect to each other. The test link cannot open network connections, so co-op is tested on a real host when we get there. No networking is built yet.
+
+**Big maps on phones.**
+- A map is never one painted picture: a Helldivers-size map painted whole would need gigabytes. Maps are cut into chunks (about 512 × 512 world units). Only the chunks around each player are painted and held; chunks you leave are freed and painted again, from the same seed, if you come back.
+- Big pictures painted once keep only the graphics card's copy (`study/memory.js`); a texture that is repainted (looks, splats) does not.
+- Memory budget: all images together stay under about 250 MB, measured on a phone-sized test every time a place is added (sum each texture's canvas and graphics-card size, as in v0.36.0).
+- Zombies far from every player move on a cheap, slow update with no sprite; they become full sprites near a player, from a reused pool, so sprites are not made and thrown away.
+- No leaks: a scene that is left stops its timers and listeners, and everything a chunk or a fight makes is freed with it. A long session's memory is checked as part of testing a new place.
 
 ## v0.3 implementation choices
 
@@ -37,7 +60,7 @@ Lantern House / high terraces; central common square; Salvage Works; Tideward Cl
 
 Actual iPhone touch comfort and sustained performance; settlement art and cave identity; readable combat during large drills; accuracy/damage/armor balance; hub path density. Preserve the concept art's warmth, ocean inlet, small beach and living community as the art improves. Do not imply procedural first-pass visuals match the concept illustration's fidelity.
 
-Co-op will need an authoritative session model, reconnect behavior, and explicit shared versus personal progression rules. Keep simulation commands separate from UI/rendering now; no claim that networking is implemented.
+Co-op: superseded by "The plan: co-op, big maps and the aim stick" above.
 
 ## v0.4 approved visual direction
 
