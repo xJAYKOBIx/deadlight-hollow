@@ -93,7 +93,7 @@ test('a spitter lobs paint from a distance; the puddle hurts while you stand in 
 test('the brute paws, charges in a straight line, and stuns itself on a wall if you step aside',()=>{const {m,p,d}=holdout();m.x=150;m.y=1000;d.setGate(true);d.phase='wave';d.groups=[{kind:'shambler'}];d.spawnIn=999;
  const b=d.make('brute',360,1000);b.cool=0;p.update(.02,{});assert.equal(b.state,'wind');for(let i=0;i<HOLDOUT.charge.wind/.02+2;i++)p.update(.02,{});assert.equal(b.state,'charge');
  m.y=1080;let stunned=false;for(let i=0;i<80&&!stunned;i++){p.update(.02,{});if(b.stun>0)stunned=true;}assert.ok(stunned,'it hits the cave wall');assert.ok(b.x<200);});
-test('the wallet: parts to Gadget for chits, chits to Aaron for gear that changes the run',()=>{let data=null;const storage={getItem:k=>{assert.equal(k,WALLET_KEY);return data;},setItem:(k,v)=>{data=v;}};
+test('the wallet: parts to Gadget for tokens, tokens to Aaron for gear that changes the run',()=>{let data=null;const storage={getItem:k=>{assert.equal(k,WALLET_KEY);return data;},setItem:(k,v)=>{data=v;}};
  const w=readWallet(storage);assert.deepEqual(w,{parts:0,chits:0,owned:[]});w.parts=75;assert.equal(turnIn(w),75);assert.equal(w.chits,75);assert.equal(w.parts,0);
  assert.equal(buy(w,'wind').reason,'short');assert.equal(buy(w,'hopper').ok,true);assert.equal(buy(w,'hopper').reason,'owned');assert.equal(w.chits,5);saveWallet(storage,w);
  const back=readWallet(storage);assert.deepEqual(back,{parts:0,chits:5,owned:['hopper']});data='{"parts":-3,"chits":"x","owned":["hopper","fake"]}';assert.deepEqual(readWallet(storage),{parts:0,chits:0,owned:['hopper']});

@@ -82,8 +82,8 @@ export const SHOP=[
  {id:'hopper',name:'Big hopper',price:70,text:'A taller hopper on every gun: 30 percent more shots per load.'},
  {id:'medkit',name:'Med kit',price:40,text:'Ava\'s spare kit. Heals 40 health in every break between waves.'},
  {id:'wind',name:'Second wind',price:120,text:'Gadget can pull you up one more time each run.'}];
-export const AARON_ROOM_TOPICS=[{q:'Browse the paintball shop',act:'shop',a:['Let\'s see what your chits buy.']},...aaron.topics.map(q=>({...q,a:q.a.map(here)})),
- {q:'How do chits work?',a:['Bring Gadget the parts off her robots and she pays you in chits. Range money; it\'s no good topside.','Spend them here. Everything I sell makes you last longer in a Holdout.']}];
+export const AARON_ROOM_TOPICS=[{q:'Browse the paintball shop',act:'shop',a:['Let\'s see what your tokens buy.']},...aaron.topics.map(q=>({...q,a:q.a.map(here)})),
+ {q:'How do tokens work?',a:['Bring Gadget the parts off her robots and she pays you in tokens. Range money; it\'s no good topside.','Spend them here. Everything I sell makes you last longer in a Holdout.']}];
 export const GADGET_TOPICS=[
  {q:'Start a Holdout',act:'holdout',when:'idle',a:['Waves until you drop. They come out of every hatch and they get meaner every wave: runners, armored husks, spitters, and the big one.','Go through the gate. It locks behind you, and the first wave starts when you\'re in the yard.','If you go down I\'ll pull you up once. Grab the parts off anything you knock over.']},
  {q:'Run the warm-up drill',act:'drill',when:'idle',a:['Three waves of the old robots. They only bump. Good for learning the building.']},

@@ -355,9 +355,9 @@ The robots copy the roster (see the Zombie Roster doc). Each has a tell frame:
 
 A headshot is a hit within 4.5 units of the robot's centre line. Robots get 1.5 speed per wave.
 
-Parts and chits:
+Parts and tokens:
 - Fallen robots drop parts (Shambler and Runner 1, Husk and Spitter 2, Brute 5). They scatter, then pull toward you within 50 and are picked up within 22.
-- Gadget buys parts for a chit each. The wallet (`deadlight-tg-wallet-v1`) keeps parts, chits and what you own on this device.
+- Gadget buys parts for a token each. The wallet (`deadlight-tg-wallet-v1`) keeps parts, tokens and what you own on this device.
 - Aaron's shop sells each item once: Padded vest (60, +25 health), Speed loader (50, reload ×0.75), Big hopper (70, magazine ×1.3), Med kit (40, 40 health each break) and Second wind (120, one more pull). The weapon readout shows the bigger magazine.
 
 The readout gains a second row in a Holdout: a health bar, a pip for each pull Gadget has left, and the parts you have picked up. The drill is unchanged as a warm-up.

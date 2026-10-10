@@ -110,7 +110,7 @@ export const AARON_TOPICS=[
  {q:'What about grenades?',a:['Three kinds. Smoke hides you, incendiary leaves the ground burning, and the explosive one goes off right away.','Throw as many as you like at the targets. Out there you\'ll be lucky to carry one.']},
  {q:'Who are LEET AF?',a:['Elite Armed Forces. What was left of a few units when the cities fell. Everyone reads the vest and calls us LEET AF, so that stuck.','There is no command anymore. No orders, no resupply. Just Gadget and me, a lot of gear, and Macy telling us where to be useful.','So we keep the camp\'s weapons and teach anyone who\'ll listen.']},
  {q:'Who are G.U.N.?',a:['Guardians of the Underground Network. They live in the tunnels and the old transit lines.','If you meet them down there, keep your hands where they can see them. They don\'t trust us, and we don\'t trust them.']},
- {q:'What\'s coming next?',a:['Gadget runs Holdouts now: her robots come out of every hatch, wave after wave, until you drop. Ask her down there.','Bring her the parts they leave behind and she pays you in chits. My shop takes chits. After that, the real thing, out past the gate.']}];
+ {q:'What\'s coming next?',a:['Gadget runs Holdouts now: her robots come out of every hatch, wave after wave, until you drop. Ask her down there.','Bring her the parts they leave behind and she pays you in tokens. My shop takes tokens. After that, the real thing, out past the gate.']}];
 // The cast. Looks use the character creator's options.
 export const RESIDENTS=[
  {id:'macy',name:'Macy',role:'Runs the camp · Quest board',icon:'lantern',x:900,y:320,direction:2,

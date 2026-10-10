@@ -406,15 +406,15 @@ const TG_ART={
   else{// A robot arm half built, with tools.
    e(30,-T+12,14,6,EDGE);e(30,-T+11.5,13,5.3,'#b5ad9c');l(42,-T+12,62,-T+6,1.6,EDGE);l(42,-T+12,62,-T+6,.8,W[3]);r(60,-T+3,6,6,EDGE);r(60.5,-T+3.5,5,5,'#c9a24a');
    for(const [x,y] of [[12,-T+18],[20,-T+20]]){e(x,y,3,3,EDGE);e(x,y,2.2,2.2,'#1f2024');}l(66,-T+16,76,-T+20,1,'#c9622a');r(70,-T+8,6,2,'#8a8f94');}},
- // Gadget's parts counter: a slab across two crates, bins of sorted parts on the shelf, and the chit tin on top.
+ // Gadget's parts counter: a slab across two crates, bins of sorted parts on the shelf, and the token tin on top.
  partscounter(g,o){const {e,r,l}=g,w=o.w,h=o.h,top=28;e(w/2,h,w/2+6,6,SHADOW);
   r(-.5,-top-.5,w+1,h+4,EDGE);r(.5,-top+.5,w-1,h-1,'#8f8b7f');r(.5,-top+.5,w-1,.5,'#b3afa2');for(let k=0;k<5;k++)r(4+hash(k,7)*(w-30),-top+3+hash(7,k)*(h-6),12+hash(k,8)*14,.5,'#7d7a70');
   r(.5,h-top,w-1,3,'#7d7a70');r(.5,h-top+2.5,w-1,.5,'#3a3630');const F=h-top+3;r(56,F,w-112,top-3.5,'#14120f');r(60,F+10,w-120,1.5,'#3a3630');
   // Bins: wheels, batteries, sheet scraps, broom heads.
   for(let k=0;k<4;k++){const x=60+k*16;r(x,F+3,14,7,EDGE);r(x+.5,F+3.5,13,6,['#3a5a8a','#b33a2a','#c9a23a','#3f6a3a'][k]);r(x+.5,F+3.5,13,1,'#ffffff44');}
   for(let k=0;k<4;k++){const x=62+k*16;if(k===0){e(x+3,F+3,2,2,'#1f2024');e(x+8,F+3,2,2,'#1f2024');}else if(k===1){r(x+1,F+1,4,3,'#2a2c31');r(x+6,F+1,4,3,'#2a2c31');}else if(k===2){r(x,F+1,10,2,'#46607c');}else{r(x+1,F,8,3,'#a0803a');}}
-  for(const x of [6,w-50]){r(x-.5,F,45,top-3.5,EDGE);r(x,F,44,top-4,OLIVE[1]);r(x,F,44,.5,OLIVE[2]);r(x+2,F+3,40,.5,OLIVE[3]);const s=x<w/2?'PARTS':'CHITS';text(g,s,x+22-textWidth(s,1.5)/2,F+9,1.5,'#c9c3a0');r(x+2,F+5,4,1.5,'#1a1b1e');r(x+38,F+5,4,1.5,'#1a1b1e');}
-  // On top: a bathroom scale, the chit tin and a roll of tickets, a bell, a clipboard and a robot head with its eyes crossed out.
+  for(const x of [6,w-50]){r(x-.5,F,45,top-3.5,EDGE);r(x,F,44,top-4,OLIVE[1]);r(x,F,44,.5,OLIVE[2]);r(x+2,F+3,40,.5,OLIVE[3]);const s=x<w/2?'PARTS':'TOKENS';text(g,s,x+22-textWidth(s,1.5)/2,F+9,1.5,'#c9c3a0');r(x+2,F+5,4,1.5,'#1a1b1e');r(x+38,F+5,4,1.5,'#1a1b1e');}
+  // On top: a bathroom scale, the token tin and a roll of tickets, a bell, a clipboard and a robot head with its eyes crossed out.
   r(10,-22,22,14,EDGE);r(10.5,-21.5,21,13,'#d6d0c2');r(14,-19,14,5,'#2a2c31');r(16,-18,10,3,'#9fe0d8');r(20,-18,.5,3,'#b33a2a');
   r(42,-20,26,12,EDGE);r(42.5,-19.5,25,11,'#5c636b');r(42.5,-19.5,25,1,'#8a8f94');for(let k=0;k<6;k++){r(45+k*3.5,-17,3,6,'#e07a2c');r(45+k*3.5,-17,3,.5,'#f2c46a');}e(80,-12,6,3,EDGE);e(80,-12.5,5.3,2.4,'#e07a2c');e(80,-12.5,2,1,'#c4c9ce');
   e(100,-12,5,2.5,EDGE);e(100,-14,3.5,3,EDGE);e(100,-14.3,3,2.5,'#c9a24a');r(99.5,-18,1,2,EDGE);
