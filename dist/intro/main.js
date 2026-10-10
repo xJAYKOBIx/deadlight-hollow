@@ -17,7 +17,7 @@ class Intro extends Phaser.Scene{
  constructor(){super('intro');}
  create(){const tex=(key,w,h,paint)=>{const t=this.textures.createCanvas(key,w,h);paint(t.context);t.refresh();return t;},S=ROOM.screen;
   tex('room-dark',ROOM.w,ROOM.h,c=>room(c,false));tex('room-lit',ROOM.w,ROOM.h,c=>room(c,true));tex('glass',PW,PH,c=>glass(c,PW,PH));tex('light',128,128,c=>light(c,128));tex('led',2,1,c=>{c.fillStyle='#ff2a1a';c.fillRect(0,0,2,1);});
-  this.pic=this.textures.createCanvas('picture',PW,PH);this.A=assets();
+  const pc2=Object.assign(document.createElement('canvas'),{width:PW,height:PH});pc2.getContext('2d',{willReadFrequently:true});this.pic=this.textures.addCanvas('picture',pc2);this.A=assets();
   this.add.image(0,0,'room-dark').setOrigin(0);this.lit=this.add.image(0,0,'room-lit').setOrigin(0).setAlpha(0);
   this.glow=this.add.image(S.x+S.w/2,S.y+S.h/2,'light').setScale(3.6,2.6).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
   this.add.image(S.x,S.y,'picture').setOrigin(0);this.add.image(S.x,S.y,'glass').setOrigin(0);this.led=this.add.image(ROOM.led.x,ROOM.led.y,'led').setOrigin(0);

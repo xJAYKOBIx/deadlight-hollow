@@ -2,7 +2,7 @@
 // fails (the picture freezes and cracks into blocks, never static), and the NO SIGNAL box drifting round a black screen.
 import {R,hash,clamp,ease} from './kit.js';
 import {text,width} from './font.js';
-export function logo(c,w,h,k){R(c,0,0,w,h,'#000');if(k<=0)return;c.globalAlpha=Math.min(1,k);const s='LUMEN',x=Math.round((w-width(s))/2),y=Math.round(h/2-4);
+export function logo(c,w,h,k){R(c,0,0,w,h,'#000');if(k<=0)return;c.globalAlpha=Math.min(1,k);const s='VESPERA',x=Math.round((w-width(s))/2),y=Math.round(h/2-4);
  text(c,s,x,y,'#d8dce6');R(c,x,y+10,width(s),1,'#3a6aff');c.globalAlpha=1;}
 // The channel number in the top-right corner, under the station's LIVE bug, as the set draws it after a flip.
 export function osd(c,ch,name,k,w){if(k<=0)return;c.globalAlpha=Math.min(1,k);const label=`CH ${ch}`,x=w-6-width(label)-6;R(c,x,16,width(label)+6,11,'#000000b0');text(c,label,x+3,18,'#7fe07f');
