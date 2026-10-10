@@ -617,3 +617,20 @@ html body.deck .topbar #menu::after{background-image:var(--gore-wipe);background
 
 /* The starter house: stamina shows, the camp's fish and meal chips do not. */
 .home #fishChip,.home #mealChip{display:none!important}
+
+/* The starter house: what to do next, the gun in your hands (tap to switch), pick-up notes and the wake-up scene. */
+#goalChip,#gunChip{display:none}
+.home #vitals .chips{flex-direction:column;align-items:flex-start}
+.home #goalChip:not([hidden]){display:block;max-width:min(62vw,300px);font-size:10px;letter-spacing:.04em;padding:4px 8px 4px 7px;color:var(--bone);border:1px solid var(--edge);border-left:2px solid var(--ember);background:#141311cc;font-family:var(--body);text-transform:none}
+.home #gunChip:not([hidden]){display:flex;align-items:center;gap:6px;padding:2px 8px 2px 4px;font:600 10px/1 var(--ui);letter-spacing:.06em;text-transform:uppercase;color:var(--bone);background:#141311cc;border:1px solid var(--edge);border-radius:3px;pointer-events:auto;cursor:default}
+#gunChip canvas{width:48px;height:16px;image-rendering:pixelated}#gunChip span{color:var(--ember-hi);font-variant-numeric:tabular-nums}
+#gunChip.two{cursor:pointer}#gunChip.two::after{content:'⇄';margin-left:2px;color:var(--ember-hi)}
+#toast{position:fixed;z-index:6;left:50%;top:calc(var(--vy) + var(--gh) * .3);transform:translateX(-50%);margin:0;padding:8px 14px;font:600 12px/1.2 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--bone);background:#141311e8;border:1px solid var(--edge);border-left:3px solid var(--ember);box-shadow:0 8px 24px #0009;white-space:nowrap;transition:opacity .4s}
+#toast.out{opacity:0}
+#cine{position:fixed;z-index:6;left:var(--vx);top:var(--vy);width:var(--vw);height:var(--gh);pointer-events:none}
+#cine::before,#cine::after{content:'';position:absolute;left:0;right:0;height:min(9vh,60px);background:#000}#cine::before{top:0}#cine::after{bottom:0}
+#cineLine{position:absolute;left:50%;bottom:calc(min(9vh,60px) + 16px);transform:translateX(-50%);width:min(560px,calc(100% - 32px));margin:0;text-align:center;font:500 16px/1.45 var(--body);color:var(--bone);text-shadow:0 1px 0 #000,0 0 14px #000,0 0 4px #000;opacity:0}
+#cineLine.on{opacity:1;transition:opacity .45s}
+#cineSkip{position:absolute;right:max(12px,env(safe-area-inset-right));top:calc(min(9vh,60px) + 10px);pointer-events:auto;padding:6px 10px;font:600 11px/1 var(--ui);letter-spacing:.1em;text-transform:uppercase;color:var(--bone);background:#141311b0;border:1px solid var(--edge);border-radius:3px}
+#cineSkip kbd{margin-left:4px}.touch #cineSkip kbd{display:none}
+.cine .topbar,.cine #vitals,.cine #prompt,.cine #act,.cine #instructions,.cine #moveZone{visibility:hidden}

@@ -54,7 +54,7 @@ test('paint lands where the ball stops: on the floor, on cover, on targets and o
  m.x=270;m.y=TARGETS[0].y;m.direction=4;p.cooldown=0;p.fire();for(let i=0;i<20;i++)p.update(.02,{});assert.equal(p.targets[0].paint.length,1);
  p.drill.start();const b={id:99,x:m.x+60,y:m.y,hp:BOT_HP,paint:[],flash:0,down:0};p.drill.bots.push(b);p.drill.queue=0;m.direction=0;p.cooldown=0;p.fire();assert.ok(b.hp<BOT_HP);for(let i=0;i<20;i++)p.update(.02,{});assert.equal(b.paint.length,1);
  const gen=p.markGen;p.reset();assert.equal(p.marks.length,0);assert.equal(p.markGen,gen+1);assert.equal(p.targets[0].paint.length,0);assert.equal(p.drill.state,'idle');});
-test('every gun has a paintball twin: a hopper in its paint colour, only in the Training Grounds',()=>{assert.deepEqual(Object.keys(PAINT),Object.keys(GUNS));assert.equal(new Set(Object.values(PAINT)).size,5);
+test('every gun has a paintball twin: a hopper in its paint colour, only in the Training Grounds',()=>{assert.deepEqual(Object.keys(PAINT),Object.keys(GUNS));assert.equal(new Set(Object.values(PAINT)).size,Object.keys(GUNS).length);
  for(const gun of Object.keys(GUNS)){const draw=paint=>{const c=createCanvas(160,192),g=c.getContext('2d');g.scale(2,2);survivor(g,1,0,true,{gun,paint});return g.getImageData(0,0,160,192).data;},plain=draw(undefined),painted=draw(PAINT[gun]);
   let diff=0,col=0;const [r,g,b]=[1,3,5].map(i=>parseInt(PAINT[gun].slice(i,i+2),16));for(let i=0;i<plain.length;i+=4){if(plain[i]!==painted[i]||plain[i+1]!==painted[i+1]||plain[i+2]!==painted[i+2])diff++;if(painted[i]===r&&painted[i+1]===g&&painted[i+2]===b)col++;}assert.ok(diff>10,gun);assert.ok(col>3,gun+' shows its paint');}});
 // The Holdout.

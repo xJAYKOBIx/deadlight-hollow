@@ -47,3 +47,33 @@ test('the survivor starts on open floor and can reach every object in the house'
  for(const o of OBJECTS)assert.ok(cells.some(([x,y])=>Math.hypot(o.x-x,o.y-y)<=(o.range||40)),`${o.id} can be reached`);
  for(const rm of ROOMS)assert.ok(cells.some(([x,y])=>x>rm.x&&x<rm.x+rm.w&&y>rm.y&&y<rm.y+rm.h),`the ${rm.id} can be walked into`);
  assert.ok(HOUSE.x>0&&HOUSE.x+HOUSE.w<HOME.w&&HOUSE.y+HOUSE.h<HOME.h);});
+test('walking speed follows real time from the first step, not a smoothed 60 fps frame',async()=>{const fs=await import('node:fs');
+ const app=fs.readFileSync(new URL('../dist/study/app.js',import.meta.url),'utf8');assert.match(app,/fps:\{smoothStep:false\}/);
+ for(const f of ['home','camp'])assert.match(fs.readFileSync(new URL(`../dist/${f}/scene.js`,import.meta.url),'utf8'),/Math\.min\(\.05,delta\/1000\)/,`${f} caps a long frame`);
+ assert.match(fs.readFileSync(new URL('../dist/study/scene.js',import.meta.url),'utf8'),/delta=Math\.min\(50,delta\)/);});
+test('the first night: you wake, find the pistol and the shotgun with their rounds, and it is saved',async()=>{
+ const {readHome,saveHome,normalizeHome,take,swap,goal,useLines,rounds,verbFor,FINDS}=await import('../dist/home/kit.js');
+ let k=normalizeHome();assert.deepEqual(k,{woke:false,guns:{},held:null});assert.equal(goal(k),'');k={...k,woke:true};assert.match(goal(k),/protect yourself/);
+ assert.equal(useLines(k,'frontdoor').act,undefined);assert.equal(useLines(k,'nightstand').act,'take:light-pistol');
+ k=take(k,'light-pistol');assert.equal(k.held,'light-pistol');assert.equal(rounds(k),'15 / 15');assert.match(goal(k),/shotgun/);assert.equal(verbFor(k,'nightstand'),'Look');assert.equal(useLines(k,'nightstand').act,undefined);
+ k=take(k,'pump-shotgun');assert.equal(k.held,'pump-shotgun');assert.equal(rounds(k),'8 / 16','the shotgun starts at 8 and 16');assert.match(goal(k),/front door/);
+ assert.equal(take(k,'pump-shotgun'),k,'taking twice changes nothing');assert.equal(swap(k).held,'light-pistol');assert.equal(swap(swap(k)).held,'pump-shotgun');
+ assert.equal(FINDS['pump-shotgun'].ammo,8);assert.equal(FINDS['pump-shotgun'].reserve,16);
+ const store=new Map(),mem={getItem:x=>store.get(x)??null,setItem:(x,v)=>store.set(x,v)};assert.ok(saveHome(mem,k));assert.deepEqual(readHome(mem),k);
+ store.set('deadlight-home-v1','{"woke":true,"guns":{"pump-shotgun":{"ammo":99,"reserve":-3},"bazooka":{}},"held":"bazooka"}');assert.deepEqual(readHome(mem),{woke:true,guns:{'pump-shotgun':{ammo:8,reserve:0}},held:'pump-shotgun'});
+ assert.deepEqual(readHome({getItem(){throw new Error('blocked');}}),normalizeHome());});
+test('waking up on the couch plays through, brings both pets over for a pat, and hands control back',async()=>{
+ const {Wake,WAKE_END,DOG_AT,CAT_AT,BEATS}=await import('../dist/home/wake.js');
+ const you={x:0,y:0},blk=(x,y,p,plan)=>blocked(x,y,p)||(!plan&&Math.hypot(x-you.x,(y-you.y)*1.4)<p.def.radius+9);
+ const [dog,cat]=PETS.map(def=>new HousePet(def,{rooms:ROOMS,blocked:blk,rand:seeded(5)}));cat.place(PETS[1].spots.find(s=>s.perch&&s.room==='living'&&s.perch.h<20));
+ const w=new Wake({dog,cat,you});let t=0,petted=new Set(),said=new Set();
+ while(!w.done&&t<60){you.x=w.x;you.y=w.y;w.update(.05);dog.update(.05,you);cat.update(.05,you);t+=.05;if(dog.happy)petted.add('dog');if(cat.happy)petted.add('cat');if(w.say)said.add(w.say);}
+ assert.ok(w.done&&t<40,`it ends (${t.toFixed(1)} s)`);assert.deepEqual([...petted].sort(),['cat','dog']);assert.equal(said.size,BEATS.filter(b=>b.say).length,'every line is shown');
+ assert.ok(Math.hypot(dog.x-DOG_AT.x,dog.y-DOG_AT.y)<6&&Math.hypot(cat.x-CAT_AT.x,cat.y-CAT_AT.y)<6,'both pets came over');
+ assert.deepEqual({x:you.x,y:you.y},{x:WAKE_END.x,y:WAKE_END.y});assert.ok(!new HomeModel().blocked(WAKE_END.x,WAKE_END.y),'you end on open floor');
+ // Released, they go back to their own routine.
+ for(let i=0;i<20*30;i++){dog.update(.05,you);cat.update(.05,you);}assert.ok(!dog.spot.called&&!cat.spot.called);});
+test('skipping the wake-up puts everyone where the scene ends',async()=>{
+ const {Wake,WAKE_END,DOG_AT}=await import('../dist/home/wake.js');const you={x:0,y:0};
+ const [dog,cat]=PETS.map(def=>new HousePet(def,{rooms:ROOMS,blocked,rand:seeded(9)}));const w=new Wake({dog,cat,you});for(let i=0;i<40;i++)w.update(.05);w.skip();
+ assert.ok(w.done);assert.equal(you.x,WAKE_END.x);assert.equal(you.direction,WAKE_END.direction);assert.deepEqual({x:dog.x,y:dog.y},DOG_AT);assert.equal(cat.perched,false);});

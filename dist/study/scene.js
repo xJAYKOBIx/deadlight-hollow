@@ -73,7 +73,7 @@ export function makeStudyScene(model,bridge){return class CharacterRoom extends 
   for(const k of this.practice.drill.pickups){const tw=.5+.5*Math.sin(now/160+k.seed);g.fillStyle(0xfff0c0,.5+.5*tw).fillRect(k.x-.5,k.y-7,1,1);g.fillStyle(0xfff0c0,.18*tw).fillCircle(k.x,k.y-3,5);g.lineStyle(1,0xfff0c0,.3+.3*tw).strokeEllipse(k.x,k.y+1,11+5*tw,4.5+2*tw);}
   // The screens: a faint flicker and a scan line rolling down each one.
   for(const [i,s] of this.screens.entries()){const k=(now/1400+i*.37)%1;g.fillStyle(s.kind==='crt'?0x8cffd0:0x7ad8ff,.08+.04*Math.sin(now/90+i)).fillRect(s.x,s.y,s.w,s.h);g.fillStyle(0xffffff,.12).fillRect(s.x,s.y+k*s.h,s.w,1);}}
- update(now,delta){const drill=this.practice.drill,held=this.juice.stopped(now);if(!bridge.paused()&&!held){const input=drill.downed?{}:bridge.input();model.update(delta/1000,input);this.practice.update(delta/1000,input);}this.placeActor();
+ update(now,delta){delta=Math.min(50,delta);const drill=this.practice.drill,held=this.juice.stopped(now);if(!bridge.paused()&&!held){const input=drill.downed?{}:bridge.input();model.update(delta/1000,input);this.practice.update(delta/1000,input);}this.placeActor();
  // Down in a Holdout: you lie on the floor until Gadget pulls you up.
  if(drill.downed!==this.wasDown){this.wasDown=drill.downed;for(const s of Object.values(this.parts)){s.setAngle?.(drill.downed?-90:0);if(drill.downed)s.setTint?.(0x9aa0c8);else s.clearTint?.();}}this.gateDoor.setVisible(!!drill.gateClosed);
  // The nearest person or thing you can use, by where you stand to use it.

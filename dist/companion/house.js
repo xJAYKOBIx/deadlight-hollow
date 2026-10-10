@@ -6,7 +6,7 @@ export const HOUSE_PET={near:58,glance:96,hop:.32,stuck:2.4,grid:6,stride:{walk:
 const facing=(dx,dy)=>(Math.round(Math.atan2(dy,dx)/(Math.PI/4))+8)%8;
 export class HousePet{
  constructor(def,{rooms,blocked,rand=Math.random}){Object.assign(this,{def,id:def.id,name:def.name,rooms,blocked,rand,x:0,y:0,h:0,depth:null,direction:2,frame:PET_ANIM.idle[0],state:'idle',phase:0,clock:0,happy:0,
-  spot:null,path:[],rest:0,stuck:0,hop:null,perched:false,looking:0,open:new Map()});const s=def.spots[0];this.place(s);}
+  spot:null,path:[],rest:0,stuck:0,hop:null,perched:false,looking:0,open:new Map(),rush:1});const s=def.spots[0];this.place(s);}
  // Start at a spot, already settled.
  place(s){Object.assign(this,{x:s.perch?s.perch.x:s.x,y:s.perch?s.perch.y:s.y,h:s.perch?s.perch.h:0,depth:s.perch?s.perch.d:null,perched:!!s.perch,spot:s,path:[],rest:s.time[0]+this.rand()*(s.time[1]-s.time[0]),direction:s.face??2,state:s.pose});this.pose();}
  roomAt(x,y){return this.rooms.find(r=>x>=r.x-1&&x<=r.x+r.w+1&&y>=r.y-1&&y<=r.y+r.h+1)?.id;}
@@ -27,10 +27,18 @@ export class HousePet{
  // Pick somewhere else to be, weighted by how much it likes each spot, never the one it is at.
  choose(){const list=this.def.spots.filter(s=>s!==this.spot),total=list.reduce((n,s)=>n+(s.weight||1),0);let k=this.rand()*total,next=list[0];for(const s of list){k-=s.weight||1;if(k<=0){next=s;break;}}
   this.spot=next;this.path=this.route(next);this.stuck=0;}
+ // Called over by a scene (the wake-up): go to (x, y) and stay there until released. rush makes it trot there.
+ goTo(x,y,o={}){const was=this.spot;this.downTo=this.perched&&was?.perch?{x:was.x,y:was.y}:null;this.spot={x,y,pose:o.pose||'sit',face:o.face,room:this.roomAt(x,y),time:[1e9,1e9],called:true};this.rush=o.rush||1;this.stuck=0;
+  this.path=this.perched?[{x,y}]:this.route(this.spot);}
+ get arrived(){return !!this.spot?.called&&!this.path.length&&!this.hop;}
+ // Straight to where it was called, as if it had walked there (for skipping the scene).
+ teleport(){const s=this.spot;Object.assign(this,{x:s.x,y:s.y,h:0,depth:null,perched:false,hop:null,path:[],downTo:null,state:s.pose,clock:0});if(s.face!==undefined)this.direction=s.face;}
+ // Back to its own routine after a few seconds.
+ release(){if(!this.spot?.called)return;this.rush=1;this.spot={...this.spot,time:[0,0]};this.rest=Math.min(this.rest,2+this.rand()*3);}
  // A pat: hearts, it sits up and looks at you, and stays put a few seconds longer.
  pet(o){this.happy=1.6;this.rest=Math.max(this.rest,3);if(o)this.direction=facing(o.x-this.x,o.y-this.y);}
  pose(){const P=PET_ANIM[this.state]||PET_ANIM.idle,speed=this.state==='sniff'?3.4:this.state==='stretch'?1.6:this.state==='sit'?(this.happy?8:2.2):(this.happy?10:4);this.frame=P[Math.floor(this.clock*speed)%P.length];}
- step(tx,ty,dt){const dx=tx-this.x,dy=ty-this.y,d=Math.hypot(dx,dy),step=Math.min(this.def.speed*dt,d);if(step<=0)return 0;const base=Math.atan2(dy,dx);
+ step(tx,ty,dt){const dx=tx-this.x,dy=ty-this.y,d=Math.hypot(dx,dy),step=Math.min(this.def.speed*(this.rush||1)*dt,d);if(step<=0)return 0;const base=Math.atan2(dy,dx);
   for(const turn of [0,.5,-.5,1,-1,1.5,-1.5]){const a=base+turn,nx=this.x+Math.cos(a)*step,ny=this.y+Math.sin(a)*step;if(!this.blocked(nx,ny,this)){this.x=nx;this.y=ny;this.direction=facing(Math.cos(a),Math.sin(a));this.stuck=0;return step;}}
   this.stuck+=dt;return 0;}
  update(dt,o){dt=Math.max(0,Math.min(.05,dt||0));if(!dt)return;this.clock+=dt;this.happy=Math.max(0,this.happy-dt);
@@ -43,7 +51,7 @@ export class HousePet{
    const p=this.path[0],moved=this.step(p.x,p.y,dt);
    if(Math.hypot(p.x-this.x,p.y-this.y)<2.5)this.path.shift();
    if(this.stuck>HOUSE_PET.stuck){this.path=[];this.stuck=0;this.arrive(false);return;}
-   if(moved>0){this.state='walk';this.phase=(this.phase+moved/HOUSE_PET.stride.walk)%1;this.frame=PET_ANIM.walk[Math.floor(this.phase*PET_ANIM.walk.length)];}
+   if(moved>0){const run=(this.rush||1)>1.3,A=run?PET_ANIM.run:PET_ANIM.walk;this.state=run?'run':'walk';this.phase=(this.phase+moved/HOUSE_PET.stride[run?'run':'walk'])%1;this.frame=A[Math.floor(this.phase*A.length)];}
    if(!this.path.length)this.arrive(true);return;}
   // Settled. It glances round when you come close and holds still while you are near, then moves on when its time is up.
   this.rest-=dt*(far<HOUSE_PET.near?.35:1);
@@ -51,7 +59,7 @@ export class HousePet{
   const was=this.state;if(this.happy||(this.def.id==='dog'&&far<HOUSE_PET.near&&this.spot.pose!=='sniff'&&!this.perched))this.state='sit';else this.state=this.spot.pose;if(this.state!==was&&this.state==='stretch')this.clock=0;
   this.pose();if(this.rest<=0&&!this.happy){const s=this.spot;this.downTo=s.perch?{x:s.x,y:s.y}:null;this.choose();}}
  // At a spot: hop up if it is a perch, face the way it likes, and stay a while.
- arrive(ok){const s=this.spot;this.rest=s.time[0]+this.rand()*(s.time[1]-s.time[0]);if(!ok){this.rest=Math.min(this.rest,3);this.state='idle';return;}
+ arrive(ok){const s=this.spot;this.rest=s.time[0]+this.rand()*(s.time[1]-s.time[0]);if(!ok&&!s.called){this.rest=Math.min(this.rest,3);this.state='idle';return;}
   if(s.face!==undefined)this.direction=s.face;this.state=s.pose;this.clock=0;
   if(s.perch){const p=s.perch;this.hop={a:{x:this.x,y:this.y,h:0},b:{x:p.x,y:p.y,h:p.h},t:0,d:p.d,then:()=>{this.direction=s.face??(this.rand()<.5?1:3);}};}}
 }
