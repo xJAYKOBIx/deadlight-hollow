@@ -10,5 +10,7 @@ export function bake(scene,t,draw){const r=scene.game.renderer,c=t?.canvas;if(!c
  baked.set(t.key,{t,c,w:c.width,h:c.height,draw});empty(c);
  const g=scene.game.canvas;if(!hooked.has(g)){hooked.add(g);g.addEventListener('webglcontextrestored',()=>{for(const b of baked.values()){if(b.t.manager&&!b.t.manager.exists(b.t.key))continue;b.c.width=b.w;b.c.height=b.h;b.draw(b.c.getContext('2d'));b.t.refresh();empty(b.c);}});}
  return t;}
+// A baked picture that is being thrown away (a stretch of the map you walked away from) leaves the list, so it is not repainted.
+export function unbake(key){baked.delete(key);}
 // Big enough to be worth it: a quarter of a megabyte of pixels or more.
 export const worthBaking=(w,h)=>w*h>=65536;

@@ -1,15 +1,15 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-const {Fight,ZOMBIE,PLAYER_HP}=await import('../dist/street/fight.js');const {StreetModel}=await import('../dist/street/model.js');
+const {Fight,ZOMBIE,PLAYER_HP,ROAM}=await import('../dist/street/fight.js');const {StreetModel}=await import('../dist/street/model.js');
 const {normalizeHome,take,goal,useLines,loot,TRUNK}=await import('../dist/home/kit.js');const {count}=await import('../dist/home/bag.js');const {carrying}=await import('../dist/mc/assets/gear/bags.js');
-const {STREET,SOLIDS,START,WAVES,COP,NOTICE,PROPS}=await import('../dist/street/data.js');
+const {STREET,START,WAVES,COP,NOTICE,HEAR,PROPS,BLOCKS,HOUSES,OBJECTS,ROAMERS,solidAt,coverAt,COLS,ROWS}=await import('../dist/street/data.js');
 const grid=carrying({}),armed=(guns=['light-pistol','pump-shotgun'])=>guns.reduce((k,g)=>take(k,g,grid),{...normalizeHome(null),woke:true});
 function setup(k=armed()){const box={k},m=new StreetModel(),f=new Fight(m,{kit:()=>box.k,setKit:v=>box.k=v,grid:()=>grid});m.zombies=f.zombies;f.start();return {box,m,f};}
-const run=(f,m,s,input=()=>({}))=>{for(let t=0;t<s;t+=1/60){const i=input();m.update(1/60,i);f.update(1/60,i);}};
+const waves=f=>f.zombies.filter(z=>z.roam===undefined),run=(f,m,s,input=()=>({}))=>{for(let t=0;t<s;t+=1/60){const i=input();m.update(1/60,i);f.update(1/60,i);}};
 test('the street: you step out on your own step, and everything stands on the map',()=>{const m=new StreetModel();assert.deepEqual([m.x,m.y],[START.x,START.y]);assert.equal(m.blocked(m.x,m.y),false);
  for(const o of PROPS)assert.ok(o.x+o.w>-40&&o.x<STREET.w+40&&o.y>=0&&o.y<STREET.h,o.id);
  // The door back in only answers when you face it, so a stray press on arrival does not send you straight back inside.
  m.direction=2;assert.equal(m.target()?.id,undefined);m.direction=6;assert.equal(m.target()?.id,'frontdoor');});
-test('the cop waits at the cruiser until you come close or fire, then the others come out of the dark',()=>{const {m,f}=setup();assert.equal(f.zombies.length,WAVES[0].length);
+test('the cop waits at the cruiser until you come close or fire, then the others come out of the dark',()=>{const {m,f}=setup();assert.equal(waves(f).length,WAVES[0].length);
  assert.equal(f.out(f.zombies[1]),false,'the others are not out yet');run(f,m,2);assert.equal(f.alert,false);assert.equal(f.zombies[0].x,COP.x,'the cop has not moved');
  Object.assign(m,{x:COP.x-NOTICE+20,y:COP.y+40});run(f,m,.1);assert.equal(f.alert,true);run(f,m,3);assert.ok(f.zombies.every(z=>f.out(z)),'all three are out');});
 test('a bite winds up first: step out of reach and it misses; stand there and it lands',()=>{const {m,f}=setup(),z=f.zombies[0];
@@ -32,12 +32,26 @@ test('clear the first three, search the trunk, hold off the second wave, and the
  const kill=()=>{for(const z of f.zombies){z.delay=0;z.idle=false;f.hit(z,999,1,0);}};
  assert.equal(goal(box.k,true),'See what crashed down the street');kill();assert.equal(box.k.street,'cleared');assert.match(goal(box.k,true),/cruiser/);
  const shells=count(box.k.bag,'shells');assert.ok(f.search());assert.equal(box.k.street,'looted');assert.equal(count(box.k.bag,'shells'),shells+TRUNK[0][1]);assert.equal(count(box.k.bag,'rounds'),TRUNK[1][1]);
- assert.equal(f.zombies.length,WAVES[1].length);assert.equal(f.search(),false,'the trunk is only searched once');kill();assert.equal(box.k.street,'done');assert.equal(f.live.length,0);
+ assert.equal(f.live.length,WAVES[1].length);assert.equal(f.search(),false,'the trunk is only searched once');kill();assert.equal(box.k.street,'done');assert.equal(f.live.length,0);
  // Coming back out later: nothing waits on a quiet street.
- f.start();assert.equal(f.zombies.length,0);});
+ f.start();assert.equal(waves(f).length,0);});
 test('in the house: the window shows the crash, and the front door goes out once you have a gun',()=>{let k={...normalizeHome(null),woke:true};assert.match(useLines(k,'window').lines[0],/cruiser/);
  assert.equal(useLines(k,'frontdoor').act,undefined);k=take(k,'light-pistol',grid);assert.equal(useLines(k,'frontdoor').act,'leave');assert.equal(loot(k,grid),k,'the trunk waits for the street to be clear');});
 test('the street page wires the scene, the sound toggle and the fresh start',async()=>{const fs=await import('node:fs'),app=fs.readFileSync(new URL('../dist/study/app.js',import.meta.url),'utf8'),html=fs.readFileSync(new URL('../dist/index.html',import.meta.url),'utf8');
  assert.match(app,/makeStreetScene\(streetModel,streetBridge\)/);assert.match(app,/FRESH&&!KEEP/);assert.match(html,/id="sound"/);
  const {SOUNDS}=await import('../dist/mc/assets/sounds/library.js'),ids=new Set(SOUNDS.map(s=>s.id));for(const id of ['car-pass','car-crash','pistol','shotgun','pump','shell-in','mag-in','dry-fire','groan','zombie-hit','bite','distant-siren'])assert.ok(ids.has(id),id);
  for(const id of app.matchAll(/audio\.play\('([a-z-]+)'/g))assert.ok(ids.has(id[1]),id[1]);});
+test('the neighbourhood: five blocks by five, the same every time, and everything you can use stands somewhere you can reach',()=>{
+ assert.equal(BLOCKS.length,COLS*ROWS);assert.equal(COLS,5);assert.equal(ROWS,5);assert.ok(HOUSES.length>=90,'a house on every lot');assert.equal(new Set(PROPS.map(o=>o.id)).size,PROPS.length,'every prop has its own id');
+ for(const o of OBJECTS){assert.ok(!solidAt(o.x,o.y,8),o.id+' can be reached');}assert.ok(!solidAt(START.x,START.y,10));
+ // Houses stop bullets; a chain-link fence does not.
+ const h=HOUSES[0];assert.ok(coverAt(h.x+h.w/2,h.y+h.h/2));const cl=PROPS.find(o=>o.kind==='chainlink');assert.equal(coverAt(cl.x+cl.w/2,cl.y+cl.h/2),null);
+ assert.ok(ROAMERS.length>=40);for(const r of ROAMERS)assert.ok(!solidAt(r.x,r.y,8),'a wanderer starts in the open');});
+test('wanderers drift round their yards, come for you when they see you or hear a shot, and give up once you are far away',()=>{const {m,f}=setup(),r=f.zombies.find(z=>z.roam!==undefined);
+ assert.equal(f.live.length,WAVES[0].length,'the story only counts the waves');run(f,m,8);assert.ok(f.zombies.some(z=>z.roam!==undefined&&Math.hypot(z.x-z.sx,z.y-z.sy)>2),'they wander');
+ assert.ok(Math.hypot(r.x-r.sx,r.y-r.sy)<=Math.hypot(ROAM.stroll.x,ROAM.stroll.y)+2,'but not far');assert.equal(r.hunt,false);
+ Object.assign(m,{x:r.x+NOTICE-30,y:r.y});run(f,m,.6);assert.equal(r.hunt,true,'it saw you');assert.ok(f.threat().includes(r),'and it counts as coming for you');
+ Object.assign(m,{x:r.x+ROAM.lose+50,y:r.y});run(f,m,.1);assert.equal(r.hunt,false,'gone');
+ const q=f.zombies.find(z=>z.roam!==undefined&&z!==r&&z.hp>0);Object.assign(m,{x:q.x+HEAR-40,y:q.y});f.aimAngle=Math.PI;f.fire();assert.equal(q.hunt,true,'it heard the shot');});
+test('a wanderer you put down stays down for the night, and the rest go back where they were when you start again',()=>{const {m,f}=setup(),[a,b]=f.zombies.filter(z=>z.roam!==undefined);
+ f.hit(a,999,1,0);b.x+=30;f.start();const now=f.zombies.filter(z=>z.roam!==undefined);assert.ok(now.includes(a)&&a.hp<=0);assert.equal(b.x,b.sx);assert.equal(now.length,ROAMERS.length);});

@@ -12,7 +12,7 @@ test('the front door without a gun is the first thing you think there',()=>{cons
 test('thoughts wait while you talk or watch, and a moment that passed is not said late',()=>{const t=new Thoughts();assert.deepEqual(lines(t,home(),10,true),[]);
  const s={place:'street',kit:{guns:{},street:'start'},x:717,y:170,fight:{alert:false,hp:100,maxHp:100}};
  // Walk past the cruiser while the first line is up, then the fight starts: the cruiser line is dropped, the fight's is said.
- const said=lines(t,x=>x<1.5?s:x<4?{...s,x:1100}:{...s,x:1100,fight:{...s.fight,alert:true}},14);assert.ok(said.some(l=>/Cold/.test(l)));assert.ok(said.some(l=>/walking like that/.test(l)));assert.ok(!said.some(l=>/police car/.test(l)));});
+ const said=lines(t,x=>x<1.5?s:x<4?{...s,cruiser:200}:{...s,cruiser:200,fight:{...s.fight,alert:true}},14);assert.ok(said.some(l=>/Cold/.test(l)));assert.ok(said.some(l=>/walking like that/.test(l)));assert.ok(!said.some(l=>/police car/.test(l)));});
 test('the fight\'s firsts: bitten and the first kill wait for the event, and reset starts the night over',()=>{const t=new Thoughts(),s={place:'street',kit:{guns:{},street:'start'},x:700,y:200,fight:{alert:true,hp:80,maxHp:100}};
  lines(t,s,12);t.note('hurt');assert.ok(lines(t,s,8).some(l=>/bit me/.test(l)));t.note('kill');assert.ok(lines(t,s,8).some(l=>/didn't stop/.test(l)));
  t.reset();assert.equal(t.said.size,0);});

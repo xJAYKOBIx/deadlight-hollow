@@ -16,7 +16,7 @@ export const THOUGHTS=[
  {id:'go',at:'home',delay:40,when:s=>armed(s)&&s.kit.street==='start',say:'Whoever was in that car could be hurt. Go.'},
  // The street.
  {id:'out',at:'street',delay:1,when:s=>s.kit.street==='start'&&!s.fight?.alert,say:'Cold. Quiet. The lights are coming from past the Parks\' place.'},
- {id:'cruiser',at:'street',delay:.2,when:s=>s.kit.street==='start'&&!s.fight?.alert&&s.x>1010,say:'That\'s a police car. Straight into the pole.'},
+ {id:'cruiser',at:'street',delay:.2,when:s=>s.kit.street==='start'&&!s.fight?.alert&&s.cruiser<400,say:'That\'s a police car. Straight into the pole.'},
  {id:'contact',at:'street',delay:.6,when:s=>s.kit.street==='start'&&s.fight?.alert,say:'He\'s walking. Why is he walking like that?'},
  {id:'bitten',at:'street',delay:.2,when:s=>s.seen.hurt>0,say:'It bit me. It actually bit me!'},
  {id:'kill',at:'street',delay:.5,when:s=>s.seen.kill>0,say:'He didn\'t stop. Not until… Don\'t think about it. Not yet.'},
