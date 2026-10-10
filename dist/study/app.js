@@ -14,7 +14,7 @@ const ZMIN=.35,ZMAX=1.8,ZOOM_KEY='deadlight-zoom-v1';let zoomLevel=1;
 const RES=Math.min(3,Math.max(1,Math.round(globalThis.devicePixelRatio||1))),zoom=()=>zoomLevel*RES;
 let storage;try{storage=window.localStorage;}catch{}let appearance=readAppearance(storage),loadout=readLoadout(storage),wallet=readWallet(storage);
 // Where the survivor is: the Training Grounds (a test space), Firelight Camp or the starter house. Remembered on this device; ?home opens the house.
-const PLACE_KEY='deadlight-place-v1';let place='room',campScene=null,homeScene=null,talk=null,play=null,reelPointer=null;try{const v=storage?.getItem(PLACE_KEY);if(v==='camp'||v==='home')place=v;}catch{}if(/[?&]home\b/.test(globalThis.location?.search||''))place='home';
+const PLACE_KEY='deadlight-place-v1';let place='room',campScene=null,homeScene=null,talk=null,play=null,reelPointer=null;try{const v=storage?.getItem(PLACE_KEY);if(v==='camp'||v==='home')place=v;}catch{}if(/[?&]home\b/.test(globalThis.location?.search||'')||globalThis.location?.hash==='#home')place='home';
 // The camp and the house are calm places: no shooting, Use and Talk instead.
 const calm=()=>place!=='room',calmScene=()=>place==='home'?homeScene:campScene,calmModel=()=>place==='home'?homeModel:campModel;
 // In camp you are always your survivor, never the zombie from the creator.
