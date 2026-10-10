@@ -1,11 +1,19 @@
 // The first night in the house: whether you have woken up yet, the guns you have found with the rounds in them, what is in your
-// bag, and which spots you have already searched. Saved, so the tutorial picks up where you left it. The Light Pistol is in the
+// bag, which spots you have already searched, and how far the fight out on the street has got. Saved, but while the tutorial is
+// being built every visit starts fresh on the couch (FRESH), so each test plays it from the very beginning. The Light Pistol is in the
 // bedroom nightstand, the Pump Shotgun in the hall closet lockbox; the kitchen, the sink and the laundry hold supplies.
 import {GUNS,unlimited} from '../study/equipment.js';
 import {itemInfo} from '../mc/assets/gear/items.js';
 import {carrying} from '../mc/assets/gear/bags.js';
 import {add,count,normalizeBag} from './bag.js';
 export const HOME_KEY='deadlight-home-v1';
+// While the tutorial is being built, the saved night is ignored on load: you wake on the couch with nothing, every time.
+export const FRESH=true;
+// The street outside: the crash, then the first fight. start: the cop at the cruiser; cleared: the first three are down and the
+// trunk waits; looted: you took what was in it and more are coming; done: the street is quiet.
+export const STREET_STAGES=['start','cleared','looted','done'];
+// The cruiser's trunk: a box of shells and a carton of rifle rounds, for a rifle you do not have yet.
+export const TRUNK=[['shells',12],['rounds',30]];
 // What each find holds: rounds loaded, and what goes into the bag with it. A pistol is a secondary, so its spare rounds never run
 // out; the shotgun is a primary and only has the shells in your bag.
 export const FINDS={'light-pistol':{at:'nightstand',ammo:15,bag:[]},'pump-shotgun':{at:'closet',ammo:8,bag:[['shells',16],['gun-oil',1]]}};
@@ -19,22 +27,28 @@ export function normalizeHome(v,grid=carrying({})){const guns={};for(const id of
  let bag=normalizeBag(v?.bag,grid);
  // Saves from before the bag kept the shotgun's spare shells on the gun; they move into the bag.
  if(!v?.bag&&guns['pump-shotgun'])bag=add(bag,grid,'shells',Math.max(0,Math.floor(Number(v.guns['pump-shotgun'].reserve)||0)));
- return {woke:v?.woke===true,guns,held,bag,searched};}
-export function readHome(storage,grid){try{return normalizeHome(JSON.parse(storage.getItem(HOME_KEY)),grid);}catch{return normalizeHome(null,grid);}}
+ const street=STREET_STAGES.includes(v?.street)?v.street:'start';
+ return {woke:v?.woke===true,guns,held,bag,searched,street};}
+export function readHome(storage,grid,fresh=FRESH){if(fresh)return normalizeHome(null,grid);try{return normalizeHome(JSON.parse(storage.getItem(HOME_KEY)),grid);}catch{return normalizeHome(null,grid);}}
 export function saveHome(storage,v){try{storage.setItem(HOME_KEY,JSON.stringify(v));return true;}catch{return false;}}
 const pack=(k,grid,list)=>list.reduce((b,[id,n])=>add(b,grid,id,n),k.bag);
 // Picking a gun up puts it in your hands, and what came with it in your bag.
 export function take(k,id,grid=carrying({})){if(!FINDS[id]||k.guns[id])return k;const f=FINDS[id];return {...k,guns:{...k.guns,[id]:{ammo:f.ammo}},held:id,bag:pack(k,grid,f.bag)};}
 // Searching a spot puts its supplies in your bag.
 export function search(k,id,grid=carrying({})){if(!SUPPLIES[id]||k.searched.includes(id))return k;return {...k,bag:pack(k,grid,SUPPLIES[id]),searched:[...k.searched,id]};}
+// Opening the cruiser's trunk puts its boxes in your bag.
+export function loot(k,grid=carrying({})){if(k.street!=='cleared')return k;return {...k,bag:pack(k,grid,TRUNK),street:'looted'};}
+export const advance=(k,stage)=>STREET_STAGES.indexOf(stage)>STREET_STAGES.indexOf(k.street)?{...k,street:stage}:k;
 export function swap(k){const have=ORDER.filter(id=>k.guns[id]);if(have.length<2)return k;return {...k,held:have[(have.indexOf(k.held)+1)%have.length]};}
 export const found=(k,id)=>!!k.guns[id];
 // Spare rounds for a gun: unlimited for a pistol, otherwise what is in the bag.
 export const spare=(k,id)=>ammoOf(id)?count(k.bag,ammoOf(id)):Infinity;
 export function rounds(k,id=k.held){const g=k.guns[id];if(!g)return '';const s=spare(k,id);return `${g.ammo} / ${s===Infinity?'∞':s}`;}
-// What to do next, shown under the place name.
-export function goal(k){if(!k.woke)return '';const p=found(k,'light-pistol'),s=found(k,'pump-shotgun');
- return !p&&!s?'Find something to protect yourself with':!s?'Get the shotgun from the hall closet':!p?'Get the pistol from the bedroom nightstand':'Leave by the front door';}
+// What to do next, shown under the place name. outside is true on the street.
+export function goal(k,outside=false){if(!k.woke)return '';const p=found(k,'light-pistol'),s=found(k,'pump-shotgun');
+ if(!p&&!s)return 'Find something to protect yourself with';
+ if(outside||k.street!=='start')return {start:'See what crashed down the street',cleared:'Search the police cruiser',looted:'Hold them off',done:'The street is quiet, for now'}[k.street];
+ return 'Go and see what crashed down the street';}
 // What the nightstand, the closet, the searchable spots and the front door say, and what using them does. act names what
 // happens after the last line.
 const SEARCH_LINES={counter:['The junk drawer. Takeout menus, rubber bands and a lot of screws.','A handful of hinges and brackets, and the old phone with the cracked screen. Parts are parts now.'],
@@ -48,8 +62,10 @@ export function useLines(k,id){
  if(SUPPLIES[id])return k.searched.includes(id)?{lines:['Nothing else worth taking.']}:{lines:SEARCH_LINES[id],act:'search:'+id,verb:'Take'};
  if(id==='frontdoor'){const p=found(k,'light-pistol'),s=found(k,'pump-shotgun');
   if(!p&&!s)return {lines:['You put your hand on the lock and stop.','Not without something to protect yourself with.']};
-  if(!p||!s)return {lines:['You put your hand on the lock.',!s?'The shotgun is still in the closet lockbox. Better take it too.':'The pistol is still in the bedroom nightstand. Better take it too.']};
-  return {lines:['You check the lock, then the window beside it. The street is empty, and too quiet.','Outside is the next part of the tutorial. It is coming soon.']};}
+  const lines=k.street==='start'?['You check the lock, then the window beside it. Red and blue light is still turning down the street.','Whoever was in that car might need help. Or might not be a whoever any more.']:['The street is out there, the way you left it.'];
+  if(!p||!s)lines.push(!s?'The shotgun is still in the closet lockbox. You could take it too.':'The pistol is still in the bedroom nightstand. You could take it too.');
+  return {lines,act:'leave',verb:'Go out'};}
+ if(id==='window'&&k.woke&&k.street==='start')return {lines:['Down the street, a police cruiser has gone up the curb into a pole. Its lights are still turning.','Nobody has got out of it. Nobody has come out of the houses either.']};
  return null;}
 // Once something is taken, the spot is only worth a look.
 export const verbFor=(k,id)=>(id==='nightstand'&&found(k,'light-pistol'))||(id==='closet'&&found(k,'pump-shotgun'))||(SUPPLIES[id]&&k.searched.includes(id))?'Look':null;
