@@ -8,7 +8,7 @@ export const WALK=[[100,228],[880,226],[934,268],[962,334],[967,368],[1104,368],
 export const SHORE=[[930,150],[984,240],[1012,330],[1022,430],[1016,530],[990,622],[944,706],[884,782],[820,880]];
 // Lights are baked into a banded light map: [x, y, radius, r, g, b] with 1 = untouched color.
 export const AMBIENT=[.6,.64,.8];
-export const LIGHTS=[[560,470,250,1,.86,.64],[742,606,120,1,.8,.58],[356,452,120,.98,.86,.66],[748,522,110,.98,.86,.66],[300,590,115,.98,.86,.66],[239,174,110,.98,.84,.62],[820,330,120,.92,.95,.98],[1110,120,330,.62,.72,.95],[1100,346,90,.98,.86,.66],[272,609,26,1,.86,.62]];
+export const LIGHTS=[[560,470,250,1,.86,.64],[742,606,120,1,.8,.58],[356,452,120,.98,.86,.66],[748,522,110,.98,.86,.66],[300,590,115,.98,.86,.66],[239,174,110,.98,.84,.62],[820,330,120,.92,.95,.98],[1110,120,330,.62,.72,.95],[1100,346,90,.98,.86,.66],[272,609,26,1,.86,.62],[428,690,135,.97,.92,.72],[302,236,96,.86,.92,1]];
 // Solid props: footprint (x, y, w, h) and painted height z above it. flat props are walked over.
 // Four sleeping spots under the shelter, east to west: spot 0 is yours, the rest fill as co-op players join.
 export const MAX_CAMPERS=4;
@@ -37,20 +37,25 @@ export const PROPS=[
  {id:'lamp-1',kind:'lantern',x:351,y:450,w:10,h:8,z:72},
  {id:'lamp-2',kind:'lantern',x:743,y:520,w:10,h:8,z:72},
  {id:'lamp-4',kind:'lantern',x:234,y:240,w:10,h:8,z:72},
- {id:'rock-a',kind:'rock',x:420,y:700,w:40,h:22,z:20},
+ {id:'rock-a',kind:'rock',x:302,y:740,w:40,h:22,z:20},
  {id:'rock-b',kind:'rock',x:620,y:734,w:30,h:16,z:14},
  {id:'rock-c',kind:'rock',x:110,y:716,w:28,h:18,z:16},
  {id:'pier',kind:'pier',x:958,y:362,w:154,h:40,z:8,flat:true},
- {id:'laundry',kind:'laundry',x:250,y:292,w:100,h:8,z:62},
+ {id:'laundry',kind:'laundry',x:112,y:318,w:100,h:8,z:62},
  {id:'sacks',kind:'sacks',x:478,y:258,w:30,h:22,z:20},
  {id:'pool-a',kind:'tidepool',x:930,y:560,w:40,h:20,z:2,flat:true},
  {id:'pool-b',kind:'tidepool',x:900,y:640,w:30,h:16,z:2,flat:true},
- {id:'drift',kind:'driftwood',x:476,y:640,w:80,h:14,z:6,flat:true},
+ {id:'drift',kind:'driftwood',x:548,y:716,w:80,h:14,z:6,flat:true},
  {id:'woodpile',kind:'woodpile',x:378,y:518,w:42,h:18,z:30},
  {id:'drum',kind:'drum',x:904,y:258,w:26,h:14,z:40},
  {id:'nets',kind:'nets',x:906,y:332,w:42,h:14,z:8,flat:true},
  {id:'salvage',kind:'salvage',x:234,y:500,w:44,h:14,z:28},
- {id:'passage',kind:'passage',x:66,y:494,w:80,h:30,z:60}
+ {id:'passage',kind:'passage',x:66,y:494,w:80,h:30,z:60},
+ // The Training Grounds: a bunker door set into the back wall, where the old laundry line hung.
+ {id:'range',kind:'range',x:246,y:214,w:112,h:14,z:100},
+ // The garden: a fenced plot under its own lamp, with the water barrel and tools on the west side. Look only for now.
+ {id:'farm',kind:'farm',x:340,y:660,w:176,h:84,z:46},
+ {id:'lamp-5',kind:'lantern',x:324,y:648,w:10,h:8,z:72}
 ];
 // Residents are placeholders until the cast is redesigned. Looks use the character creator's options.
 export const RESIDENTS=[
@@ -77,6 +82,8 @@ export const OBJECTS=[
  {id:'basket',verb:'Check',my:566,name:'Fish basket',role:'Pike\'s salt crate',x:818,y:648,lines:['Empty. The pier\'s past the medic tent.']},
  {id:'pier',verb:'Fish',my:322,name:'Fishing pier',role:'The inlet',x:1086,y:382,lines:['The water\'s deep off the end of the pier.']},
  {id:'passage',verb:'Look',my:420,name:'Collapsed passage',role:'Deeper caverns',x:122,y:548,lines:['An old mine frame, choked with fallen rock. Cool air breathes through the gaps.','Something green is growing in there. You can smell wet soil, not salt.','Wren\'s voice from across the camp: "One day we dig that out. Not today."']},
+ {id:'range',verb:'Enter',my:108,name:'Training Grounds',role:'Firing range and store',x:302,y:250,lines:['The old storm bunker, swept out and turned into a firing range.']},
+ {id:'farm',verb:'Look',my:606,name:'The garden',role:'Farm plot',x:428,y:648,lines:['Potatoes, beans and a few stubborn squash, growing under a lamp in soil carried up from the tide line a bucket at a time.','Somebody gave the scarecrow a hard hat. Nobody admits to it.','Planting and harvesting will come later.']},
  {id:'fire',verb:'Sit',my:418,name:'Campfire',role:'Firelight Camp',x:560,y:506,lines:['The fire crackles. For a moment, everything is quiet.']}
 ];
 export const USE_RANGE=44;

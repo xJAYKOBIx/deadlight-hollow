@@ -219,3 +219,11 @@ The camera leans toward your aim (`leadStep`, 36% of the half-view along the aim
 Run on touch is a toggle button up and in from the move stick: tap to run, tap again to walk; it stays on through stops. Pushing the stick to its edge no longer runs. Controller L3/LT and Shift are unchanged.
 
 Landscape is lighter: the fire stick (108px ring) and a 50px fan on a 92px arc sit in the corner, the stick labels are gone, and the ammo readout is a small plate under the menu buttons instead of a panel at the bottom middle. On the portrait deck the readout loses its plate and sits top-left, with Run beside it.
+
+### v0.23.0 the garden and the Training Grounds
+
+Camp gains two places. The old laundry spot on the back wall (x246–358) is now the Training Grounds door: a concrete storm-bunker portal set into the cliff with olive steel doors, a bullseye sign, a floodlight, sandbags and a paper target. Walking up shows "Enter Training Grounds" and using it travels to the old character room, which is renamed Training Grounds. That room is where everything is unlocked for trying guns and armor; the wave shooter and the store will live there later. The laundry line moved west to x112.
+
+The garden sits south of the fire (x340–516, y660–744): a fenced, tilled plot with staked beans along the back, potatoes, squash and seedlings, a scarecrow in a hard hat with a crow, and a rain barrel, watering can and rake outside the west fence. It has its own lamp and a warm-white light. For now it is Look only; planting and harvesting come later. The rock and driftwood that stood there moved aside.
+
+The planned zombie roster (fodder, specials, heavies, bosses, alert levels and counters, played like Helldivers) is a separate Claude Doc.

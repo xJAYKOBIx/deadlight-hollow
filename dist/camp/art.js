@@ -283,6 +283,77 @@ const ART={
   r(w-30,top+2,10,9,EDGE);r(w-29.5,top+2.5,9,8,M[2]);e(w-25,top+3,4.5,1.6,'#3b3530');r(w-29.5,top+5,9,1,M[1]);
   e(20,top+10,7,4,'#5a4128');e(20,top+10,4,2.2,W[3]);e(20,top+10,1.5,.8,'#5a4128');
   r(w-8,top-58,3.5,60,EDGE);r(w-7.5,top-57,2.5,58,W[2]);r(w-14,top-58,9,2,EDGE);r(w-13.5,top-57.5,8,1,W[2]);r(w-13,top-56,.5,3,M[1]);r(w-16,top-53,6,8,EDGE);r(w-15,top-52,4,6,GLASS);r(w-14.5,top-51,2,4,GLASS_HI);r(w-16.5,top-54,7,1.5,M[1]);},
+ // The Training Grounds: a storm-bunker portal poured into the back wall. Steel doors with one leaf ajar and warm light behind it,
+ // a bullseye sign, sandbag walls, a gun rack and a shot-up paper target, and a floodlight on the corner.
+ range(g,o){const {e,r,p,l}=g,C=['#3d3f44','#55585e','#6d7076','#868990','#a0a3a8'],OLIVE=['#2b3122','#3c4430','#4e5840','#626d50'];
+  e(56,15,64,5,SHADOW);
+  // The concrete portal, set into the rock: a heavy lintel and two piers, stained and chipped.
+  p([[-4,14],[-6,-80],[4,-92],[108,-92],[118,-80],[116,14]],EDGE);p([[-3,13],[-5,-79],[4.5,-90.5],[107.5,-90.5],[116.5,-79],[115,13]],C[1]);
+  r(2,-86,108,16,C[2]);r(2,-86,108,1,C[3]);r(2,-71,108,1,C[0]);
+  for(let i=0;i<14;i++){const x=hash(i,41)*104+4,y=-84+hash(i,42)*90,w=2+hash(i,43)*6;r(x,y,w,.5,hash(i,44)>.5?C[0]:C[3]);}
+  for(const x of [6,98])r(x,-70,8,84,C[2]),r(x,-70,1,84,C[3]),r(x+7,-70,1,84,C[0]);
+  r(14,-70,84,84,'#16171b');
+  // The sign: a bullseye between stencil bars, on a plate bolted to the lintel.
+  r(24,-84,64,12,EDGE);r(25,-83,62,10,'#c9c0aa');r(25,-83,62,1,'#e2dccb');for(const x of [28,72])r(x,-80,12,1.5,'#3a3630'),r(x,-77,9,1.5,'#3a3630');
+  e(56,-78,6,4.5,EDGE);e(56,-78,5,3.6,'#a33b2e');e(56,-78,3.4,2.4,'#e8e0d1');e(56,-78,1.8,1.3,'#a33b2e');
+  for(const x of [26,85])r(x,-82.5,1,1,M[1]),r(x,-75.5,1,1,M[1]);
+  // Two steel doors; the right one stands open a hand's width and the range's light spills out.
+  r(30,-62,52,74,EDGE);r(31,-61,24.5,72,OLIVE[2]);r(57,-61,24,72,OLIVE[1]);r(55.5,-61,1.5,72,GLASS);r(55.5,-61,.5,72,GLASS_HI);
+  p([[56,12],[46,22],[64,22],[57,12]],'#ffb36a33');
+  for(const [x,w,c] of [[31,24.5,OLIVE[3]],[57,24,OLIVE[2]]]){r(x+2,-58,w-4,22,c);r(x+2,-34,w-4,40,c);r(x+2,-58,w-4,.5,'#ffffff22');r(x+2,-36,w-4,1,OLIVE[0]);for(const y of [-56,-38,-32,4])for(const dx of [3,w-4])r(x+dx,y,1,1,OLIVE[0]);}
+  r(50,-26,3,8,EDGE);r(50.5,-25.5,2,7,M[3]);r(59,-26,3,8,EDGE);r(59.5,-25.5,2,7,M[3]);
+  for(let x=31;x<81;x+=6){p([[x,6],[x+3,6],[x+6,11],[x+3,11]],'#d9b23a');p([[x+3,6],[x+6,6],[x+9,11],[x+6,11]],EDGE);}r(31,5.5,50,.5,EDGE);
+  // The lamp over the door is lit: this door is open to you.
+  r(50,-68,12,5,EDGE);r(51,-67,10,3.5,M[2]);r(52,-64,8,3,EDGE);r(53,-63.5,6,2,EMBER_HI);r(54,-63.5,3,1,GLASS_HI);
+  // Floodlight on the right corner, angled down at the doorstep.
+  l(108,-88,114,-96,2,EDGE);r(110,-102,12,8,EDGE);r(111,-101,10,6,M[2]);r(112,-99,8,3,'#dfe7ea');r(113,-98.5,4,1,'#ffffff');
+  // Sandbag walls either side of the doorstep.
+  for(const [x0,n] of [[-10,3],[84,3]])for(let row=0;row<2;row++)for(let i=0;i<n-row;i++){const x=x0+i*13+row*6.5,y=6-row*7;e(x+6.5,y+1,8,5,EDGE);e(x+6.5,y,7,4.2,(i+row)%2?'#8a7f62':'#7a7057');r(x+2,y-2,6,.5,'#a39a7a');r(x+6,y-3.5,1,7,'#6b6250');}
+  // A rifle rack on the left pier.
+  r(-2,-46,14,30,EDGE);r(-1,-45,12,28,W[1]);r(-1,-45,12,1,W[3]);r(-1,-32,12,1.5,W[2]);for(const x of [1.5,5.5]){r(x,-44,2,24,EDGE);r(x+.5,-43,1,22,M[2]);r(x-.5,-28,3,6,EDGE);r(x,-27.5,2,5,W[2]);}
+  // A paper target on a stand by the right pier, shot through.
+  l(98,-4,102,-48,1.5,EDGE);l(110,-4,104,-48,1.5,EDGE);r(94,-52,20,26,EDGE);r(95,-51,18,24,'#d8d0bc');e(104,-40,6.5,7.5,'#3a3630');e(104,-40,4.5,5.5,'#d8d0bc');e(104,-40,2.5,3,'#a33b2e');
+  for(const [x,y] of [[101,-44],[106,-37],[103,-40],[108,-46],[99,-33]])r(x,y,1,1,'#16171b');},
+ // The garden: a fenced plot of tilled rows under its own lamp. Potatoes, staked beans, squash and seedlings, a scarecrow in a hard hat,
+ // and the rain barrel, watering can and tools on the west side. The fence's north and sides are drawn first, the crops, then the south rail.
+ farm(g,o){const {e,r,p,l}=g,LEAF=['#2c3b22','#3f5a2e','#567a3a','#6f9446','#8bb05a'],SOIL=['#2e2219','#3d2c20','#4d3a2a','#5d4834','#6e5840'];
+  const X0=24,X1=174,Y0=4,Y1=82;
+  // Tilled bed with its rows.
+  r(X0,Y0,X1-X0,Y1-Y0,SOIL[1]);for(let y=Y0;y<Y1;y+=2)for(let x=X0;x<X1;x+=3)if(hash(x,y)>.82)r(x,y,1,.5,SOIL[hash(y,x)>.5?0:2]);
+  const rows=[16,34,52,70];for(const y of rows){r(X0+4,y-3,X1-X0-8,7,EDGE);r(X0+4,y-2.5,X1-X0-8,6,SOIL[3]);r(X0+4,y-2.5,X1-X0-8,1,SOIL[4]);r(X0+4,y+3,X1-X0-8,.5,SOIL[0]);}
+  // Fence: north rail (with the gap for the gate) and the two sides.
+  const post=(x,y,h=15)=>{r(x-1.5,y-h,3.5,h+1.5,EDGE);r(x-1,y-h+.5,2.5,h,W[2]);r(x-1,y-h+.5,1,h,W[3]);r(x-1.5,y-h-.5,3.5,1,W[1]);};
+  const rail=(x0,x1,y)=>{r(x0,y-11,x1-x0,2.5,EDGE);r(x0,y-10.5,x1-x0,1.5,W[3]);r(x0,y-5,x1-x0,2.5,EDGE);r(x0,y-4.5,x1-x0,1.5,W[2]);};
+  rail(X0,88,Y0);rail(108,X1,Y0);for(const x of [X0,46,68,88,108,130,152,X1])post(x,Y0);
+  // The little gate, swung open into the plot.
+  l(88,Y0-2,96,Y0+10,2.5,EDGE);l(88,Y0-2,96,Y0+10,1.5,W[3]);l(88,Y0-8,96,Y0+4,2.5,EDGE);l(88,Y0-8,96,Y0+4,1.5,W[3]);
+  for(const x of [X0,X1])for(let y=Y0+20;y<Y1;y+=20)post(x,y,13);for(const x of [X0,X1])r(x-1,Y0,2,Y1-Y0,W[1]),r(x-.5,Y0,1,Y1-Y0,W[2]);
+  // Row 2, beans climbing stakes tied with twine, along the back where they shade nothing.
+  for(let x=X0+12;x<X1-6;x+=14){const y=rows[0];l(x-3,y+1,x,y-22,1.5,EDGE);l(x+3,y+1,x,y-22,1.5,EDGE);l(x-3,y+1,x,y-22,.6,W[3]);l(x+3,y+1,x,y-22,.6,W[3]);r(x-1,y-21,2,1,'#c9c0aa');
+   for(let k=0;k<5;k++){const ly=y-2-k*4,lx=x+(k%2?2.5:-2.5);e(lx,ly,2.6,1.8,EDGE);e(lx,ly-.3,2,1.3,LEAF[k%2?2:3]);}r(x+1,y-9,.5,3,'#9ab05a');r(x-1.5,y-14,.5,3,'#9ab05a');}
+  // Row 1, potatoes: low leafy clumps with a few pale flowers.
+  for(let x=X0+10;x<X1-26;x+=12){const y=rows[1];e(x,y-1,6,4.5,EDGE);e(x,y-1.5,5,3.8,LEAF[1]);e(x-1.5,y-2.5,3,2.2,LEAF[2]);e(x+1.5,y-3,2,1.5,LEAF[3]);if(hash(x,7)>.5)r(x,y-5,1,1,'#e8e0d1'),r(x+.5,y-4.5,.5,.5,'#d9b23a');}
+  // The scarecrow stands at the east end of the potato row.
+  {const x=156,y=rows[1]+4;r(x-1,y-40,2.5,42,EDGE);r(x-.5,y-39,1.5,40,W[2]);r(x-13,y-31,26,2.5,EDGE);r(x-12.5,y-30.5,25,1.5,W[3]);
+   p([[x-9,y-30],[x+9,y-30],[x+7,y-12],[x-7,y-12]],EDGE);p([[x-8,y-29.5],[x+8,y-29.5],[x+6.3,y-12.5],[x-6.3,y-12.5]],'#4a4238');r(x-.5,y-29,1,16,'#3a342c');r(x-8,y-29.5,3,2,'#5a5246');r(x+5,y-29.5,3,2,'#5a5246');
+   for(const s of [-1,1])l(x+s*12,y-30,x+s*15,y-25,1.5,'#b9a77d');r(x-8,y-30,16,2,'#7a3a2a');
+   e(x,y-35,5,5,EDGE);e(x,y-35,4.2,4.2,'#b9a77d');r(x-2.5,y-36.5,1.5,.5,EDGE);r(x-2,y-37,.5,1.5,EDGE);r(x+1,y-36.5,1.5,.5,EDGE);r(x+1.5,y-37,.5,1.5,EDGE);r(x-1.5,y-33,3,.5,'#6b5d40');
+   p([[x-6.5,y-38],[x-4.5,y-43],[x+4.5,y-43],[x+6.5,y-38]],EDGE);p([[x-5.5,y-38.5],[x-4,y-42.3],[x+4,y-42.3],[x+5.5,y-38.5]],'#c9a23a');r(x-7.5,y-38.5,15,1.5,EDGE);r(x-7,y-38,14,.5,'#e0bc4a');
+   // A crow, unimpressed, on the left arm.
+   e(x-11,y-34,2.5,2,'#111319');r(x-13.5,y-35,1.5,.5,'#5a5040');r(x-10,y-35,.5,.5,'#e8e0d1');r(x-11,y-32.5,.5,1.5,'#111319');}
+  // Row 3, squash under broad leaves.
+  for(let x=X0+12;x<X1-8;x+=18){const y=rows[2];for(const [dx,dy,s] of [[-4,-2,4.2],[4,-1.5,4],[0,-4,3.6]]){e(x+dx,y+dy,s+1,s*.75+1,EDGE);e(x+dx,y+dy-.4,s,s*.75,LEAF[2]);r(x+dx-s*.5,y+dy-.5,s,.5,LEAF[1]);}
+   if(hash(x,9)>.35){const sx=x+(hash(x,10)>.5?5:-5);e(sx,y+2.5,4,3,EDGE);e(sx,y+2,3.2,2.3,'#b8743a');e(sx-1,y+1.3,1.4,1,'#d0904c');r(sx-.25,y-1,.5,1.5,LEAF[0]);}}
+  // Row 4, seedlings, and the east end freshly turned and waiting.
+  for(let x=X0+10;x<X1-46;x+=8){const y=rows[3];r(x,y-3,.5,3,LEAF[3]);e(x-1.2,y-3.5,1.5,.8,LEAF[4]);e(x+1.6,y-4,1.5,.8,LEAF[3]);}
+  for(let x=X1-42;x<X1-8;x+=4)r(x,rows[3]-1,2.5,1,SOIL[0]);l(X1-38,rows[3]+5,X1-14,rows[3]-6,1.5,EDGE);l(X1-38,rows[3]+5,X1-14,rows[3]-6,.8,W[3]);r(X1-16,rows[3]-9,6,3,EDGE);r(X1-15.5,rows[3]-8.5,5,2,M[2]);
+  // The south rail, in front of everything.
+  rail(X0,X1,Y1);for(const x of [X0,46,68,90,112,134,156,X1])post(x,Y1);
+  // West side, outside the fence: rain barrel with a tap, the watering can, and a rake leaning on the fence.
+  e(11,62,11,3.5,SHADOW);r(1,30,20,30,EDGE);r(2,31,18,28,W[2]);e(11,31,9.5,3,EDGE);e(11,31,8.5,2.4,'#24414c');r(5,33,10,.5,'#6c8f99');for(const y of [38,52])r(1.5,y,19,2,M[1]);r(2,31,4,28,W[3]);r(17,31,3,28,W[1]);
+  r(19,48,4,2,EDGE);r(20,48.5,2.5,1,M[3]);r(21,50,.5,2,'#6c8f99');
+  e(9,77,7,2.5,SHADOW);r(4,68,10,9,EDGE);r(5,69,8,7,M[2]);r(5,69,8,1,M[3]);l(13,71,19,66,1.5,EDGE);l(13,71,19,66,.7,M[2]);r(18,64.5,3,2.5,EDGE);r(5.5,66,7,1.5,EDGE);
+  l(21,27,15,2,2,EDGE);l(21,27,15,2,1,W[3]);r(10,0,10,2.5,EDGE);r(10.5,.5,9,1.5,M[2]);for(let i=0;i<5;i++)r(10.5+i*2,2.5,1,2.5,EDGE),r(10.75+i*2,2.5,.5,2,M[3]);},
  laundry(g,o){const {e,r,l,p}=g;e(50,6,52,4,SHADOW);for(const x of [0,94]){r(x,-62,5,70,EDGE);r(x+1,-61,3,68,W[2]);r(x+1,-61,1,68,W[3]);}
   const sag=x=>-58+Math.sin(x/96*Math.PI)*7;for(let x=4;x<94;x+=1)r(x,sag(x),1,.5,'#a39a84');
   const cloth=(x,w,h,col,hi)=>{const y=sag(x+w/2)+.5;p([[x,y],[x+w,y],[x+w-.5,y+h],[x+.5,y+h]],EDGE);r(x+.5,y+.5,w-1,h-1,col);r(x+.5,y+.5,w-1,1.5,hi);r(x+1,y-1,1,2,'#c9c0aa');r(x+w-2,y-1,1,2,'#c9c0aa');};
