@@ -377,7 +377,7 @@ dialog .icon:hover,dialog .icon:focus-visible{border-color:var(--ember-hi);color
 .pause-grid .primary{justify-content:center;font-size:17px;letter-spacing:.14em;background:linear-gradient(#f08a45,#c9581d);color:var(--ember-ink);border:0;clip-path:var(--notch);box-shadow:none;text-shadow:0 1px 0 #ffffff40}
 .pause-grid .primary:hover,.pause-grid .primary:focus-visible{background:linear-gradient(#ffa060,#dd6f2c);outline:none}
 .pause-grid .primary kbd{margin-left:0}
-#resume{--ic:var(--ic-resume)}#travel{--ic:var(--ic-travel)}#inspectMenu{--ic:var(--ic-character)}#equipment{--ic:var(--ic-gear)}#zoom{--ic:var(--ic-zoom)}#fullscreen{--ic:var(--ic-full)}#reset{--ic:var(--ic-reset)}#coopBeds{--ic:var(--ic-beds)}
+#resume{--ic:var(--ic-resume)}#travel{--ic:var(--ic-travel)}#inspectMenu{--ic:var(--ic-character)}#equipment{--ic:var(--ic-gear)}#zoom{--ic:var(--ic-zoom)}#fullscreen{--ic:var(--ic-full)}#reset{--ic:var(--ic-reset)}#coopBeds{--ic:var(--ic-beds)}#effects{--ic:var(--ic-fx)}
 .pause-grid #reset{color:var(--dust)}
 /* The place notes in the pause menu read as a field notebook entry. */
 .options-body>p#optionsText{position:relative;margin:2px 0;padding:12px 14px 13px 16px;font:400 13.5px/1.6 var(--body);color:#cfc6b6;background:#0d0c0b80;border:1px solid #ffffff0d;border-left:3px solid var(--ember);border-radius:2px}
@@ -487,6 +487,10 @@ body.touch:not(.pad) #runToggle.on{background:radial-gradient(circle at 50% 30%,
 @media(orientation:landscape) and (max-height:560px){dialog:not(.creator) h1{font-size:24px}.dialog-head{padding:11px 18px 12px}.pause-grid button{min-height:44px}.identity>b{font-size:18px}#loading{font-size:28px}}
 @media(prefers-reduced-motion:reduce){#prompt::after,#act::after,#loading::before,#loading::after{animation:none}}
 /* Travel gets its own row; in the Training Grounds so does Return to the start, so every row is full. Touch hides key hints. */
-.pause-grid #travel,body:not(.camp) .pause-grid #reset{grid-column:1/-1}
+.pause-grid #travel{grid-column:1/-1}
 .touch:not(.pad) .pause-grid kbd{display:none}
 @media(max-width:480px){.pause-grid button{font-size:13px;letter-spacing:.06em;gap:10px;padding:0 10px}.pause-grid button::before{width:20px;height:20px}.pause-grid .primary{font-size:16px}}
+:root{--ic-fx:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.5l1.8 5.2l5.2 1.8l-5.2 1.8L12 17.5l-1.8-5.2L5 10.5l5.2-1.8zM18.5 15.5l.8 2.2l2.2.8l-2.2.8l-.8 2.2l-.8-2.2l-2.2-.8l2.2-.8z'/%3E%3C/svg%3E");}
+/* v0.28 a soft vignette over the game view, off on low effects. */
+#game::after{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(125% 100% at 50% 46%,transparent 52%,#0b0a0955 80%,#0b0a09b0 100%)}
+.fx-low #game::after{display:none}

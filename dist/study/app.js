@@ -1,5 +1,5 @@
 import {GUNS,GRENADES,PAINT,readLoadout,saveLoadout} from './equipment.js';import {WAVES} from './drill.js';import {SHOP} from '../grounds/data.js';import {readWallet,saveWallet,turnIn,buy,owns,perks,mods} from './wallet.js';
-import {PadInput,PAD} from '../pad.js';
+import {PadInput,PAD} from '../pad.js';import {Quality} from './quality.js';
 import {readAppearance,saveAppearance} from './appearance.js';
 import {createCreator} from './creator.js';
 import {StudyModel} from './model.js';import {makeStudyScene} from './scene.js';import {DIRECTIONS} from './character.js';import {FloatingStick} from '../layout.js';
@@ -61,6 +61,10 @@ $('inspect').onclick=()=>openDialog('inspection');$('menu').onclick=()=>openDial
 // Menu entries that lead elsewhere close the pause menu first.
 const fromMenu=fn=>()=>{if($('options').open)closeDialog('options');fn();};$('inspectMenu').onclick=fromMenu(()=>openDialog('inspection'));$('closeInspect').onclick=$('returnRoom').onclick=()=>closeDialog('inspection');$('closeOptions').onclick=()=>closeDialog('options');for(let id of ['inspection','options'])$(id).addEventListener('close',resetInput);
 function cycleZoom(){zoomIndex=(zoomIndex+1)%ZOOMS.length;paintZoom();}function paintZoom(){const zl=$('zoom').firstChild;if(zl)zl.textContent='Camera: '+ZOOMS[zoomIndex].name+' ';}$('zoom').onclick=cycleZoom;
+// Effects: Auto watches the frame rate once a second while you play; the menu can fix it at High or Low.
+const quality=new Quality(storage);function paintEffects(){$('effects').textContent='Effects: '+quality.label;document.body.classList.toggle('fx-low',quality.low);}
+quality.onChange(paintEffects);paintEffects();$('effects').onclick=()=>quality.cycle();
+setInterval(()=>{if(game&&!halted())quality.sample(game.loop?.actualFps);paintEffects();},1000).unref?.();
 $('reset').onclick=()=>{if(place==='camp'){play.stop();campModel.reset();heel(campPet,campModel);}else{model.reset();scene?.practice.reset();heel(roomPet,model);}closeDialog('options');};
 // Until co-op exists, this shows all four sleeping spots so the shelter can be judged full.
 $('coopBeds').onclick=()=>{campModel.campers=campModel.campers>1?1:MAX_CAMPERS;const on=campModel.campers>1;$('coopBeds').textContent='Preview co-op beds: '+(on?'On':'Off');$('coopBeds').setAttribute('aria-pressed',String(on));};
@@ -112,7 +116,7 @@ function paintWeapon(p){const g=GUNS[loadout.gun],mag=p.mag,reload=g&&p.reloadTi
  $('ammoWord').textContent=p.reloadTime?'Reloading':ammo?'Reload':'Empty · reload';
  $('reloadRing').style.setProperty('--p',p.reloadTime?reload:g?ammo/mag:0);$('reload').classList.toggle('busy',!!p.reloadTime);$('reload').classList.toggle('low',!!low);
  $('throwRing').style.setProperty('--p',cool?1-cool:1);$('throwFill').style.width=(cool?1-cool:1)*100+'%';$('throwGrenade').classList.toggle('busy',cool>0);}
-const bridge={petLook:()=>petLook(companion),pet:()=>roomPet,petStep:dt=>{if(!halted())roomPet.update(dt,ownerOf(model));},paused,loadout:gear,appearance:()=>appearance,zoom,res:RES,input:()=>{const pa=padState.aim;if(pa.x||pa.y){mousePoint=null;aim={x:pa.x,y:pa.y};}else if(mousePoint){const p=scene.cameras.main.getWorldPoint(mousePoint.x,mousePoint.y);aim={x:p.x-model.x,y:p.y+35-model.y};}return {x:move.x+padState.move.x+Number(keys.has('d')||keys.has('arrowright'))-Number(keys.has('a')||keys.has('arrowleft')),y:move.y+padState.move.y+Number(keys.has('s')||keys.has('arrowdown'))-Number(keys.has('w')||keys.has('arrowup')),run:(running&&touch())||padState.run||keys.has('shift'),aimX:aim.x,aimY:aim.y,fire:firing||mouseFire||padState.fire||keys.has(' ')};},ready:s=>{scene=s;ready=true;connectMouse(s);s.practice.setMods(mods(wallet));if(place==='camp')setTimeout(()=>travel('camp'));else $('loading').hidden=true;},lead:dt=>leadStep(dt,scene.cameras.main),tick:now=>{paintWeapon(scene.practice);paintDrill(scene.practice.drill,now);roomPrompt(scene);if($('inspection').open)paintInspection(now);},contextLost:()=>{contextMissing=true;resetInput();$('status').textContent='Graphics paused. Waiting to reconnect…';},contextRestored:()=>{contextMissing=false;$('status').textContent='';}};
+const bridge={quality,petLook:()=>petLook(companion),pet:()=>roomPet,petStep:dt=>{if(!halted())roomPet.update(dt,ownerOf(model));},paused,loadout:gear,appearance:()=>appearance,zoom,res:RES,input:()=>{const pa=padState.aim;if(pa.x||pa.y){mousePoint=null;aim={x:pa.x,y:pa.y};}else if(mousePoint){const p=scene.cameras.main.getWorldPoint(mousePoint.x,mousePoint.y);aim={x:p.x-model.x,y:p.y+35-model.y};}return {x:move.x+padState.move.x+Number(keys.has('d')||keys.has('arrowright'))-Number(keys.has('a')||keys.has('arrowleft')),y:move.y+padState.move.y+Number(keys.has('s')||keys.has('arrowdown'))-Number(keys.has('w')||keys.has('arrowup')),run:(running&&touch())||padState.run||keys.has('shift'),aimX:aim.x,aimY:aim.y,fire:firing||mouseFire||padState.fire||keys.has(' ')};},ready:s=>{scene=s;ready=true;connectMouse(s);s.practice.setMods(mods(wallet));if(place==='camp')setTimeout(()=>travel('camp'));else $('loading').hidden=true;},lead:dt=>leadStep(dt,scene.cameras.main),tick:now=>{paintWeapon(scene.practice);paintDrill(scene.practice.drill,now);roomPrompt(scene);if($('inspection').open)paintInspection(now);},contextLost:()=>{contextMissing=true;resetInput();$('status').textContent='Graphics paused. Waiting to reconnect…';},contextRestored:()=>{contextMissing=false;$('status').textContent='';}};
 
 // Firelight Camp. Same movement and touch controls; Talk replaces the shooting controls.
 // The camera leans the way you aim, as in Helldivers, so you see what you are shooting at; it drifts back when you stop aiming.
@@ -191,8 +195,8 @@ heel(campPet,campModel);const petTarget={id:'pet',kind:'pet',range:40,facing:tru
 const ownerOf=(m,busy=false)=>({x:m.x,y:m.y,direction:m.direction,moving:m.moving,running:m.running,busy});
 const campInput=()=>{let x=move.x+padState.move.x+Number(keys.has('d')||keys.has('arrowright'))-Number(keys.has('a')||keys.has('arrowleft')),y=move.y+padState.move.y+Number(keys.has('s')||keys.has('arrowdown'))-Number(keys.has('w')||keys.has('arrowup'));const m=Math.hypot(x,y);if(m>1){x/=m;y/=m;}return {x,y,run:(running&&touch())||padState.run||keys.has('shift')};};
 // For local testing only: ?debug exposes the camp to the console.
-if(/[?&]debug\b/.test(globalThis.location?.search||""))window.deadlight={campModel,roomModel:model,get roomScene(){return scene;},play,campPet,get campScene(){return campScene;},get lead(){return lead;},get running(){return running;}};
-const campBridge={paused,zoom,res:RES,look:()=>survivorLook,
+if(/[?&]debug\b/.test(globalThis.location?.search||""))window.deadlight={quality,campModel,roomModel:model,get roomScene(){return scene;},play,campPet,get campScene(){return campScene;},get lead(){return lead;},get running(){return running;}};
+const campBridge={quality,paused,zoom,res:RES,look:()=>survivorLook,
  input:()=>play.fishing?{x:0,y:0,run:false}:campInput(),step:dt=>{if(!halted())play.update(dt,campInput());},
  fishing:()=>play.view(),busy:()=>!!play.active(),
  petLook:()=>petLook(companion),pet:()=>campPet,petStep:dt=>{if(!halted())campPet.update(dt,ownerOf(campModel,play.active()));},

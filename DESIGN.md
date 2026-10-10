@@ -372,3 +372,20 @@ Every screen now shares one salvage look, built in CSS on top of the old layers 
 - **Touch:** sticks are dark wells with a tick ring and an iron knob. Round buttons have an inner seam. The portrait console is diamond plate with a hazard strip.
 - **Small touches:** prompts are tags with a bobbing pointer. The Use button breathes while there is something to use. The loading card has a pixel campfire and a sweep bar. The shop has pixel icons for every item, tokens and parts.
 - **Phones:** no backdrop blur anywhere. The only animations are transforms and opacity on small elements.
+
+### v0.28.0 — stage 2: Firelight Camp comes alive
+- **Light and colour:** the ambient is darker and cooler (`AMBIENT` .5/.55/.74), and the fire throws a bigger, warmer pool (radius 300). Warm pools now read against cool shadow, which is the camp's grade.
+- **Living light:** one flicker value drives the fire's glow, both its brightness and its size. Every lantern's glass gets a small breathing halo. Four moonlight shafts fall through the cave mouth and drift slowly.
+- **Smoke:** soft puffs rise and spread from the fire, Stan's forge chimney and the generator's exhaust. They sit under the lighting, so the firelight colours them.
+- **Dust:** 28 specks drift up through the fire and lantern pools and fade at the edge of the light.
+- **Movement:** the washing sways on its line (five drawings, swapped every 0.24 s). The generator shivers, and its green lamp blinks.
+- **Ground:** the sand is warmer, with mid-scale grain and wind ripples. The earth is packed darker where people stand, sit and work: tents, logs, tables, the forge, the range, the pot, the board, the rack, the woodpile, the cart, the shed and the shelter. Everything standing on the sand gets a soft dark pool. There are scraps of camp life (cans, offcuts, paper, rope, bottle caps) near the work spots, and pale cave grass along the walls and round the drips.
+- **Wear:** every standing prop gets a grimy band at its foot. Canvas and wood get dirt specks toward the bottom. Both are painted only over the prop's own pixels.
+- **Vignette:** a soft vignette, drawn in CSS over the game view.
+
+**Effects quality** (`study/quality.js`, saved as `deadlight-quality-v1`) has three settings, set from Effects in the pause menu:
+- **High:** all effects on.
+- **Low:** the moonlight shafts, the dust and the vignette are off, and the smoke comes about half as often.
+- **Auto** (the default): starts on High and samples the game's frame rate once a second while you play. Three slow seconds in a row (under 45 fps) switch it to Low; ten smooth ones (55 or more) switch it back.
+
+A large additive bounce glow over the fire was tried and cut, because it cost the most frame rate for the least gain.

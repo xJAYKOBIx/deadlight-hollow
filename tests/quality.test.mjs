@@ -1,0 +1,15 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {Quality,QUALITY_KEY,SLOW_SECONDS,SMOOTH_SECONDS} from '../dist/study/quality.js';
+const store=()=>{const m=new Map();return {getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,String(v))};};
+test('auto effects drop after a few slow seconds and come back after smooth ones',()=>{const q=new Quality(store()),seen=[];q.onChange(low=>seen.push(low));
+ assert.equal(q.mode,'auto');assert.equal(q.low,false);
+ for(let i=0;i<SLOW_SECONDS-1;i++)q.sample(30);assert.equal(q.low,false,'one bad patch is not enough');q.sample(50);q.sample(30);assert.equal(q.low,false,'the slow run must be unbroken');
+ for(let i=0;i<SLOW_SECONDS;i++)q.sample(30);assert.equal(q.low,true);assert.match(q.label,/Auto \(Low\)/);
+ for(let i=0;i<SMOOTH_SECONDS-1;i++)q.sample(60);assert.equal(q.low,true);q.sample(60);assert.equal(q.low,false);assert.deepEqual(seen,[true,false]);
+ q.sample(0);q.sample(NaN);assert.equal(q.low,false,'missing readings are ignored');});
+test('a fixed effects choice ignores the frame rate and is kept on this device',()=>{const s=store(),q=new Quality(s);
+ q.cycle();assert.equal(q.mode,'high');for(let i=0;i<10;i++)q.sample(20);assert.equal(q.low,false);
+ q.cycle();assert.equal(q.mode,'low');assert.equal(q.low,true);assert.equal(s.getItem(QUALITY_KEY),'low');
+ assert.equal(new Quality(s).mode,'low');q.cycle();assert.equal(q.mode,'auto');
+ s.setItem(QUALITY_KEY,'ultra');assert.equal(new Quality(s).mode,'auto','unknown values fall back to auto');
+ assert.equal(new Quality(null).mode,'auto');});

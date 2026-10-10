@@ -2,7 +2,7 @@ import {survivor,FRAME,FRAME_COUNT} from '../study/character.js';
 import {CAMP,PROPS,RESIDENTS,LIGHTS} from './data.js';
 import {groundArt,frontArt,FRONT_Y,propArt,PROP_PAD,flameArt,FLAME,lightArt,LIGHT_SCALE,glowArt,iconArt,ICON,ICONS,shoreX,hash,fishArt} from './art.js';
 import {PIER_END} from './play.js';
-import {CaveLife} from './life.js';
+import {CaveLife,LAMP_GLASS} from './life.js';
 import {addPet,placePet,petSheet,drawHearts} from '../companion/sprite.js';
 // Residents turn to face you when you come close.
 const FACE_RANGE=130;
@@ -14,7 +14,7 @@ export function makeCampScene(model,bridge){return class Camp extends Phaser.Sce
  create(){
   this.texture('camp-ground',CAMP.w*2,CAMP.h*2,groundArt);this.add.image(0,0,'camp-ground').setOrigin(0).setScale(.5).setDepth(-10);
   this.water=this.add.graphics().setDepth(-5);
-  this.rackFish=bridge.rackFish?.()||0;this.slots=[];for(const o of PROPS){this.texture('camp-'+o.id,(o.w+PROP_PAD*2)*2,(o.h+o.z+PROP_PAD*2)*2,c=>propArt(c,o.id==='rack'?{...o,fish:this.rackFish}:o));const img=this.add.image(o.x-PROP_PAD,o.y-o.z-PROP_PAD,'camp-'+o.id).setOrigin(0).setScale(.5).setDepth(o.flat?0:o.y+o.h);if(o.slot!==undefined)this.slots.push({slot:o.slot,img});}
+  this.rackFish=bridge.rackFish?.()||0;this.slots=[];for(const o of PROPS){this.texture('camp-'+o.id,(o.w+PROP_PAD*2)*2,(o.h+o.z+PROP_PAD*2)*2,c=>propArt(c,o.id==='rack'?{...o,fish:this.rackFish}:o));const img=this.add.image(o.x-PROP_PAD,o.y-o.z-PROP_PAD,'camp-'+o.id).setOrigin(0).setScale(.5).setDepth(o.flat?0:o.y+o.h);if(o.slot!==undefined)this.slots.push({slot:o.slot,img});if(o.id==='laundry'||o.id==='generator')this[o.id]={o,img,x:img.x};}
   this.campers=0;this.setCampers(model.campers);
   const flames=this.texture('camp-flame',FLAME.w*2*FLAME.frames,FLAME.h*2,flameArt);for(let f=0;f<FLAME.frames;f++)if(!flames.has(f))flames.add(f,0,f*FLAME.w*2,0,FLAME.w*2,FLAME.h*2);
   const fire=PROPS.find(o=>o.id==='fire'),pot=PROPS.find(o=>o.id==='pot');
@@ -46,6 +46,7 @@ export function makeCampScene(model,bridge){return class Camp extends Phaser.Sce
   this.texture('camp-spit',80,40,()=>{});this.spit=this.add.image(fire.x+fire.w/2,fire.y-6,'camp-spit').setScale(.5).setDepth(fire.y+fire.h+3).setVisible(false);this.spitG=this.add.graphics().setDepth(fire.y+fire.h+2);this.spitShown=-1;
   this.cameras.main.setBackgroundColor('#0b0c10').setBounds(0,0,CAMP.w,CAMP.h).setZoom(this.zoom()).centerOn(model.x,model.y-20);
   this.events.on('wake',()=>{this.setPlayerLook(bridge.look());this.setPetLook(bridge.petLook());bridge.ready(this);});
+  this.makeLiving(fire);
   bridge.ready(this);}
  setPlayerLook(look){const t=this.textures.get('survivor-01'),c=t.context;c.clearRect(0,0,FRAME.w*8,FRAME.h*FRAME_COUNT);c.imageSmoothingEnabled=false;for(let f=0;f<FRAME_COUNT;f++)for(let d=0;d<8;d++){c.save();c.translate(d*FRAME.w,f*FRAME.h);c.scale(2,2);survivor(c,d,f,true,{...look,zombie:0,gun:'none',grenade:null});c.restore();}t.refresh();}
  update(now,delta){const dt=Math.min(.05,delta/1000);
@@ -57,11 +58,47 @@ export function makeCampScene(model,bridge){return class Camp extends Phaser.Sce
   if(target){const bob=Math.round(Math.sin(now/180)*2*2)/2,x=target.mx??target.x,y=target.kind==='resident'?target.y-116:target.my;this.marker.setVisible(true).setPosition(x,y+bob);}else this.marker.setVisible(false);
   this.flame.setFrame(Math.floor(now/90)%FLAME.frames);this.potFlame.setFrame((Math.floor(now/110)+3)%FLAME.frames);
   this.glow.setAlpha(.34+.05*Math.sin(now*.013)+.03*Math.sin(now*.037));this.lampGlows.forEach((g,i)=>g.setAlpha(.16+.03*Math.sin(now*.005+i*2)));
-  this.setCampers(model.campers);this.effects(now,dt);this.life.update(now,dt,[model,pal]);this.petFx.clear();drawHearts(this.petFx,pal,bridge.petTarget().my+6,now);this.drawFishing(fishing,now,dt);this.drawSpit(bridge.cooking?.(),now);
+  this.setCampers(model.campers);this.effects(now,dt);this.living(now,dt);this.life.update(now,dt,[model,pal]);this.petFx.clear();drawHearts(this.petFx,pal,bridge.petTarget().my+6,now);this.drawFishing(fishing,now,dt);this.drawSpit(bridge.cooking?.(),now);
   // While fishing, the camera moves in close and leans out over the water so the bobber and the fish stay in view.
   this.camOff+=((fishing?1:0)-this.camOff)*Math.min(1,dt*3);this.cookOff=(this.cookOff||0)+((bridge.busy?.()&&!fishing?1:0)-(this.cookOff||0))*Math.min(1,dt*3);const cam=this.cameras.main,z=this.zoom(),fz=Math.max(z,Math.min(2.4*(bridge.res||1),this.scale.height/220,this.scale.width/220)),k=this.camOff;
   cam.setZoom(z+(fz-z)*k);cam.centerOn(model.x+44*k+30*this.cookOff,model.y-20-42*k+56*this.cookOff);bridge.tick(now,this);}
  setPetLook(look){petSheet(this,look);}
+ // v0.28 living camp: the fire's glow breathes, lantern glass blooms, moonlight falls through the cave mouth in shafts, smoke rises
+ // from the fire, the forge and the generator, dust drifts in the light, and the washing sways. Low quality keeps the cheap parts.
+ makeLiving(fire){const ADD=Phaser.BlendModes.ADD,q=bridge.quality;
+  this.halos=LAMP_GLASS.map(g=>this.add.image(g.x,g.y,'camp-glow').setScale(.2).setDepth(6001).setBlendMode(ADD).setAlpha(.45));
+  this.texture('camp-shaft',32,128,c=>{for(let y=0;y<128;y++){const v=Math.pow(1-y/128,1.4);for(let x=0;x<32;x++){const u=Math.exp(-(((x-15.5)/9)**2));c.fillStyle=`rgba(200,220,255,${(u*v).toFixed(3)})`;c.fillRect(x,y,1,1);}}});this.textures.get('camp-shaft').setFilter(Phaser.Textures.FilterMode.LINEAR);
+  this.shafts=[[1660,40,.42,2.2,5.4],[1735,30,.36,1.4,6],[1800,36,.3,2.8,5],[1880,44,.26,1.6,4.2]].map(([x,y,a,w,h],i)=>({img:this.add.image(x,y,'camp-shaft').setOrigin(.5,0).setRotation(a).setScale(w,h).setDepth(6001).setBlendMode(ADD).setAlpha(.06),base:.05+i%2*.02,ph:i*1.7}));
+  this.texture('camp-puff',32,32,c=>{const g=c.createRadialGradient(16,16,0,16,16,16);g.addColorStop(0,'rgba(255,255,255,.9)');g.addColorStop(.55,'rgba(255,255,255,.35)');g.addColorStop(1,'rgba(255,255,255,0)');c.fillStyle=g;c.fillRect(0,0,32,32);});this.textures.get('camp-puff').setFilter(Phaser.Textures.FilterMode.LINEAR);
+  this.puffPool=[];this.clouds=[];const forge=PROPS.find(o=>o.id==='forge'),gen=PROPS.find(o=>o.id==='generator');
+  this.chimneys=[{x:fire.x+fire.w/2,y:fire.y-14,every:240,low:620,life:4.6,vy:-15,size:[.35,1.5],tint:0xb3ada5,alpha:.34,spread:5,next:0},
+   {x:forge.x+20,y:forge.y-68,every:650,low:1400,life:3.6,vy:-12,size:[.25,1],tint:0x8a8279,alpha:.36,spread:2,next:0},
+   {x:gen.x+36,y:gen.y-gen.z+3,every:420,low:1100,life:1.3,vy:-10,size:[.12,.45],tint:0x77736c,alpha:.4,spread:1,next:0}];
+  this.motes=Array.from({length:28},(_,i)=>this.newMote(i));
+  if(this.laundry){this.swayKeys=[-1,-.55,0,.55,1].map((sw,i)=>{const k='camp-laundry-'+i,o=this.laundry.o;this.texture(k,(o.w+PROP_PAD*2)*2,(o.h+o.z+PROP_PAD*2)*2,c=>propArt(c,{...o,sway:sw}));return k;});this.swayStep=0;this.nextSway=0;}
+  this.nextJig=0;q?.onChange(()=>this.applyQuality());this.applyQuality();}
+ applyQuality(){const low=!!bridge.quality?.low;for(const s of this.shafts)s.img.setVisible(!low);}
+ newMote(i){const lamps=[[800,640,150],[800,640,150],[800,640,110],...this.lampGlows.slice(1).map(g=>[g.x,g.y-20,46])],[x,y,r]=lamps[Math.floor(Math.random()*lamps.length)],a=Math.random()*6.28,d=Math.sqrt(Math.random())*r;
+  return {cx:x,cy:y,r,x:x+Math.cos(a)*d,y:y+Math.sin(a)*d*.7-Math.random()*30,vx:(Math.random()-.5)*4,vy:-1-Math.random()*3,ph:Math.random()*6.28,life:4+Math.random()*6};}
+ living(now,dt){const t=now/1000,low=!!bridge.quality?.low;
+  // One flicker for the whole fire, so the flame, its glow and the light it throws agree.
+  const f=.5+.28*Math.sin(t*13.1)+.16*Math.sin(t*37.3+1)+.06*Math.sin(t*71+2);
+  this.glow.setAlpha(.28+.14*f).setScale(3.1+.2*f,2.15+.14*f);
+  this.halos.forEach((h,i)=>h.setAlpha(.36+.1*Math.sin(t*5.3+i*1.9)+.05*Math.sin(t*17+i)));
+  if(!low)for(const s of this.shafts)s.img.setAlpha(s.base+.025*Math.sin(t*.35+s.ph)+.012*Math.sin(t*1.1+s.ph*2));
+  // Smoke: soft puffs that rise, spread and thin out. They sit under the lighting, so the firelight colours them.
+  for(const c of this.chimneys)if(now>c.next){c.next=now+(low?c.low:c.every)*(.75+Math.random()*.5);const img=this.puffPool.pop()||this.add.image(0,0,'camp-puff').setDepth(5600);
+   img.setVisible(true).setPosition(c.x+(Math.random()-.5)*c.spread,c.y).setTint(c.tint);this.clouds.push({img,c,age:0,vx:(Math.random()-.5)*3,rot:(Math.random()-.5)*.6});}
+  this.clouds=this.clouds.filter(p=>{p.age+=dt;const c=p.c,k=p.age/c.life;if(k>=1){p.img.setVisible(false);this.puffPool.push(p.img);return false;}
+   p.img.x+=(p.vx+4+Math.sin(t*.7+p.age)*3)*dt*(.3+k);p.img.y+=c.vy*dt*(1-k*.5);p.img.setScale(c.size[0]+(c.size[1]-c.size[0])*k).setRotation(p.img.rotation+p.rot*dt).setAlpha(c.alpha*Math.min(1,k*5)*(1-k));return true;});
+  // Dust in the light: specks drift up through each pool and twinkle out at its edge.
+  const fx=this.fx;if(!low)for(let i=0;i<this.motes.length;i++){const m=this.motes[i];m.life-=dt;m.x+=(m.vx+Math.sin(t*.8+m.ph)*3)*dt;m.y+=m.vy*dt;
+   const d=Math.hypot(m.x-m.cx,(m.y-m.cy)/.7)/m.r;if(m.life<=0||d>1){this.motes[i]=this.newMote(i);continue;}
+   const a=(1-d)*Math.min(1,m.life*.5)*(.55+.45*Math.sin(t*3+m.ph));fx.fillStyle(0xffdcaa,a*.8);fx.fillRect(Math.round(m.x*2)/2,Math.round(m.y*2)/2,.5,.5);}
+  // The washing sways on its line; the generator shivers and its lamp blinks.
+  if(this.laundry&&now>this.nextSway){this.nextSway=now+240;this.swayStep=(this.swayStep+1)%8;this.laundry.img.setTexture(this.swayKeys[[2,3,4,4,3,2,1,0][this.swayStep]]);}
+  if(this.generator&&now>this.nextJig){this.nextJig=now+70;this.generator.img.setX(this.generator.x+(Math.random()>.5?.5:0));}
+  if(this.generator&&Math.floor(t*1.2)%2===0){const o=this.generator.o;fx.fillStyle(0x8fd14f,.95);fx.fillRect(o.x+o.w-7,o.y-o.z+11,1,1);fx.fillStyle(0x8fd14f,.25);fx.fillRect(o.x+o.w-8,o.y-o.z+10,3,3);}}
  // Beds and chests appear as co-op players join: spot 0 is always yours.
  setCampers(n){if(n===this.campers)return;this.campers=n;for(const s of this.slots)s.img.setVisible(s.slot<n);}
  setRackFish(n){n=Math.min(9,n);if(n===this.rackFish)return;this.rackFish=n;const o=PROPS.find(p=>p.id==='rack'),t=this.textures.get('camp-rack'),c=t.context;c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,t.width,t.height);propArt(c,{...o,fish:n});t.refresh();}

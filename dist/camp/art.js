@@ -39,8 +39,13 @@ const HORIZON=118;
 const PATHS=[[[800,660],[810,330]],[[780,630],[520,520],[386,262]],[[520,520],[170,270]],[[830,630],[1150,420]],[[830,670],[1000,800]],[[840,650],[1400,486]],[[770,650],[330,620]],[[330,620],[230,560]],[[770,680],[560,840],[300,1040]],[[560,840],[385,1090],[385,1240],[860,1236]],[[640,1236],[640,1150]],[[1000,800],[1090,900]]];
 function pathDist(x,y){let best=1e9;for(const line of PATHS)for(let i=1;i<line.length;i++){const [ax,ay]=line[i-1],[bx,by]=line[i],dx=bx-ax,dy=by-ay,t=Math.max(0,Math.min(1,((x-ax)*dx+(y-ay)*dy)/(dx*dx+dy*dy)));best=Math.min(best,Math.hypot(x-ax-dx*t,y-ay-dy*t));}return best+5*Math.sin(x*.06+y*.04)+3*Math.sin(y*.11);}
 const rgb=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
-const SAND=['#5f5444','#6c604d','#766a55','#80735d','#8b7e66'].map(rgb),PATH=['#7d715b','#857862','#8c806a'].map(rgb),WET=['#4c483f','#545046','#5c574b'].map(rgb),FOAM=rgb('#9fb0ab');
+const SAND=['#615343','#6e5f4b','#796953','#84735b','#8f7e64'].map(rgb),PATH=['#7d715b','#857862','#8c806a'].map(rgb),WET=['#4c483f','#545046','#5c574b'].map(rgb),FOAM=rgb('#9fb0ab');
 const MOSS_HEX=['#34422c','#435437','#566a40'],MOSS=MOSS_HEX.map(rgb),EARTH=['#4a3d30','#524436','#5a4b3b','#64543f'].map(rgb),STRAW=rgb('#9a8a5c');
+// Where the ground is worn, per kind: [x, y, rx, ry] from the prop's corner.
+const WORN={tent:o=>[o.w/2,o.h+6,o.w/2+4,12],logH:o=>[o.w/2,o.h/2+4,o.w/2+14,15],table:o=>[o.w/2,o.h/2,o.w/2+16,o.h/2+14],forge:o=>[o.w/2,o.h+4,o.w/2+18,16],range:o=>[o.w/2,o.h+6,o.w/2+10,14],
+ pot:o=>[o.w/2,o.h/2+4,o.w/2+12,12],board:o=>[o.w/2,o.h+10,o.w/2+8,14],medtent:o=>[o.w/2,o.h+8,o.w/2-20,14],rack:o=>[o.w/2,o.h+4,o.w/2+6,10],woodpile:o=>[o.w/2,o.h/2,o.w/2+10,10],
+ cart:o=>[o.w/2,o.h/2,o.w/2+8,12],shed:o=>[o.w/2,o.h+6,o.w/2,12],generator:o=>[o.w/2,o.h/2,o.w/2+10,10],shelter:o=>[o.w/2,o.h+4,o.w/2-10,14]};
+const NO_AO=new Set(['fence','plot','tidepool','pier','boat','gencords','drum','gate','laundry','trellis']);
 const ROOTS=[[204,26],[520,40],[652,18],[900,34],[1060,22],[1230,30],[1370,26]];
 // Where water drips from the ceiling (the scene animates the drops) and where the glowing fungus grows.
 const DRUM_X=prop('drum').x+13;
@@ -83,7 +88,9 @@ function groundColor(x,y){
  // Inside the garden fence the sand gives way to packed, darker earth with bits of straw.
  if(inGarden(x,y)){const v=n*.6+g*.4;if(g>.985)return STRAW;return EARTH[v>.78?3:v>.5?2:v>.25?1:0];}
  const pd=pathDist(x,y);if(pd<7+n*7){const v=g*.6+n*.4;return v>.8?PATH[1]:v>.3?PATH[0]:SAND[2];}
- const v=n*.7+g*.3;return SAND[v>.82?4:v>.62?3:v>.4?2:v>.2?1:0];}
+ const v=n*.48+smooth(x/7,y/5)*.27+g*.25,i=v>.8?4:v>.62?3:v>.42?2:v>.24?1:0;
+ // Wind ripples: thin lighter ridges across the open sand, broken up by the noise.
+ if(pd>18&&Math.sin(x*.23+y*.61+n*9)>.94&&g>.3)return SAND[Math.min(4,i+1)];return SAND[i];}
 // The whole floor in one canvas: sand, rock walls, the inlet and a glimpse of night sky through the cave mouth.
 export function groundArt(c){
  const w=CAMP.w,h=CAMP.h,img=c.createImageData(w*2,h*2),d=img.data;
@@ -115,6 +122,23 @@ export function groundArt(c){
  // Rubble along the foot of the walls.
  for(let i=0;i<110;i++){const x=40+hash(i,21)*EAST,y=wallBottom(x)+2+hash(i,22)*8,s=1.5+hash(i,23)*3;e(x,y,s+.5,s*.7+.5,R[0]);e(x,y-.5,s,s*.6,R[2]);r(x-s*.5,y-s*.5,s*.6,.5,R[3]);}
  for(let i=0;i<70;i++){const y=230+hash(i,31)*(CAMP.h-320),x=westEdge(y)+3+hash(i,32)*6,s=1.5+hash(i,33)*2.5;e(x,y,s+.5,s*.7+.5,R[0]);e(x,y-.5,s,s*.6,R[2]);}
+ // v0.28 lived-in ground. Packed, darker earth where people stand, sit and work, and a soft dark pool under everything standing on the sand.
+ for(const o of PROPS){const wk=WORN[o.kind];if(wk){const [ox,oy,rx,ry]=wk(o);for(let k=0;k<4;k++)e(o.x+ox,o.y+oy,rx*(1-k*.2),ry*(1-k*.2),'#2a20171a');}
+  if(!o.flat&&!NO_AO.has(o.kind)&&o.y>232){const cx=o.x+o.w/2,cy=o.y+o.h-1;e(cx,cy,o.w/2+7,Math.max(4,o.h/2+3),'#120e0a14');e(cx,cy,o.w/2+3,Math.max(3,o.h/2+1),'#120e0a1a');}}
+ // Scraps of camp life near where people work: cans, rope, offcuts, paper and bottle caps.
+ const BUSY=PROPS.filter(o=>WORN[o.kind]);for(let i=0;i<140;i++){const o=BUSY[Math.floor(hash(i,301)*BUSY.length)],a=hash(i,302)*6.28,d=o.w/2+8+hash(i,303)*34,x=o.x+o.w/2+Math.cos(a)*d,y=o.y+o.h/2+Math.sin(a)*d*.6,t=hash(i,304);
+  if(x>shoreX(y)-6||inGarden(x,y)||y<wallBottom(x)+4)continue;
+  if(t<.22){r(x-.5,y,2.5,2,EDGE);r(x,y,1.5,1.5,'#8a8f94');r(x,y,1.5,.5,'#b9bec2');}
+  else if(t<.38){r(x-.5,y-.5,7,2,EDGE);r(x,y,6,1,W[2]);r(x,y,6,.5,W[3]);}
+  else if(t<.52){r(x,y,2.5,1.5,'#c9c0aa');r(x+.5,y+.5,1.5,.5,'#a39a84');}
+  else if(t<.64){e(x,y,3,1.6,'#3a2f22');e(x,y,2,1,'#8a7a55');e(x,y,1,.5,'#3a2f22');}
+  else if(t<.76){r(x,y,1,1,hash(i,305)>.5?'#b33a2a':'#c9a23a');}
+  else{r(x,y,1.5,.5,'#4e4538');r(x+2,y+1,1,.5,'#4e4538');}}
+ // Pale cave grass where the damp collects: along the foot of the walls, round the drips and under the moonlight by the mouth.
+ const tuft=(x,y,s)=>{const c=hash(x|0,y|0)>.5?'#5f6a41':'#4a5236';l(x,y,x-1.2*s,y-3*s,.5,c);l(x+.5,y,x+.5,y-3.8*s,.5,'#7a8450');l(x+1,y,x+2.2*s,y-2.6*s,.5,c);};
+ for(let i=0;i<150;i++){const x=60+hash(i,311)*(EAST-40),y=wallBottom(x)+4+hash(i,312)*12;if(inMouth(x,y)||x>shoreX(y)-4)continue;if(fbm(x/40,3)>.45)tuft(x,y,.7+hash(i,313)*.6);}
+ for(let i=0;i<80;i++){const y=240+hash(i,321)*(CAMP.h-360),x=westEdge(y)+6+hash(i,322)*12;if(fbm(y/50,9)>.5)tuft(x,y,.6+hash(i,323)*.6);}
+ for(const d of DRIPS.filter(d=>!d.into))for(let k=0;k<6;k++)tuft(d.x-12+hash(k,d.x+1)*24,d.y+3+hash(d.x,k+1)*6,.8);
  // Pebbles, shells and kelp on the sand.
  for(let i=0;i<1300;i++){const x=110+hash(i,41)*(EAST+60),y=236+hash(i,42)*(CAMP.h-340),sx=shoreX(y);if(x>sx-2||inGarden(x,y))continue;const t=hash(i,43);
   if(t<.62){const s=.8+hash(i,44)*1.4;r(x,y+s*.5,s*2,.5,'#4e4538');r(x,y,s*2,s,'#968970');r(x+.5,y,s,.5,'#a89b80');}
@@ -438,8 +462,9 @@ const ART={
   e(4,10,5,5,EDGE);e(4,10,4,4,M[1]);e(4,10,1.5,1.5,M[3]);r(8,8,4,8,EDGE);r(24,6,2,10,EDGE);},
  laundry(g,o){const {e,r,l,p}=g;e(50,6,52,4,SHADOW);for(const x of [0,94]){r(x,-62,5,70,EDGE);r(x+1,-61,3,68,W[2]);r(x+1,-61,1,68,W[3]);}
   const sag=x=>-58+Math.sin(x/96*Math.PI)*7;for(let x=4;x<94;x+=1)r(x,sag(x),1,.5,'#a39a84');
-  const cloth=(x,w,h,col,hi)=>{const y=sag(x+w/2)+.5;p([[x,y],[x+w,y],[x+w-.5,y+h],[x+.5,y+h]],EDGE);r(x+.5,y+.5,w-1,h-1,col);r(x+.5,y+.5,w-1,1.5,hi);r(x+1,y-1,1,2,'#c9c0aa');r(x+w-2,y-1,1,2,'#c9c0aa');};
-  cloth(10,16,18,'#5f6f80','#73859a');r(14,-30,8,.5,'#4c5a6a');cloth(32,12,24,'#5a4a3c','#6e5c4b');r(37.5,-36,1,13,'#4a3c30');cloth(50,18,14,'#a39a84','#bdb39b');cloth(74,6,9,'#7a3a2a','#8f4a38');cloth(82,6,9,'#7a3a2a','#8f4a38');},
+  // The scene redraws this with a sway (-1 to 1) a few times a second: the hems swing, the pegs stay put. Longer cloth swings further.
+  const sw=o.sway||0,cloth=(x,w,h,col,hi)=>{const y=sag(x+w/2)+.5,d=snap(sw*h*.14);p([[x,y],[x+w,y],[x+w-.5+d,y+h],[x+.5+d,y+h]],EDGE);p([[x+.5,y+.5],[x+w-.5,y+.5],[x+w-1+d,y+h-.5],[x+1+d,y+h-.5]],col);r(x+.5,y+.5,w-1,1.5,hi);r(x+1,y-1,1,2,'#c9c0aa');r(x+w-2,y-1,1,2,'#c9c0aa');return d;};
+  const d1=cloth(10,16,18,'#5f6f80','#73859a');r(14+d1*.6,-30,8,.5,'#4c5a6a');const d2=cloth(32,12,24,'#5a4a3c','#6e5c4b');r(37.5+d2*.5,-36,1,13,'#4a3c30');cloth(50,18,14,'#a39a84','#bdb39b');cloth(74,6,9,'#7a3a2a','#8f4a38');cloth(82,6,9,'#7a3a2a','#8f4a38');},
  sacks(g,o){const {e,r,p}=g;e(15,20,17,4,SHADOW);for(const [x,y,col] of [[2,-6,'#8a7a5a'],[14,-4,'#a08f6a'],[7,-16,'#968563']]){p([[x,y+18],[x+1,y+4],[x+3,y],[x+11,y],[x+13,y+4],[x+14,y+18]],EDGE);p([[x+1,y+17],[x+2,y+4.5],[x+4,y+1],[x+10,y+1],[x+12,y+4.5],[x+13,y+17]],col);r(x+5,y-2,4,3,EDGE);r(x+5.5,y-1.5,3,2,'#6b5d40');r(x+3,y+8,8,.5,'#6b5d40');r(x+3,y+12,8,.5,'#6b5d40');r(x+2,y+5,1,10,'#ffffff18');}},
  tidepool(g,o){const {e,r}=g,w=o.w,h=o.h;e(w/2,h/2,w/2+2,h/2+2,R[1]);e(w/2,h/2-.5,w/2,h/2,R[3]);e(w/2,h/2,w/2-3,h/2-2.5,'#1a3a4b');e(w/2-2,h/2-1,w/2-7,h/2-5,'#22485a');r(w*.3,h*.3,4,.5,'#7fa3ad');r(w*.55,h*.55,3,.5,'#5d8693');
   r(w*.62,h*.35,1.5,1.5,'#c46a4a');r(w*.62-1.5,h*.35+.5,4.5,.5,'#c46a4a');r(w*.3,h*.6,1.5,1,'#6b8a5a');r(w*.3+2,h*.62,1,1,'#7f9f6a');for(let i=0;i<6;i++){const a=i/6*6.28;r(w/2+Math.cos(a)*(w/2+1),h/2+Math.sin(a)*(h/2+1)-1,2,1,R[4]);}},
@@ -491,7 +516,14 @@ const ART={
  driftwood(g,o){const {l,r}=g;l(2,8,78,4,4,EDGE);l(2,7.5,78,3.5,2.8,'#8f8576');l(4,6.5,76,2.5,.8,'#a9a090');l(40,6,52,-2,2.5,EDGE);l(40,6,52,-2,1.5,'#8f8576');for(const x of [16,34,60])r(x,5,.5,2,'#6d665b');}
 };
 export const PROP_PAD=14;
-export function propArt(c,o){c.save();c.scale(2,2);c.translate(PROP_PAD,o.z+PROP_PAD);ART[o.kind](painter(c),o);c.restore();}
+export function propArt(c,o){c.save();c.scale(2,2);c.translate(PROP_PAD,o.z+PROP_PAD);ART[o.kind](painter(c),o);if(!o.flat&&!NO_WEAR.has(o.kind))wear(c,o);c.restore();}
+// v0.28 wear: painted only over the prop's own pixels. A grimy band darkens the foot of everything that stands on the sand,
+// and canvas and wood pick up specks of dirt toward the bottom.
+const NO_WEAR=new Set(['lantern','fence','gencords','pier','boat','tidepool','rock','laundry','plot','trellis','scarecrow']),SPECKLED=new Set(['tent','medtent','shelter','crate','cart','shed','board','sacks','table','woodpile']);
+function wear(c,o){c.save();c.globalCompositeOperation='source-atop';const tall=o.z+o.h,band=Math.min(16,Math.max(5,tall*.28)),g=c.createLinearGradient(0,o.h+2,0,o.h-band);
+ g.addColorStop(0,'rgba(24,17,11,.42)');g.addColorStop(1,'rgba(24,17,11,0)');c.fillStyle=g;c.fillRect(-PROP_PAD,o.h-band,o.w+PROP_PAD*2,band+PROP_PAD);
+ if(SPECKLED.has(o.kind)){const n=Math.round(o.w*tall/40);for(let i=0;i<n;i++){const x=hash(i,o.x|0)*o.w,y=o.h-Math.pow(hash(o.y|0,i),1.8)*tall;c.fillStyle=hash(i,i+o.w)>.7?'rgba(232,224,209,.12)':'rgba(30,22,14,.28)';c.fillRect(snap(x),snap(y),.5,hash(i,3)>.6?1:.5);}}
+ c.restore();}
 // Six flame frames, 48 x 60 units each, anchored at the bottom center (24, 56).
 export const FLAME={w:48,h:60,ax:24,ay:56,frames:6};
 export function flameArt(c){c.save();c.scale(2,2);const {p,r}=painter(c);
