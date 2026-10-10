@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Deadlight Cold Open</title><link rel="icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+:root{color-scheme:dark;--bg:#07080c;--bone:#e8e0d1;--dust:#a2998a;--ember:#dd6f2c;--ember-hi:#ff9a52;--ui:'Barlow Condensed',system-ui,sans-serif}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--bone);overflow:hidden;font-family:var(--ui)}
+#stage{position:fixed;inset:0}#stage canvas{image-rendering:pixelated}
+.overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#07080ce0;text-align:center;padding:24px}
+.overlay[hidden]{display:none}
+.overlay small{font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--dust)}
+.overlay h1{margin:0;font-size:34px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.overlay p{margin:0;max-width:30ch;font-size:15px;line-height:1.4;color:var(--dust)}
+.overlay button{margin-top:6px;min-width:168px;min-height:48px;padding:0 24px;border:1px solid #ffd2a0;border-radius:4px;background:linear-gradient(#ff9a52,#c0581f);color:#1b0f07;font:700 18px/1 var(--ui);letter-spacing:.12em;text-transform:uppercase;cursor:pointer;box-shadow:0 0 0 3px #dd6f2c33,0 6px 18px #0009}
+#replay{background:none;inset:auto 0 max(24px,env(safe-area-inset-bottom)) 0}
+#replay button{background:#161513e6;color:var(--bone);border-color:#3a352e}
+</style></head><body>
+<div id="stage"></div>
+<div class="overlay" id="start"><small>Deadlight Hollow · Cold open test</small><h1>Channel 6, 11:47 PM</h1><p>Five seconds of the night it started. Turn your sound on.</p><button id="watch">▶ Watch</button></div>
+<div class="overlay" id="replay" hidden><button id="again">↻ Replay</button></div>
+<script src="vendor/phaser-4.2.1.min.js"></script>
+<script type="module" src="cinematic/main.js"></script>
+</body></html>
