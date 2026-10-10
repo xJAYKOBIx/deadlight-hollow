@@ -341,3 +341,152 @@ body.deck.touch:not(.pad) #weaponHud{left:calc(var(--vx) + var(--sl));right:auto
 @media(prefers-reduced-motion:reduce){#hitFlash.on{animation-duration:.2s}}
 /* The paint color of the gun you are holding. */
 #weaponName::before{content:'';display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:50%;background:var(--paint,transparent);box-shadow:0 0 0 1px #0008;vertical-align:1px}
+
+/* v0.28 field kit. One look for every panel: welded iron plates with corner screws, a hazard stripe under each header, stencil type
+   for names and numbers, ember for what is live or yours, brass for tokens. No backdrop blur and no animated shadows, so phones stay fast. */
+:root{--iron:#1b1916;--iron-2:#24211d;--iron-3:#2e2a25;--seam:#0b0a09;--plate-edge:#433c33;--brass:#f2c46a;--ok:#9fd65a;--hurt:#e0503a;
+ --screw:radial-gradient(circle,#8f8471 0 1.1px,#3b352d 1.5px 2.3px,#0008 2.5px,transparent 3.1px);
+ --screws:var(--screw) left 3px top 3px/10px 10px no-repeat,var(--screw) right 3px top 3px/10px 10px no-repeat,var(--screw) left 3px bottom 3px/10px 10px no-repeat,var(--screw) right 3px bottom 3px/10px 10px no-repeat;
+ --hazard:repeating-linear-gradient(-45deg,var(--ember) 0 6px,#141311 6px 12px);
+ --plate:var(--screws),var(--grit),linear-gradient(172deg,#2a2621,#181613 64%,#141210);
+ --plate-shadow:0 0 0 1px var(--seam),inset 0 1px 0 #ffffff14,inset 0 -1px 0 #0009,0 16px 44px #000b;
+ --notch:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));
+ --seg:repeating-linear-gradient(90deg,transparent 0 9px,#0d0c0b 9px 11px);
+ --px-vest:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 11' shape-rendering='crispEdges'%3E%3Cpath fill='%23141311' d='M3 0h2v1h-2zM7 0h2v1h-2zM2 1h1v1h-1zM5 1h2v1h-2zM9 1h1v1h-1zM1 2h1v1h-1zM10 2h1v1h-1zM1 3h1v1h-1zM5 3h2v1h-2zM10 3h1v1h-1zM1 4h1v1h-1zM5 4h2v1h-2zM10 4h1v1h-1zM1 5h1v1h-1zM5 5h2v1h-2zM10 5h1v1h-1zM1 6h1v1h-1zM5 6h2v1h-2zM10 6h1v1h-1zM1 7h1v1h-1zM5 7h2v1h-2zM10 7h1v1h-1zM1 8h1v1h-1zM5 8h2v1h-2zM10 8h1v1h-1zM1 9h1v1h-1zM5 9h2v1h-2zM10 9h1v1h-1zM2 10h8v1h-8z'/%3E%3Cpath fill='%238fae4a' d='M3 1h2v1h-2zM7 1h2v1h-2zM2 2h1v1h-1zM4 2h4v1h-4zM9 2h1v1h-1zM2 3h1v1h-1zM4 3h1v1h-1zM7 3h1v1h-1zM9 3h1v1h-1zM2 4h3v1h-3zM7 4h3v1h-3zM4 5h1v1h-1zM7 5h1v1h-1zM2 6h3v1h-3zM7 6h3v1h-3zM2 7h1v1h-1zM4 7h1v1h-1zM7 7h1v1h-1zM9 7h1v1h-1zM2 8h3v1h-3zM7 8h3v1h-3z'/%3E%3Cpath fill='%235a6e3a' d='M3 2h1v1h-1zM8 2h1v1h-1zM3 3h1v1h-1zM8 3h1v1h-1zM2 5h2v1h-2zM8 5h2v1h-2zM3 7h1v1h-1zM8 7h1v1h-1zM2 9h3v1h-3zM7 9h3v1h-3z'/%3E%3C/svg%3E");--px-loader:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 11' shape-rendering='crispEdges'%3E%3Cpath fill='%23141311' d='M2 1h3v1h-3zM6 1h3v1h-3zM1 2h1v1h-1zM4 2h1v1h-1zM6 2h1v1h-1zM9 2h1v1h-1zM1 3h1v1h-1zM4 3h1v1h-1zM6 3h1v1h-1zM9 3h1v1h-1zM1 4h1v1h-1zM4 4h1v1h-1zM6 4h1v1h-1zM9 4h1v1h-1zM1 5h1v1h-1zM4 5h1v1h-1zM6 5h1v1h-1zM9 5h1v1h-1zM1 6h1v1h-1zM4 6h1v1h-1zM6 6h1v1h-1zM9 6h1v1h-1zM1 7h4v1h-4zM6 7h4v1h-4zM1 8h1v1h-1zM10 8h1v1h-1zM1 9h1v1h-1zM10 9h1v1h-1zM2 10h8v1h-8z'/%3E%3Cpath fill='%23f2c46a' d='M2 2h2v1h-2zM3 3h1v1h-1zM3 4h1v1h-1zM3 5h1v1h-1zM3 6h1v1h-1z'/%3E%3Cpath fill='%23ff6a4a' d='M7 2h2v1h-2zM8 3h1v1h-1zM8 4h1v1h-1zM8 5h1v1h-1zM8 6h1v1h-1z'/%3E%3Cpath fill='%23b8862a' d='M2 3h1v1h-1zM2 4h1v1h-1zM2 5h1v1h-1zM2 6h1v1h-1z'/%3E%3Cpath fill='%23c8402e' d='M7 3h1v1h-1zM7 4h1v1h-1zM7 5h1v1h-1zM7 6h1v1h-1z'/%3E%3Cpath fill='%236b6152' d='M2 8h8v1h-8z'/%3E%3Cpath fill='%233a352e' d='M2 9h8v1h-8z'/%3E%3C/svg%3E");--px-hopper:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 11' shape-rendering='crispEdges'%3E%3Cpath fill='%23141311' d='M3 0h6v1h-6zM2 1h1v1h-1zM9 1h1v1h-1zM1 2h1v1h-1zM10 2h1v1h-1zM1 3h1v1h-1zM10 3h1v1h-1zM1 4h1v1h-1zM10 4h1v1h-1zM2 5h1v1h-1zM9 5h1v1h-1zM3 6h2v1h-2zM7 6h2v1h-2zM1 7h4v1h-4zM7 7h4v1h-4zM0 8h1v1h-1zM11 8h1v1h-1zM0 9h1v1h-1zM11 9h1v1h-1zM1 10h4v1h-4zM7 10h4v1h-4z'/%3E%3Cpath fill='%237aa6e0' d='M3 1h6v1h-6zM2 2h1v1h-1zM4 2h5v1h-5zM4 3h4v1h-4z'/%3E%3Cpath fill='%233d6fb0' d='M3 2h1v1h-1zM9 2h1v1h-1zM2 3h2v1h-2zM8 3h2v1h-2zM2 4h8v1h-8zM3 5h6v1h-6z'/%3E%3Cpath fill='%233a352e' d='M5 6h2v1h-2zM5 7h2v1h-2z'/%3E%3Cpath fill='%238a9aa0' d='M1 8h10v1h-10zM9 9h2v1h-2z'/%3E%3Cpath fill='%23c9d2d4' d='M1 9h8v1h-8z'/%3E%3C/svg%3E");--px-medkit:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 11' shape-rendering='crispEdges'%3E%3Cpath fill='%23141311' d='M4 0h4v1h-4zM3 1h1v1h-1zM8 1h1v1h-1zM1 2h10v1h-10zM0 3h1v1h-1zM11 3h1v1h-1zM0 4h1v1h-1zM11 4h1v1h-1zM0 5h1v1h-1zM11 5h1v1h-1zM0 6h1v1h-1zM11 6h1v1h-1zM0 7h1v1h-1zM11 7h1v1h-1zM0 8h1v1h-1zM11 8h1v1h-1zM0 9h1v1h-1zM11 9h1v1h-1zM1 10h10v1h-10z'/%3E%3Cpath fill='%233a352e' d='M4 1h1v1h-1zM7 1h1v1h-1z'/%3E%3Cpath fill='%23e8e0d1' d='M1 3h10v1h-10zM1 4h4v1h-4zM7 4h4v1h-4zM1 5h4v1h-4zM7 5h4v1h-4zM1 6h2v1h-2zM9 6h2v1h-2zM1 7h2v1h-2zM9 7h2v1h-2zM1 8h4v1h-4zM7 8h4v1h-4zM1 9h4v1h-4zM7 9h4v1h-4z'/%3E%3Cpath fill='%23c8402e' d='M5 4h2v1h-2zM5 5h2v1h-2zM3 6h6v1h-6zM3 7h6v1h-6zM5 8h2v1h-2zM5 9h2v1h-2z'/%3E%3C/svg%3E");--px-wind:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 11' shape-rendering='crispEdges'%3E%3Cpath fill='%23141311' d='M2 1h2v1h-2zM8 1h2v1h-2zM1 2h1v1h-1zM4 2h1v1h-1zM7 2h1v1h-1zM10 2h1v1h-1zM0 3h1v1h-1zM5 3h2v1h-2zM11 3h1v1h-1zM0 4h1v1h-1zM11 4h1v1h-1zM0 5h1v1h-1zM11 5h1v1h-1zM1 6h1v1h-1zM10 6h1v1h-1zM2 7h1v1h-1zM9 7h1v1h-1zM3 8h1v1h-1zM8 8h1v1h-1zM4 9h1v1h-1zM7 9h1v1h-1zM5 10h2v1h-2z'/%3E%3Cpath fill='%23ff6a4a' d='M2 2h2v1h-2zM8 2h2v1h-2zM1 3h1v1h-1zM3 3h2v1h-2zM7 3h4v1h-4zM1 4h10v1h-10zM1 5h9v1h-9zM2 6h7v1h-7zM3 7h5v1h-5zM4 8h3v1h-3zM5 9h1v1h-1z'/%3E%3Cpath fill='%23ffffff' d='M2 3h1v1h-1z'/%3E%3Cpath fill='%23c8402e' d='M10 5h1v1h-1zM9 6h1v1h-1zM8 7h1v1h-1zM7 8h1v1h-1zM6 9h1v1h-1z'/%3E%3C/svg%3E");--px-flame:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 14' shape-rendering='crispEdges'%3E%3Cpath fill='%23141311' d='M5 0h1v1h-1zM4 1h1v1h-1zM6 1h1v1h-1zM4 2h1v1h-1zM7 2h1v1h-1zM3 3h1v1h-1zM8 3h1v1h-1zM2 4h1v1h-1zM9 4h1v1h-1zM2 5h1v1h-1zM9 5h1v1h-1zM1 6h1v1h-1zM10 6h1v1h-1zM1 7h1v1h-1zM10 7h1v1h-1zM1 8h1v1h-1zM10 8h1v1h-1zM2 9h1v1h-1zM9 9h1v1h-1zM2 10h2v1h-2zM9 10h2v1h-2zM1 11h1v1h-1zM10 11h1v1h-1zM0 12h1v1h-1zM11 12h1v1h-1zM1 13h10v1h-10z'/%3E%3Cpath fill='%23dd6f2c' d='M5 1h1v1h-1zM5 2h1v1h-1zM4 3h1v1h-1zM7 3h1v1h-1zM3 4h1v1h-1zM8 4h1v1h-1zM3 5h1v1h-1zM8 5h1v1h-1zM2 6h1v1h-1zM9 6h1v1h-1zM2 7h1v1h-1zM9 7h1v1h-1zM2 8h1v1h-1zM9 8h1v1h-1zM3 9h1v1h-1zM8 9h1v1h-1zM4 10h5v1h-5z'/%3E%3Cpath fill='%23ff9a52' d='M6 2h1v1h-1zM5 3h2v1h-2zM4 4h2v1h-2zM7 4h1v1h-1zM4 5h1v1h-1zM7 5h1v1h-1zM3 6h2v1h-2zM8 6h1v1h-1zM3 7h1v1h-1zM8 7h1v1h-1zM3 8h1v1h-1zM4 9h1v1h-1z'/%3E%3Cpath fill='%23f2c46a' d='M6 4h1v1h-1zM5 5h2v1h-2zM5 6h3v1h-3zM4 7h2v1h-2zM7 7h1v1h-1zM4 8h2v1h-2zM7 8h2v1h-2zM5 9h3v1h-3z'/%3E%3Cpath fill='%23ffffff' d='M6 7h1v1h-1zM6 8h1v1h-1z'/%3E%3Cpath fill='%237a5a3a' d='M2 11h2v1h-2zM5 11h2v1h-2zM8 11h2v1h-2zM1 12h1v1h-1zM3 12h6v1h-6zM10 12h1v1h-1z'/%3E%3Cpath fill='%23a87a4a' d='M4 11h1v1h-1zM7 11h1v1h-1zM2 12h1v1h-1zM9 12h1v1h-1z'/%3E%3C/svg%3E");--px-token:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' shape-rendering='crispEdges'%3E%3Cpath fill='%23141311' d='M3 0h6v1h-6zM2 1h1v1h-1zM9 1h1v1h-1zM1 2h1v1h-1zM10 2h1v1h-1zM0 3h1v1h-1zM11 3h1v1h-1zM0 4h1v1h-1zM11 4h1v1h-1zM0 5h1v1h-1zM11 5h1v1h-1zM0 6h1v1h-1zM11 6h1v1h-1zM0 7h1v1h-1zM11 7h1v1h-1zM0 8h1v1h-1zM11 8h1v1h-1zM1 9h1v1h-1zM10 9h1v1h-1zM2 10h1v1h-1zM9 10h1v1h-1zM3 11h6v1h-6z'/%3E%3Cpath fill='%23f2c46a' d='M3 1h6v1h-6zM2 2h1v1h-1zM9 2h1v1h-1zM1 3h1v1h-1zM3 3h1v1h-1zM8 3h1v1h-1zM1 4h1v1h-1zM4 4h4v1h-4zM1 5h1v1h-1zM4 5h1v1h-1zM7 5h1v1h-1zM1 6h1v1h-1zM4 6h1v1h-1zM7 6h1v1h-1zM1 7h1v1h-1zM4 7h4v1h-4zM1 8h1v1h-1zM3 8h1v1h-1zM8 8h1v1h-1zM2 9h1v1h-1z'/%3E%3Cpath fill='%23ff9a52' d='M3 2h6v1h-6zM2 3h1v1h-1zM9 3h1v1h-1zM2 4h1v1h-1zM9 4h1v1h-1zM2 5h1v1h-1zM5 5h2v1h-2zM9 5h1v1h-1zM2 6h1v1h-1zM5 6h2v1h-2zM9 6h1v1h-1zM2 7h1v1h-1zM9 7h1v1h-1zM2 8h1v1h-1zM9 8h1v1h-1zM3 9h6v1h-6z'/%3E%3Cpath fill='%23b8862a' d='M4 3h4v1h-4zM10 3h1v1h-1zM3 4h1v1h-1zM8 4h1v1h-1zM10 4h1v1h-1zM3 5h1v1h-1zM8 5h1v1h-1zM10 5h1v1h-1zM3 6h1v1h-1zM8 6h1v1h-1zM10 6h1v1h-1zM3 7h1v1h-1zM8 7h1v1h-1zM10 7h1v1h-1zM4 8h4v1h-4zM10 8h1v1h-1zM9 9h1v1h-1zM3 10h6v1h-6z'/%3E%3C/svg%3E");--px-part:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' shape-rendering='crispEdges'%3E%3Cpath fill='%23141311' d='M4 0h4v1h-4zM2 1h3v1h-3zM7 1h3v1h-3zM1 2h1v1h-1zM3 2h1v1h-1zM8 2h1v1h-1zM10 2h1v1h-1zM1 3h1v1h-1zM5 3h2v1h-2zM10 3h1v1h-1zM0 4h2v1h-2zM4 4h1v1h-1zM7 4h1v1h-1zM10 4h2v1h-2zM0 5h1v1h-1zM3 5h1v1h-1zM8 5h1v1h-1zM11 5h1v1h-1zM0 6h1v1h-1zM3 6h1v1h-1zM8 6h1v1h-1zM11 6h1v1h-1zM0 7h2v1h-2zM4 7h1v1h-1zM7 7h1v1h-1zM10 7h2v1h-2zM1 8h1v1h-1zM5 8h2v1h-2zM10 8h1v1h-1zM1 9h1v1h-1zM3 9h1v1h-1zM8 9h1v1h-1zM10 9h1v1h-1zM2 10h3v1h-3zM7 10h3v1h-3zM4 11h4v1h-4z'/%3E%3Cpath fill='%23c9d2d4' d='M5 1h2v1h-2zM2 2h1v1h-1zM4 2h4v1h-4zM9 2h1v1h-1zM2 3h3v1h-3zM7 3h3v1h-3zM2 4h2v1h-2zM8 4h2v1h-2zM1 5h2v1h-2zM9 5h2v1h-2zM1 6h2v1h-2zM9 6h1v1h-1zM2 7h2v1h-2zM8 7h1v1h-1zM2 8h1v1h-1zM4 8h1v1h-1zM7 8h1v1h-1z'/%3E%3Cpath fill='%238a9aa0' d='M10 6h1v1h-1zM9 7h1v1h-1zM3 8h1v1h-1zM8 8h2v1h-2zM2 9h1v1h-1zM4 9h4v1h-4zM9 9h1v1h-1zM5 10h2v1h-2z'/%3E%3C/svg%3E");--ic-resume:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 5.5v13l10-6.5z'/%3E%3C/svg%3E");--ic-travel:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 20.5V4h10v16.5M3 20.5h18M14.5 12h6M17.5 9l3 3-3 3M11.5 12h.01'/%3E%3C/svg%3E");--ic-character:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.6a3.3 3.3 0 1 1 0 6.6a3.3 3.3 0 1 1 0-6.6M5 20.5c.7-4.5 3.4-7.1 7-7.1s6.3 2.6 7 7.1'/%3E%3C/svg%3E");--ic-gear:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 6.5V5a4 4 0 0 1 8 0v1.5M6 9.5a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3V21H6zM9 13h6v4H9z'/%3E%3C/svg%3E");--ic-zoom:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.5 4a6.5 6.5 0 1 1 0 13a6.5 6.5 0 1 1 0-13M15.5 15.5L20.5 20.5M8 10.5h5M10.5 8v5'/%3E%3C/svg%3E");--ic-full:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5'/%3E%3C/svg%3E");--ic-reset:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5.5 9.5A7 7 0 1 1 5 13M5 4.5v5h5'/%3E%3C/svg%3E");--ic-beds:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 19V6.5M3 14h18v5M21 14a3 3 0 0 0-3-3h-7v3M6.5 9.5a1.6 1.6 0 1 1 0 3.2a1.6 1.6 0 1 1 0-3.2'/%3E%3C/svg%3E");}
+html,body{background:#141311}
+/* Panels. */
+dialog:not(.creator),#talk,#cookPanel,#fishPanel{background:var(--plate);border:1px solid var(--plate-edge);border-radius:3px;box-shadow:var(--plate-shadow)}
+dialog::backdrop{background:radial-gradient(90% 80% at 50% 45%,#0d0c0b8c,#0b0a09e8);backdrop-filter:none}
+.topbar button{backdrop-filter:none}
+.dialog-head{position:relative;padding:18px 22px 17px;border-bottom:0;background:linear-gradient(#ffffff08,transparent)}
+.dialog-head::after,#talk::before,#cookPanel::before{content:'';position:absolute;left:0;right:0;height:4px;background:var(--hazard);opacity:.85;-webkit-mask:linear-gradient(90deg,#000 0 35%,transparent 85%);mask:linear-gradient(90deg,#000 0 35%,transparent 85%);pointer-events:none}
+.dialog-head::after{bottom:0}#talk::before{top:-1px}#cookPanel::before{top:0}
+.eyebrow{display:flex;align-items:center;gap:8px;margin:0 0 9px;font:700 10px/1 var(--ui);letter-spacing:.26em;color:var(--ember-hi)}
+.eyebrow::before,.talk-role::before{content:'';display:inline-block;flex:none;width:6px;height:6px;margin-right:7px;background:var(--ember);transform:rotate(45deg);vertical-align:1px}
+.eyebrow::before{margin-right:0}
+dialog:not(.creator) h1{margin:0;font:400 30px/1 var(--display);letter-spacing:.03em;text-shadow:0 2px 0 #000,0 0 22px #dd6f2c30}
+dialog .icon{width:44px;height:44px;min-height:44px;padding:0;display:grid;place-items:center;font:400 26px/1 var(--body);color:var(--bone);background:linear-gradient(#2e2a25,#1d1b18);border:1px solid var(--plate-edge);border-radius:3px;box-shadow:inset 0 1px 0 #ffffff12,0 2px 0 #0009}
+dialog .icon:hover,dialog .icon:focus-visible{border-color:var(--ember-hi);color:var(--ember-hi);outline:none}
+.options-body{padding:18px 22px 22px;gap:12px}
+/* Buttons: raised iron keys; the main one is an ember key with cut corners. */
+.pause-grid button{justify-content:flex-start;gap:12px;min-height:52px;padding:0 14px 0 12px;font:700 15px/1.1 var(--ui);letter-spacing:.08em;background:linear-gradient(#2a2621,#1d1a17);border:1px solid var(--plate-edge);border-radius:3px;box-shadow:inset 0 1px 0 #ffffff10,0 2px 0 #0009}
+.pause-grid button kbd{margin-left:auto}
+.pause-grid button::before{content:'';flex:none;width:22px;height:22px;background:currentColor;opacity:.85;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
+.pause-grid button:not(.primary):hover,.pause-grid button:not(.primary):focus-visible{background:linear-gradient(#352e27,#231e1a);border-color:var(--ember);box-shadow:inset 3px 0 0 var(--ember),inset 0 1px 0 #ffffff10,0 2px 0 #0009;outline:none}
+.pause-grid button:active{transform:translateY(1px);box-shadow:inset 0 1px 0 #ffffff08}
+.pause-grid .primary{justify-content:center;font-size:17px;letter-spacing:.14em;background:linear-gradient(#f08a45,#c9581d);color:var(--ember-ink);border:0;clip-path:var(--notch);box-shadow:none;text-shadow:0 1px 0 #ffffff40}
+.pause-grid .primary:hover,.pause-grid .primary:focus-visible{background:linear-gradient(#ffa060,#dd6f2c);outline:none}
+.pause-grid .primary kbd{margin-left:0}
+#resume{--ic:var(--ic-resume)}#travel{--ic:var(--ic-travel)}#inspectMenu{--ic:var(--ic-character)}#equipment{--ic:var(--ic-gear)}#zoom{--ic:var(--ic-zoom)}#fullscreen{--ic:var(--ic-full)}#reset{--ic:var(--ic-reset)}#coopBeds{--ic:var(--ic-beds)}
+.pause-grid #reset{color:var(--dust)}
+/* The place notes in the pause menu read as a field notebook entry. */
+.options-body>p#optionsText{position:relative;margin:2px 0;padding:12px 14px 13px 16px;font:400 13.5px/1.6 var(--body);color:#cfc6b6;background:#0d0c0b80;border:1px solid #ffffff0d;border-left:3px solid var(--ember);border-radius:2px}
+#optionsText::before{content:'Field notes';display:block;margin-bottom:6px;font:700 10px/1 var(--ui);letter-spacing:.24em;text-transform:uppercase;color:var(--ember-hi)}
+.controls-ref summary{gap:8px;list-style:none}.controls-ref summary::-webkit-details-marker{display:none}
+.controls-ref summary::before{content:'';width:7px;height:7px;border:solid currentColor;border-width:0 2px 2px 0;transform:rotate(-45deg);transition:transform .15s}
+.controls-ref[open] summary::before{transform:rotate(45deg) translate(-2px,-2px)}
+.cref table{background:#0d0c0b66;border:1px solid #ffffff0d}
+.options-body a{color:var(--dust);font:600 12px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;padding:14px 0 6px;min-height:0}
+.options-body a:hover{color:var(--ember-hi)}
+/* Top left: a place plaque. Top right: iron keys. */
+.identity{position:relative;padding:7px 18px 8px 12px;background:linear-gradient(90deg,#0d0c0bd9,#0d0c0b8c 62%,transparent);border-left:3px solid var(--ember);text-shadow:0 2px 0 #000}
+.identity>span{display:block;font:700 9px/1 var(--ui);letter-spacing:.32em;color:var(--ember-hi)}
+.identity>b{margin-top:4px;font:400 21px/1 var(--display);letter-spacing:.03em;color:var(--bone)}
+.identity i{margin-left:9px;padding:3px 5px 2px;font:700 9px/1 var(--ui);font-style:normal;letter-spacing:.16em;text-transform:uppercase;color:var(--bone);border:1px solid #e8e0d140;border-radius:2px;vertical-align:4px;text-shadow:none}
+.topbar .hud-btn{border-radius:4px;background:linear-gradient(#2a2621f2,#161412f2);border:1px solid var(--plate-edge);box-shadow:0 0 0 1px #000a,inset 0 1px 0 #ffffff17,0 4px 10px #0007}
+.topbar .hud-btn:hover{border-color:var(--ember)}
+.hud-btn kbd{box-shadow:0 0 0 1px #000,inset 0 -2px 0 #0004}
+/* Stamina and supplies: a skewed segmented gauge and dog tags. */
+.stamina>span:first-child{font:700 10px/1 var(--ui);letter-spacing:.2em;color:var(--bone);text-shadow:0 1px 0 #000,0 0 6px #000}
+.bar{height:10px;background:#0d0c0be0;border:1px solid #000;border-radius:0;box-shadow:0 0 0 1px #e8e0d126;transform:skewX(-16deg)}
+.bar::after,.wh-mag::after,#drillHud .hp::after{content:'';position:absolute;inset:0;background:var(--seg);pointer-events:none}
+.bar>i{background:linear-gradient(#ffc489,#ef7a33 55%,#b4521c)}
+.fp-bars .bar{transform:none}
+.chips>span{padding:4px 9px 4px 7px;font:700 11px/1 var(--ui);letter-spacing:.08em;background:#0d0c0be6;border:1px solid #e8e0d126;border-left:2px solid var(--dust);border-radius:0;clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,0 100%)}
+#mealChip{border-left-color:var(--ember)}
+/* The weapon plate. */
+#weaponHud{background:var(--screws),linear-gradient(#211e1af2,#121110f2);border:1px solid var(--plate-edge);border-radius:3px;box-shadow:0 0 0 1px #000a,inset 0 1px 0 #ffffff12,0 8px 22px #0009;padding:11px 14px 10px}
+#weaponHud::before{content:'';position:absolute;left:0;right:0;top:-1px;height:3px;background:var(--hazard);opacity:.75;-webkit-mask:linear-gradient(90deg,#000 0 30%,transparent 80%);mask:linear-gradient(90deg,#000 0 30%,transparent 80%)}
+#ammoNow{font-size:38px;text-shadow:0 2px 0 #000}
+.wh-mag{position:relative;height:8px;border-radius:0;background:#0d0c0b;box-shadow:0 0 0 1px #e8e0d11f;transform:skewX(-16deg)}
+body.touch:not(.pad) #weaponHud{background:linear-gradient(#1b1916d0,#0d0c0bd0);border:1px solid #e8e0d11c;border-radius:3px}
+body.touch:not(.pad) #weaponHud::before{height:2px}
+body.deck.touch:not(.pad) #weaponHud{background:transparent;border-color:transparent}body.deck.touch:not(.pad) #weaponHud::before{display:none}
+body.touch:not(.pad) #ammoNow{font-size:24px}
+/* The Holdout and drill banner. */
+#drillHud{padding:8px 16px 9px;background:linear-gradient(#211e1af0,#121110f0);border:1px solid var(--plate-edge);border-radius:3px;box-shadow:0 0 0 1px #000a,inset 0 1px 0 #ffffff12,0 8px 22px #0009;font:600 13px/1.2 var(--ui);color:#cfc6b4}
+#drillHud b{font:400 18px/1 var(--display);letter-spacing:.05em;color:var(--bone);text-shadow:0 2px 0 #000}
+#drillHud>span::before,#drillHud .row span::before{content:'';display:inline-block;width:5px;height:5px;margin:0 10px 0 0;background:var(--ember);transform:rotate(45deg);vertical-align:2px}
+#drillHud .hp{position:relative;width:160px;height:11px;border-radius:0;background:#0d0c0b;border:1px solid #000;box-shadow:0 0 0 1px #e8e0d126;transform:skewX(-16deg)}
+#drillHud .hp>i{background:linear-gradient(#c4f08a,var(--ok) 50%,#4f8f2c)}
+#drillHud .hp.low>i{background:linear-gradient(#ff9a7a,var(--hurt) 50%,#9a2a1c)}
+#drillHud .pulls i{width:12px;height:12px;border-radius:0;background:#ff6a4a;box-shadow:none;clip-path:polygon(35% 0,65% 0,65% 35%,100% 35%,100% 65%,65% 65%,65% 100%,35% 100%,35% 65%,0 65%,0 35%,35% 35%)}
+#drillHud .parts{display:inline-flex;align-items:center;gap:6px;color:#e6d3a8}
+#drillHud .parts::before{content:'';width:15px;height:15px;background:var(--px-part) center/contain no-repeat}
+/* Someone talking. */
+#talk{padding:14px 16px;gap:16px}
+#talkFace{border:1px solid var(--plate-edge);background:radial-gradient(70% 70% at 50% 40%,#4a3523,#1b1916 75%);box-shadow:0 0 0 3px #0d0c0b,0 0 0 4px #e8e0d11c}
+#talk h2{font-size:24px;text-shadow:0 2px 0 #000}
+#talkNext,#cookTake,#cookOk{border:0;border-radius:0;background:linear-gradient(#f08a45,#c9581d);clip-path:var(--notch);text-shadow:0 1px 0 #ffffff40}
+#talkNext::after{content:'';display:inline-block;margin-left:8px;width:0;height:0;border:5px solid transparent;border-left:7px solid currentColor;border-right:0;vertical-align:-1px}
+#talkTopics button{background:linear-gradient(#26221e,#1a1815);border:1px solid var(--plate-edge);border-left:2px solid #dd6f2c99;border-radius:2px;box-shadow:inset 0 1px 0 #ffffff0d}
+#talkTopics button.asked{border-left-color:var(--plate-edge);background:#161412}
+#fishStop,#cookAgain,#cookClose{background:linear-gradient(#2e2a25,#1d1b18);border:1px solid var(--plate-edge);border-radius:3px}
+/* A prompt is a tag with a little pointer that bobs. */
+#prompt{padding:5px 11px 5px 5px;background:linear-gradient(#24211df2,#121110f2);border:1px solid var(--plate-edge);border-bottom:2px solid var(--ember);border-radius:2px;font:700 13px/1 var(--ui);box-shadow:0 0 0 1px #000a,0 4px 12px #0009}
+#prompt::after{content:'';position:absolute;left:50%;bottom:-8px;width:10px;height:6px;margin-left:-5px;background:var(--ember);clip-path:polygon(0 0,100% 0,50% 100%);animation:prompt-bob .9s ease-in-out infinite alternate}
+@keyframes prompt-bob{to{transform:translateY(3px)}}
+#prompt kbd{border-radius:1px;box-shadow:inset 0 -2px 0 #0004}
+#prompt.tap{padding:9px 13px}
+/* The big action button breathes while there is something to use. */
+#act{background:radial-gradient(circle at 50% 32%,#4f3220,#1c1a17 72%);border:2px solid var(--ember);box-shadow:0 0 0 4px #0d0c0baa,0 0 0 5px #dd6f2c55,0 6px 18px #000a}
+#act::after{content:'';position:absolute;inset:-7px;border-radius:50%;border:2px solid var(--ember-hi);opacity:0;pointer-events:none;animation:act-pulse 1.8s ease-out infinite}
+#act.idle::after{display:none}
+@keyframes act-pulse{0%{transform:scale(.92);opacity:.65}100%{transform:scale(1.22);opacity:0}}
+/* Sticks: dark wells with a tick ring and an iron knob. Round buttons: iron with an inner seam. */
+.touch #moveZone #ring,#rightPad #aimRing{border:2px solid #e8e0d12e;background:radial-gradient(circle,#0d0c0b4d 0 55%,#0d0c0b99 57% 100%);box-shadow:0 0 0 1px #000a}
+.touch #moveZone #ring::before,#rightPad #aimRing::before{content:'';position:absolute;inset:3px;border-radius:50%;background:repeating-conic-gradient(#e8e0d152 0 1.6deg,transparent 1.6deg 30deg);-webkit-mask:radial-gradient(circle,transparent 63%,#000 64%);mask:radial-gradient(circle,transparent 63%,#000 64%);pointer-events:none}
+.touch #moveZone #thumb,#rightPad #aimThumb{border:2px solid #e8e0d18c;background:radial-gradient(circle at 40% 30%,#615848,#2a2621 55%,#141311);box-shadow:0 3px 8px #000b,inset 0 1px 0 #ffffff33}
+#rightPad .fan.fan,body.touch:not(.pad) #runToggle{background:radial-gradient(circle at 50% 26%,#37322b,#171512 72%);border:1.5px solid #e8e0d13d;box-shadow:0 4px 10px #000a,inset 0 0 0 3px #0d0c0b88,inset 0 1px 0 #ffffff22}
+#rightPad .fan>span,#runToggle span{color:#cfc6b4}
+body.touch:not(.pad) #runToggle.on{background:radial-gradient(circle at 50% 30%,#ffa868,#c0581f);border-color:#ffd2a0;box-shadow:0 0 0 3px #dd6f2c44,0 4px 10px #000a}
+/* The portrait console: diamond plate with a hazard strip along the top. */
+.deck #deck{background:repeating-linear-gradient(45deg,#ffffff06 0 2px,transparent 2px 9px),repeating-linear-gradient(-45deg,#0000002e 0 2px,transparent 2px 9px),linear-gradient(180deg,#201d1a,#121110 72%);border-top:1px solid #e8e0d11c}
+.deck #deck::before{left:0;width:100%;top:0;height:4px;transform:none;border-radius:0;background:var(--hazard);opacity:.6;-webkit-mask:linear-gradient(90deg,transparent,#000 25%,#000 75%,transparent);mask:linear-gradient(90deg,transparent,#000 25%,#000 75%,transparent)}
+.deck #deck::after{content:none}
+/* The loading card. */
+#loading{gap:16px;padding:0 16px;text-align:center;background:radial-gradient(55% 45% at 50% 52%,#2c1b10,#141311 72%),#141311;font:400 34px/1 var(--display);letter-spacing:.06em;color:var(--bone);text-shadow:0 3px 0 #000,0 0 30px #dd6f2c55}
+#loading::before{content:'';width:48px;height:56px;background:var(--px-flame) center/contain no-repeat;image-rendering:pixelated;animation:load-flicker .5s steps(2) infinite}
+#loading span{order:2;font:600 13px/1.3 var(--ui);letter-spacing:.22em;text-transform:uppercase;color:var(--dust);text-shadow:none}
+#loading::after{content:'';order:3;width:min(220px,60vw);height:4px;background:linear-gradient(90deg,transparent,var(--ember-hi),transparent) 0 0/40% 100% no-repeat,#ffffff14;animation:load-sweep 1.3s linear infinite}
+@keyframes load-flicker{50%{transform:scaleY(.94) translateY(2px)}}
+@keyframes load-sweep{from{background-position:-90% 0,0 0}to{background-position:190% 0,0 0}}
+@media(orientation:portrait){#loading{font-size:27px}}
+/* Notices and the hint line. */
+.status{background:linear-gradient(#2a2621,#1b1916);color:var(--bone);border:1px solid var(--plate-edge);border-left:3px solid var(--ember);border-radius:2px;font:700 13px/1.4 var(--ui);letter-spacing:.06em;text-transform:uppercase;box-shadow:0 0 0 1px #000a,0 8px 20px #000a}
+.instructions{width:fit-content;padding:5px 12px;background:#0d0c0bb3;border-left:2px solid var(--ember);color:#ddd4c4;text-shadow:none}
+.instructions span{color:var(--ember-hi)}
+/* Aaron's counter. */
+.shop .shop-wallet{gap:14px;align-items:center}
+.shop .shop-wallet b{display:inline-flex;align-items:center;gap:9px;font:400 26px/1 var(--display);color:var(--brass);text-shadow:0 2px 0 #000}
+.shop .shop-wallet b::before{content:'';width:24px;height:24px;background:var(--px-token) center/contain no-repeat}
+#shopParts:not(:empty){display:inline-flex;align-items:center;gap:6px;font:600 13px/1 var(--ui);letter-spacing:.04em;color:#e6d3a8}
+#shopParts:not(:empty)::before{content:'';width:16px;height:16px;background:var(--px-part) center/contain no-repeat}
+.shop .shop-items li{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:12px;padding:10px 12px 10px 10px;background:linear-gradient(#26221e,#1a1815);border:1px solid var(--plate-edge);border-radius:3px;box-shadow:inset 0 1px 0 #ffffff0d,0 2px 0 #0008}
+.shop .shop-items li::before{content:'';width:48px;height:48px;background:var(--ic,none) center/34px no-repeat,radial-gradient(circle at 50% 40%,#3a2a1f,#100f0d 72%);border:1px solid #000;box-shadow:inset 0 0 0 1px #ffffff12}
+.shop-items li[data-id=vest]{--ic:var(--px-vest)}.shop-items li[data-id=loader]{--ic:var(--px-loader)}.shop-items li[data-id=hopper]{--ic:var(--px-hopper)}.shop-items li[data-id=medkit]{--ic:var(--px-medkit)}.shop-items li[data-id=wind]{--ic:var(--px-wind)}
+.shop .shop-items li b{font:700 16px/1.1 var(--ui);letter-spacing:.06em;text-transform:uppercase}
+.shop .shop-items li span{font-size:13px}
+.shop .shop-items li button{min-width:104px;min-height:42px;font:700 13px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;border-radius:0;border:0;color:var(--ember-ink);background:linear-gradient(#f08a45,#c9581d);clip-path:var(--notch)}
+.shop .shop-items li button:disabled{color:var(--dust);background:#100f0d;box-shadow:inset 0 0 0 1px var(--plate-edge);cursor:default}
+.shop .shop-items li.owned{opacity:1;background:linear-gradient(#1f241a,#161812)}
+.shop .shop-items li.owned button{color:var(--ok);box-shadow:inset 0 0 0 1px #9fd65a66}
+@media(max-width:480px){.shop .shop-items li{grid-template-columns:40px minmax(0,1fr)}.shop .shop-items li::before{width:40px;height:40px;background-size:28px,auto}.shop .shop-items li button{grid-column:2;justify-self:start}}
+/* The creator keeps its own layout and picks up the screws. */
+.cr-panel{background:var(--screws),var(--grit),var(--panel)}
+@media(orientation:landscape) and (max-height:560px){dialog:not(.creator) h1{font-size:24px}.dialog-head{padding:11px 18px 12px}.pause-grid button{min-height:44px}.identity>b{font-size:18px}#loading{font-size:28px}}
+@media(prefers-reduced-motion:reduce){#prompt::after,#act::after,#loading::before,#loading::after{animation:none}}
+/* Travel gets its own row; in the Training Grounds so does Return to the start, so every row is full. Touch hides key hints. */
+.pause-grid #travel,body:not(.camp) .pause-grid #reset{grid-column:1/-1}
+.touch:not(.pad) .pause-grid kbd{display:none}
+@media(max-width:480px){.pause-grid button{font-size:13px;letter-spacing:.06em;gap:10px;padding:0 10px}.pause-grid button::before{width:20px;height:20px}.pause-grid .primary{font-size:16px}}

@@ -361,3 +361,14 @@ Parts and tokens:
 - Aaron's shop sells each item once: Padded vest (60, +25 health), Speed loader (50, reload ×0.75), Big hopper (70, magazine ×1.3), Med kit (40, 40 health each break) and Second wind (120, one more pull). The weapon readout shows the bigger magazine.
 
 The readout gains a second row in a Holdout: a health bar, a pip for each pull Gadget has left, and the parts you have picked up. The drill is unchanged as a warm-up.
+
+### v0.28.0 — The field kit (visual overhaul, stage 1: interface)
+Every screen now shares one salvage look, built in CSS on top of the old layers (the last block of `study/style.css`):
+- **Plates:** panels are welded iron plates: a warm dark gradient, faint grit, four corner screws, a 1px seam and an inner bevel. Headers get a hazard stripe that fades out to the right. Used for the pause menu, the shop, talk, the grill, fishing, the weapon readout and the Holdout banner.
+- **Type:** Saira Stencil for names and numbers (place, speaker, wave, ammo, tokens), Barlow Condensed for labels and keys, Barlow for sentences. Small labels carry an ember diamond.
+- **Colour:** ember is live or yours, brass is tokens, green is health, red is hurt. The page, the Phaser clear colour and the app's theme colour are all `#141311`.
+- **Gauges:** stamina, health and the magazine are skewed bars cut into segments.
+- **Keys:** menu buttons are raised iron keys with an icon each; the main action is an ember key with cut corners. Travel gets its own row, and on touch the key hints are hidden.
+- **Touch:** sticks are dark wells with a tick ring and an iron knob. Round buttons have an inner seam. The portrait console is diamond plate with a hazard strip.
+- **Small touches:** prompts are tags with a bobbing pointer. The Use button breathes while there is something to use. The loading card has a pixel campfire and a sweep bar. The shop has pixel icons for every item, tokens and parts.
+- **Phones:** no backdrop blur anywhere. The only animations are transforms and opacity on small elements.
