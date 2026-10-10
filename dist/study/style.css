@@ -510,7 +510,7 @@ body.touch:not(.pad) #runToggle.on{background:radial-gradient(circle at 50% 30%,
    view above it is clear. Zones (y from the top of the deck, which is --dk tall above the home bar):
    top band (8-44): place name left, weapon and ammo (or camp stamina) right · sticks centred at 104, raised and pulled in ·
    between the sticks: Holdout status · bottom row (168-212): Character and Menu bottom-left, Use / Reload / Grenade / Swap along the
-   bottom toward the right thumb. Pushing the move stick to its rim sprints, so there is no Run button. */
+   bottom toward the right thumb. */
 :root{--dk:222px;--sy:104px;--sx:80px}
 html body.deck #deck{height:calc(var(--dk) + var(--sb))}
 html body.deck.touch:not(.pad) #runToggle,html body.deck.touch:not(.pad) .instructions,html body.deck.touch:not(.pad) #prompt,html body.deck.touch:not(.pad) #moveZone>span,html body.deck.touch:not(.pad) #rightPad #aimLabel,html body.deck .identity>span,html body.deck .identity i{display:none!important}
@@ -570,3 +570,40 @@ html body.deck #fishPanel{pointer-events:none}html body.deck #fishPanel button{p
 html body.deck #fishPanel{top:auto;left:calc(var(--vx) + var(--sl) + 10px);right:auto;bottom:calc(var(--sb) + 62px);width:calc(var(--vw) - var(--sl) - var(--sr) - 190px);transform:none;padding:6px 10px 8px}
 html body.deck #fishStatus{font-size:15px;margin:3px 0 2px}
 html body.deck #fishHint{font-size:10px}
+/* v0.30 concept, round 2: the middle column. Between the sticks, from the top: the camera zoom (− slider +), then Run and Reload side by
+   side where either thumb can reach. Run is a toggle: tap to run, tap to stop, and it switches itself off when your stamina runs out.
+   The ring around it is your stamina. The bottom row is Use, Grenade and Swap. Holdout status moves to the top band in the place name's
+   spot while a drill runs. */
+:root{--sx:70px}
+#zoomBar{display:none}
+html body.deck.touch:not(.pad) #zoomBar{display:flex;position:fixed;z-index:5;align-items:center;gap:2px;left:calc(var(--vx) + var(--vw) * .5);bottom:calc(var(--sb) + 146px);transform:translateX(-50%);width:clamp(92px,calc(var(--vw) - 2 * var(--sl) - 2 * var(--sx) - 86px),150px);height:28px;padding:0 2px;border-radius:14px;background:#0d0c0bcc;box-shadow:0 0 0 1px #000a,inset 0 1px 0 #ffffff12;touch-action:none}
+#zoomBar button{flex:none;width:24px;height:24px;min-height:0;padding:0;border:0;border-radius:50%;background:none;display:grid;place-items:center;font:700 16px/1 var(--ui);color:#cfc6b4;touch-action:manipulation}
+#zoomBar button:active{background:#ffffff1a}
+#zoomRange{flex:1;min-width:0;height:24px;margin:0;background:none;-webkit-appearance:none;appearance:none;touch-action:none}
+#zoomRange::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:#3a352e}
+#zoomRange::-moz-range-track{height:4px;border-radius:2px;background:#3a352e}
+#zoomRange::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;margin-top:-6px;border-radius:50%;background:#e8e0d1;border:2px solid #171512;box-shadow:0 0 0 1px #e8e0d155}
+#zoomRange::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:#e8e0d1;border:2px solid #171512}
+/* Run and Reload, side by side between the sticks. */
+html body.deck.touch:not(.pad) #runToggle{display:grid!important;z-index:5;left:calc(var(--vx) + var(--vw) * .5 - 48px);bottom:calc(var(--sb) + 62px);width:44px;height:44px}
+html body.deck.camp.touch:not(.pad) #runToggle,html body.deck.zombie.touch:not(.pad) #runToggle{left:calc(var(--vx) + var(--vw) * .5 - 22px)}
+html body.deck.touch.talking:not(.pad) #runToggle,html body.deck.touch.cooking:not(.pad) #runToggle,html body.deck.touch.fishing:not(.pad) #runToggle{display:none!important}
+html body.deck.touch:not(.pad) #runToggle svg{width:18px;height:18px;margin-top:-7px}
+html body.deck.touch:not(.pad) #runToggle span{bottom:5px;font-size:7px}
+html body.deck.touch:not(.pad) #rightPad .fan.f1{left:calc(50% + 4px);right:auto;bottom:calc(var(--sb) + 62px);width:44px;height:44px}
+#runRing{--ring:#e8e0d1aa}
+#runToggle.on #runRing{--ring:#ffd2a0}
+#runToggle.winded{color:#8a8274}#runToggle.winded #runRing{--ring:var(--ember-hi,#ff8a4c)}
+#runToggle.empty{animation:run-empty .32s}
+@keyframes run-empty{0%,100%{transform:none}25%{transform:translateX(-4px)}50%{transform:translateX(4px)}75%{transform:translateX(-2px)}}
+/* The bottom row: Use takes the space Reload left. */
+html body.deck.touch:not(.pad) #rightPad #act{right:calc(var(--sr) + 116px);width:calc(var(--vw) - var(--sl) - var(--sr) - 228px)}
+/* The left stick's zone stops short of the middle column. */
+html body.deck.touch:not(.pad) #moveZone{width:calc(var(--vw) * .5 - 52px)}
+/* Holdout status: top band, left, in place of the place name. */
+html body.deck:has(#drillHud:not([hidden])) .identity{visibility:hidden}
+html body.deck #drillHud{left:calc(var(--vx) + var(--sl) + 10px);bottom:calc(var(--sb) + var(--dk) - 50px);transform:none;width:auto;min-width:0;max-width:calc(var(--vw) - var(--sl) - var(--sr) - 168px);align-items:flex-start;text-align:left;gap:3px;padding:4px 8px 5px;font-size:9px}
+html body.deck #drillHud b{font-size:12px}
+html body.deck #drillHud .row,html body.deck #drillHud .vitals{justify-content:flex-start;gap:2px 7px}
+html body.deck #drillHud .hp{width:72px;height:6px}
+html body.deck.fishing #zoomBar,html body.deck.talking #zoomBar{visibility:hidden}

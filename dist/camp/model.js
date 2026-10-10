@@ -11,8 +11,6 @@ export class CampModel extends StudyModel{
  blocked(x,y){const r=this.radius;for(const [px,py] of [[x,y],[x-r,y],[x+r,y],[x,y-r*.6],[x,y+r*.6]])if(!insidePolygon(WALK,px,py))return true;
   if(SOLID.some(b=>{if(b.slot>=this.campers)return false;const dx=x-Math.max(b.x,Math.min(x,b.x+b.w)),dy=y-Math.max(b.y,Math.min(y,b.y+b.h));return dx*dx+dy*dy<r*r;}))return true;
   return RESIDENTS.some(p=>Math.hypot((x-p.x)*.55,(y-p.y)*1.3)<r+9);}
- // Running spends stamina. Once it runs dry the survivor walks until it is partly back.
- update(dt,input={}){super.update(dt,{...input,run:!!input.run&&this.stamina.canRun()});this.stamina.update(Math.max(0,Math.min(.05,Number(dt)||0)),this.running&&this.moving);}
  // The closest person or thing within reach, preferring what the survivor is facing.
  target(extra=[]){let best=null,score=Infinity;const a=this.direction*Math.PI/4,fx=Math.cos(a),fy=Math.sin(a);
   for(const t of extra.length?[...TARGETS,...extra]:TARGETS){const dx=t.x-this.x,dy=t.y-this.y,d=Math.hypot(dx,dy);if(d>t.range)continue;

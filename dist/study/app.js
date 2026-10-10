@@ -5,10 +5,12 @@ import {createCreator} from './creator.js';
 import {StudyModel} from './model.js';import {makeStudyScene} from './scene.js';import {DIRECTIONS} from './character.js';import {FloatingStick} from '../layout.js';
 import {CampModel} from '../camp/model.js';import {makeCampScene} from '../camp/scene.js';import {PROPS,MAX_CAMPERS} from '../camp/data.js';import {PROP_PAD} from '../camp/art.js';import {createCampPlay} from '../camp/play.js';
 import {readCompanion,saveCompanion,normalizeCompanion,petLook,displayName} from '../companion/look.js';import {pet,PET_FRAME,PET_ANIM} from '../companion/pet.js';import {Follower,FOLLOW} from '../companion/follow.js';
-const $=id=>document.getElementById(id),model=new StudyModel(),campModel=new CampModel(),keys=new Set(),stick=new FloatingStick();let game,scene,ready=false,move={x:0,y:0},running=false,padState={move:{x:0,y:0},aim:{x:0,y:0},fire:false,run:false},zoomIndex=1,inspectDirection=1,pose='idle',lastInspect=0,contextMissing=false;// Camera distances. Phones start on Wide so you can see what's coming; a PC starts on Normal.
+const $=id=>document.getElementById(id),model=new StudyModel(),campModel=new CampModel(),_shared=(model.stamina=campModel.stamina),keys=new Set(),stick=new FloatingStick();let game,scene,ready=false,move={x:0,y:0},running=false,padState={move:{x:0,y:0},aim:{x:0,y:0},fire:false,run:false},inspectDirection=1,pose='idle',lastInspect=0,contextMissing=false;// Camera distances. Phones start on Wide so you can see what's coming; a PC starts on Normal.
 const ZOOMS=[{z:.7,name:'Wide'},{z:1,name:'Normal'},{z:1.5,name:'Close'}];
 // The game draws at the screen's real pixel density (up to 3×), so the wide view keeps every art pixel instead of dropping some.
-const RES=Math.min(3,Math.max(1,Math.round(globalThis.devicePixelRatio||1))),zoom=()=>ZOOMS[zoomIndex].z*RES;
+// The camera zoom is one value from far out to close in. The pause menu steps through three presets; the console has a slider.
+const ZMIN=.35,ZMAX=1.8,ZOOM_KEY='deadlight-zoom-v1';let zoomLevel=1;
+const RES=Math.min(3,Math.max(1,Math.round(globalThis.devicePixelRatio||1))),zoom=()=>zoomLevel*RES;
 let storage;try{storage=window.localStorage;}catch{}let appearance=readAppearance(storage),loadout=readLoadout(storage),wallet=readWallet(storage);
 // Where the survivor is: the Training Grounds (a test space) or Firelight Camp. Remembered on this device.
 const PLACE_KEY='deadlight-place-v1';let place='room',campScene=null,talk=null,play=null,reelPointer=null;try{if(storage?.getItem(PLACE_KEY)==='camp')place='camp';}catch{}
@@ -42,7 +44,7 @@ for(const id of ['reload','throwGrenade','swapGun'])for(const n of ['pointerup',
 // Phones and tablets start on the touch controls; a PC, even one with a touchscreen, starts without them and only shows them once you touch the screen.
 const coarse=matchMedia('(pointer:coarse)').matches;
 // The last thing you touched decides which prompts show: keys, a controller's buttons, or the touch controls.
-let device=coarse?'touch':'keys';if(coarse)zoomIndex=0;document.body.classList.toggle('touch',device==='touch');const touch=()=>device==='touch';const pad=new PadInput();
+let device=coarse?'touch':'keys';if(coarse)zoomLevel=ZOOMS[0].z;try{const z=Number(storage?.getItem(ZOOM_KEY));if(z>=ZMIN&&z<=ZMAX)zoomLevel=z;}catch{}document.body.classList.toggle('touch',device==='touch');const touch=()=>device==='touch';const pad=new PadInput();
 // A short hint for the current place and device. It fades after a few seconds; the full list is in the menu under Controls.
 const HELP={keys:{room:'WASD move · Shift run · Mouse aim · Click fire · R reload · Q or wheel swap · G grenade · Esc menu',camp:'WASD move · Shift run · E use or talk · I character · Esc menu',zombie:'WASD shamble · Shift lurch · I character · Esc menu'},
  pad:{room:'Left stick moves · Right stick aims and fires · RB grenade · X reload · Y swap · ☰ menu',camp:'Left stick moves · LT runs · A uses or talks · ☰ menu',zombie:'Left stick shambles · LT lurches · ☰ menu'},
@@ -60,7 +62,13 @@ function refreshPet(){if(!petDirty)return;petDirty=false;const l=petLook(compani
 $('inspect').onclick=()=>openDialog('inspection');$('menu').onclick=()=>openDialog('options');$('resume').onclick=()=>closeDialog('options');
 // Menu entries that lead elsewhere close the pause menu first.
 const fromMenu=fn=>()=>{if($('options').open)closeDialog('options');fn();};$('inspectMenu').onclick=fromMenu(()=>openDialog('inspection'));$('closeInspect').onclick=$('returnRoom').onclick=()=>closeDialog('inspection');$('closeOptions').onclick=()=>closeDialog('options');for(let id of ['inspection','options'])$(id).addEventListener('close',resetInput);
-function cycleZoom(){zoomIndex=(zoomIndex+1)%ZOOMS.length;paintZoom();}function paintZoom(){const zl=$('zoom').firstChild;if(zl)zl.textContent='Camera: '+ZOOMS[zoomIndex].name+' ';}$('zoom').onclick=cycleZoom;
+function cycleZoom(){const next=ZOOMS.find(p=>p.z>zoomLevel+.01)||ZOOMS[0];setZoom(next.z);}
+function setZoom(z,save=true){zoomLevel=Math.max(ZMIN,Math.min(ZMAX,z));if(save){try{storage?.setItem(ZOOM_KEY,zoomLevel.toFixed(3));}catch{}}paintZoom();}
+// The slider runs on a log scale, so each step out feels the same size as each step in.
+const toSlider=z=>Math.round(Math.log(z/ZMIN)/Math.log(ZMAX/ZMIN)*100),fromSlider=v=>ZMIN*Math.pow(ZMAX/ZMIN,v/100);
+function paintZoom(){const preset=ZOOMS.find(p=>Math.abs(p.z-zoomLevel)<.01),zl=$('zoom').firstChild;if(zl)zl.textContent='Camera: '+(preset?preset.name:Math.round(zoomLevel*100)+'%')+' ';const r=$('zoomRange');if(r&&document.activeElement!==r)r.value=String(toSlider(zoomLevel));}
+$('zoom').onclick=cycleZoom;$('zoomRange').addEventListener('input',e=>setZoom(fromSlider(Number(e.target.value)),false));$('zoomRange').addEventListener('change',()=>setZoom(zoomLevel));
+$('zoomOut').onclick=()=>setZoom(zoomLevel/1.15);$('zoomIn').onclick=()=>setZoom(zoomLevel*1.15);
 // Effects: Auto watches the frame rate once a second while you play; the menu can fix it at High or Low.
 const quality=new Quality(storage);function paintEffects(){$('effects').textContent='Effects: '+quality.label;document.body.classList.toggle('fx-low',quality.low);}
 quality.onChange(paintEffects);paintEffects();$('effects').onclick=()=>quality.cycle();
@@ -86,14 +94,18 @@ let inspectLoop=0;function loopInspection(now){inspectLoop=0;if(!$('inspection')
 function paintInspection(now){if(!scene||now-lastInspect<60)return;lastInspect=now;const c=$('portrait').getContext('2d');c.clearRect(0,0,280,360);c.imageSmoothingEnabled=false;if(creator.mode?.()==='pet'){petPreview(c,now);return;}if(pose==='sit')pose='idle';const z=appearance.zombie;let f=pose==='idle'?0:(pose==='run'?9:1)+Math.floor(now/(pose==='run'?(z?80:60):(z?125:85)))%8;scene.portrait(c,inspectDirection,f,140,332,2);$('direction').textContent=DIRECTIONS[inspectDirection];$('portrait').setAttribute('aria-label',DIRECTIONS[inspectDirection]+' view, '+pose+' animation');}
 const zone=$('moveZone');function paintStick(v){$('ring').style.left=v.baseX+'px';$('ring').style.top=v.baseY+'px';$('thumb').style.transform=`translate(-50%,-50%) translate(${v.thumbX}px,${v.thumbY}px)`;}
 zone.addEventListener('pointerdown',e=>{if(paused()||stick.pointer!==null)return;e.preventDefault();let b=zone.getBoundingClientRect();stick.start(e.pointerId,e.clientX-b.left,e.clientY-b.top,{w:b.width,h:b.height},56,40);zone.setPointerCapture(e.pointerId);zone.classList.add('active');paintStick({baseX:stick.base.x,baseY:stick.base.y,thumbX:0,thumbY:0});});
-zone.addEventListener('pointermove',e=>{let b=zone.getBoundingClientRect(),v=stick.move(e.pointerId,e.clientX-b.left,e.clientY-b.top);if(!v)return;e.preventDefault();paintStick(v);let d=Math.hypot(v.dx,v.dy),power=Math.min(1,Math.max(0,(d-4)/33));edgeRun(d);move={x:d?v.dx/d*power:0,y:d?v.dy/d*power:0};});
-for(let name of ['pointerup','pointercancel','lostpointercapture'])zone.addEventListener(name,e=>{if(stick.end(e.pointerId)){move={x:0,y:0};if(docked()&&running)setRun(false);zone.classList.remove('active');$('ring').style.left=$('ring').style.top='';$('thumb').style.transform='';}});
+zone.addEventListener('pointermove',e=>{let b=zone.getBoundingClientRect(),v=stick.move(e.pointerId,e.clientX-b.left,e.clientY-b.top);if(!v)return;e.preventDefault();paintStick(v);let d=Math.hypot(v.dx,v.dy),power=Math.min(1,Math.max(0,(d-4)/33));move={x:d?v.dx/d*power:0,y:d?v.dy/d*power:0};});
+for(let name of ['pointerup','pointercancel','lostpointercapture'])zone.addEventListener(name,e=>{if(stick.end(e.pointerId)){move={x:0,y:0};zone.classList.remove('active');$('ring').style.left=$('ring').style.top='';$('thumb').style.transform='';}});
 // Run is a toggle on touch: tap it to run, tap again to walk. It stays on through stops, menus and trips between places.
-// On the portrait console there is no Run button: push the move stick out to its rim to sprint, ease back in to walk.
 const docked=()=>document.body.classList.contains('deck')&&touch();
-function edgeRun(d){if(!docked()||paused())return;const want=running?d>42:d>56;if(want!==running)setRun(want);}
+// Running is a choice you keep paying for: Run stays on until you tap it off or your stamina runs dry, which turns it off for you.
+// The ring round the button is the stamina left; while you are winded it will not switch back on.
+const stamina=()=>campModel.stamina;let runShown='';
+function paintRun(){const s=stamina();if(running&&s.winded){setRun(false);flashRun();}const key=Math.round(s.value/s.max*100)+(s.winded?'w':'');if(key===runShown)return;runShown=key;$('runRing').style.setProperty('--p',(s.value/s.max).toFixed(3));$('runToggle').classList.toggle('winded',s.winded);}
+function flashRun(){const b=$('runToggle');b.classList.remove('empty');void b.offsetWidth;b.classList.add('empty');buzz(30);}
 function setRun(on){running=on;$('runToggle').classList.toggle('on',on);$('runToggle').setAttribute('aria-pressed',String(on));zone.classList.toggle('sprint',on);buzz(on?12:6);}
-$('runToggle').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(!paused())setRun(!running);});$('runToggle').onclick=e=>{if(!e?.pointerType&&!paused())setRun(!running);};
+function toggleRun(){if(paused())return;if(!running&&stamina().winded){flashRun();return;}setRun(!running);}
+$('runToggle').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();toggleRun();});$('runToggle').onclick=e=>{if(!e?.pointerType)toggleRun();};
 // The fire stick sits in a fixed place so the fan of buttons around it never moves. Push it to aim; past a small dead zone it fires.
 const aimZone=$('aimZone'),AIM_TRAVEL=40,FIRE_AT=14;let aimPointer=null;
 function aimFrom(e){const r=$('aimRing').getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2),d=Math.hypot(dx,dy),k=Math.min(1,AIM_TRAVEL/(d||1));
@@ -119,18 +131,10 @@ function paintWeapon(p){const g=GUNS[loadout.gun],mag=p.mag,reload=g&&p.reloadTi
  $('ammoWord').textContent=p.reloadTime?'Reloading':ammo?'Reload':'Empty · reload';
  $('reloadRing').style.setProperty('--p',p.reloadTime?reload:g?ammo/mag:0);$('reload').classList.toggle('busy',!!p.reloadTime);$('reload').classList.toggle('low',!!low);
  $('throwRing').style.setProperty('--p',cool?1-cool:1);$('throwFill').style.width=(cool?1-cool:1)*100+'%';$('throwGrenade').classList.toggle('busy',cool>0);}
-const bridge={quality,petLook:()=>petLook(companion),pet:()=>roomPet,petStep:dt=>{if(!halted())roomPet.update(dt,ownerOf(model));},paused,loadout:gear,appearance:()=>appearance,zoom,res:RES,input:()=>{const pa=padState.aim;if(pa.x||pa.y){mousePoint=null;aim={x:pa.x,y:pa.y};}else if(mousePoint){const p=scene.cameras.main.getWorldPoint(mousePoint.x,mousePoint.y);aim={x:p.x-model.x,y:p.y+35-model.y};}return {x:move.x+padState.move.x+Number(keys.has('d')||keys.has('arrowright'))-Number(keys.has('a')||keys.has('arrowleft')),y:move.y+padState.move.y+Number(keys.has('s')||keys.has('arrowdown'))-Number(keys.has('w')||keys.has('arrowup')),run:(running&&touch())||padState.run||keys.has('shift'),aimX:aim.x,aimY:aim.y,fire:firing||mouseFire||padState.fire||keys.has(' ')};},ready:s=>{scene=s;ready=true;connectMouse(s);s.practice.setMods(mods(wallet));if(place==='camp')setTimeout(()=>travel('camp'));else $('loading').hidden=true;},lead:dt=>leadStep(dt,scene.cameras.main),tick:now=>{paintWeapon(scene.practice);paintDrill(scene.practice.drill,now);roomPrompt(scene);if($('inspection').open)paintInspection(now);},contextLost:()=>{contextMissing=true;resetInput();$('status').textContent='Graphics paused. Waiting to reconnect…';},contextRestored:()=>{contextMissing=false;$('status').textContent='';}};
+const bridge={quality,petLook:()=>petLook(companion),pet:()=>roomPet,petStep:dt=>{if(!halted())roomPet.update(dt,ownerOf(model));},paused,loadout:gear,appearance:()=>appearance,zoom,res:RES,input:()=>{const pa=padState.aim;if(pa.x||pa.y){mousePoint=null;aim={x:pa.x,y:pa.y};}else if(mousePoint){const p=scene.cameras.main.getWorldPoint(mousePoint.x,mousePoint.y);aim={x:p.x-model.x,y:p.y+35-model.y};}return {x:move.x+padState.move.x+Number(keys.has('d')||keys.has('arrowright'))-Number(keys.has('a')||keys.has('arrowleft')),y:move.y+padState.move.y+Number(keys.has('s')||keys.has('arrowdown'))-Number(keys.has('w')||keys.has('arrowup')),run:(running&&touch())||padState.run||keys.has('shift'),aimX:aim.x,aimY:aim.y,fire:firing||mouseFire||padState.fire||keys.has(' ')};},ready:s=>{scene=s;ready=true;connectMouse(s);s.practice.setMods(mods(wallet));if(place==='camp')setTimeout(()=>travel('camp'));else $('loading').hidden=true;},tick:now=>{paintRun();paintWeapon(scene.practice);paintDrill(scene.practice.drill,now);roomPrompt(scene);if($('inspection').open)paintInspection(now);},contextLost:()=>{contextMissing=true;resetInput();$('status').textContent='Graphics paused. Waiting to reconnect…';},contextRestored:()=>{contextMissing=false;$('status').textContent='';}};
 
 // Firelight Camp. Same movement and touch controls; Talk replaces the shooting controls.
 // The camera leans the way you aim, as in Helldivers, so you see what you are shooting at; it drifts back when you stop aiming.
-// Sticks lean by their direction; the mouse leans by how far it is from the middle of the screen, so the view never chases the cursor.
-const LEAD=.36,lead={x:0,y:0};
-function leadStep(dt,cam){const hw=cam.width/cam.zoom/2,hh=cam.height/cam.zoom/2,pa=padState.aim;let tx=0,ty=0,on=true;
- if(pa.x||pa.y){tx=pa.x*hw*LEAD;ty=pa.y*hh*LEAD;}
- else if(aimPointer!==null&&(aim.x||aim.y)){tx=aim.x*hw*LEAD;ty=aim.y*hh*LEAD;}
- else if(mousePoint&&!paused()){tx=(mousePoint.x/cam.width*2-1)*hw*LEAD*.9;ty=(mousePoint.y/cam.height*2-1)*hh*LEAD*.9;}
- else on=false;
- const k=Math.min(1,dt*(on?3.2:1.8));lead.x+=(tx-lead.x)*k;lead.y+=(ty-lead.y)*k;return lead;}
 const PLACES={room:{name:'Training Grounds <i>01</i>',kicker:'TRAINING GROUNDS / 0.29.0',go:'Camp',text:'A cave chamber under the camp. Aaron and Gadget, the last two of their LEET AF unit, built a whole building out of pallets, doors and scrap in the middle of it, with a yard around it and a barricade across the front. Their post sits by the gate: Aaron\'s paintball shop on the left, Gadget\'s parts counter on the right. Ask Gadget for a Holdout: waves of robot zombies out of every hatch until you drop. Pick up the broken parts they leave, trade them to Gadget for tokens, and spend the tokens at Aaron\'s shop. Every gun here is its paintball twin; reserves never run out. Push the right stick (or hold the mouse) to aim and fire; the buttons around it reload, throw and swap. Climb the stairs to go back up to camp.'},
  camp:{name:'Firelight Camp <i>Stage 1</i>',kicker:'FIRELIGHT CAMP / 0.29.0',go:'Training Grounds',text:'The camp on the cave beach, forty-one days after the fall. Macy runs it from the quest board; Ava keeps the medic tent, Pike the cook pot, Stan the forge, and Zyn and Clyde the fenced garden to the south. Fish off the pier, then grill your catch at the campfire: a good meal means more stamina for running. Walk up to anything marked with an ember arrow to use it, and ask Aaron about the Training Grounds behind the steel doors. Jobs, crafting, planting and the gate come later.'}};
 function showPlace(){const p=PLACES[place];$('coopBeds').hidden=place!=='camp';document.body.classList[place==='camp'?'add':'remove']('camp');$('placeName').innerHTML=p.name;$('travel').textContent='Go to '+p.go;$('travel').setAttribute('aria-label',place==='camp'?'Go to the Training Grounds':'Go to Firelight Camp');$('optionsKicker').textContent=p.kicker;$('optionsText').textContent=p.text;syncKind();$('prompt').hidden=true;$('prompt').classList.remove('tap');$('act').hidden=true;lastTarget=undefined;}
@@ -203,14 +207,14 @@ heel(campPet,campModel);const petTarget={id:'pet',kind:'pet',range:40,facing:tru
 const ownerOf=(m,busy=false)=>({x:m.x,y:m.y,direction:m.direction,moving:m.moving,running:m.running,busy});
 const campInput=()=>{let x=move.x+padState.move.x+Number(keys.has('d')||keys.has('arrowright'))-Number(keys.has('a')||keys.has('arrowleft')),y=move.y+padState.move.y+Number(keys.has('s')||keys.has('arrowdown'))-Number(keys.has('w')||keys.has('arrowup'));const m=Math.hypot(x,y);if(m>1){x/=m;y/=m;}return {x,y,run:(running&&touch())||padState.run||keys.has('shift')};};
 // For local testing only: ?debug exposes the camp to the console.
-if(/[?&]debug\b/.test(globalThis.location?.search||""))window.deadlight={quality,campModel,roomModel:model,get roomScene(){return scene;},play,campPet,get campScene(){return campScene;},get lead(){return lead;},get running(){return running;}};
+if(/[?&]debug\b/.test(globalThis.location?.search||""))window.deadlight={quality,campModel,roomModel:model,get roomScene(){return scene;},play,campPet,get campScene(){return campScene;},get running(){return running;},get zoom(){return zoomLevel;}};
 const campBridge={quality,paused,zoom,res:RES,look:()=>survivorLook,
  input:()=>play.fishing?{x:0,y:0,run:false}:campInput(),step:dt=>{if(!halted())play.update(dt,campInput());},
  fishing:()=>play.view(),busy:()=>!!play.active(),
  petLook:()=>petLook(companion),pet:()=>campPet,petStep:dt=>{if(!halted())campPet.update(dt,ownerOf(campModel,play.active()));},
  petTarget:()=>Object.assign(petTarget,{name:displayName(companion),x:campPet.x,y:campPet.y,my:campPet.y-(companion.species?30:46)+(campPet.state==='lie'?10:0)}),cooking:()=>play.cookView(),rackFish:()=>play.camp.basket.length,
  ready:s=>{campScene=s;if(place==='camp')$('loading').hidden=true;},
- tick:(now,s)=>{const t=s.target,show=!!t&&!paused(),pr=$('prompt');
+ tick:(now,s)=>{paintRun();const t=s.target,show=!!t&&!paused(),pr=$('prompt');
   if(play.active()){pr.hidden=true;const fishing=play.fishing&&touch()&&!halted();$('act').hidden=!fishing;$('act').classList.remove('idle');if(fishing){const verb=play.actLabel();if($('actVerb').textContent!==verb){$('actVerb').textContent=verb;$('actName').textContent='Fishing';$('act').setAttribute('aria-label',verb);}}lastTarget=undefined;return;}
   if(t!==lastTarget){lastTarget=t;if(t){$('promptVerb').textContent=$('actVerb').textContent=verbOf(t);$('promptName').textContent=$('actName').textContent=t.name;$('act').setAttribute('aria-label',verbOf(t)+': '+t.name);}else{$('actVerb').textContent='Use';$('actName').textContent='';$('act').setAttribute('aria-label','Nothing to use here');}}
   // On the portrait deck the action button keeps its place, dimmed until something is in reach.

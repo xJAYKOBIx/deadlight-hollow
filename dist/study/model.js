@@ -14,7 +14,9 @@ export class StudyModel{
  // where you aim, they face the aim side and step backwards instead, so you backpedal rather than twist round.
  face(aim,move){if(aim!==null){this.aim=aim;this.direction=facingOf(aim);}else{if(move!==null)this.direction=move;this.aim=this.direction*Math.PI/4;}
   const turn=move===null?0:((move-this.direction+12)%8)-4;this.backpedal=Math.abs(turn)>2;this.legDir=move===null?this.direction:this.backpedal?(move+4)%8:move;}
- update(dt,input={}){dt=Math.max(0,Math.min(.05,Number(dt)||0));let mx=Number(input.x)||0,my=Number(input.y)||0,d=Math.hypot(mx,my);this.running=!!input.run;this.moving=false;
+ // With a stamina pool attached (camp and arena share one), running spends it; run it dry and you walk until it is partly back.
+ update(dt,input={}){const st=this.stamina;if(!st)return this.walk(dt,input);this.walk(dt,{...input,run:!!input.run&&st.canRun()});st.update(Math.max(0,Math.min(.05,Number(dt)||0)),this.running&&this.moving);}
+ walk(dt,input={}){dt=Math.max(0,Math.min(.05,Number(dt)||0));let mx=Number(input.x)||0,my=Number(input.y)||0,d=Math.hypot(mx,my);this.running=!!input.run;this.moving=false;
  const ax=Number(input.aimX),ay=Number(input.aimY),aim=Number.isFinite(ax)&&Number.isFinite(ay)&&Math.hypot(ax,ay)>.1?Math.atan2(ay,ax):null;
  if(d<.12){this.frame=0;this.phase=0;this.face(aim,null);return;}mx/=Math.max(1,d);my/=Math.max(1,d);this.face(aim,(Math.round(Math.atan2(my,mx)/(Math.PI/4))+8)%8);// Zombies shamble and lurch: slower, with a shorter step per animation cycle.
  let z=this.zombie,speed=this.running?(z?150:215):(z?70:126),dx=mx*speed*dt,dy=my*speed*dt,oldX=this.x,oldY=this.y;
