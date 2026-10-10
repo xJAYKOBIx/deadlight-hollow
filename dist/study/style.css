@@ -690,3 +690,9 @@ dialog.bag{width:min(940px,calc(100% - 24px));--cell:min(50px,calc((min(100vw,94
 /* On the portrait deck the weapon panel takes the corner the stamina and goal use in the house; the Run ring still shows stamina,
    and the goal moves into the readout at the top of the deck. */
 html body.deck.street #vitals{display:none}
+/* Your thoughts: first person, in italics, under you. No box, so they read as your voice and not as something you are looking at. */
+#thought{position:fixed;z-index:4;left:50%;top:calc(var(--vy) + var(--gh) * .6);transform:translate(-50%,6px);width:min(440px,calc(var(--vw) - 32px));margin:0;text-align:center;font:italic 500 15px/1.4 var(--body);color:#e9dfc8;text-shadow:0 1px 0 #000,0 0 10px #000,0 0 3px #000;opacity:0;pointer-events:none}
+#thought.on{opacity:1;transform:translate(-50%,0);transition:opacity .5s,transform .5s}
+#thought::before{content:'“'}#thought::after{content:'”'}
+html body.deck #thought{top:calc(var(--vy) + var(--gh) * .64);font-size:14px}
+.cine #thought{visibility:hidden}

@@ -1,4 +1,4 @@
-import {Practice} from './practice.js';import {Juice} from './juice.js';import {targetArt,practiceEffects,graphicsPainter,blob} from './practice-art.js';
+import {bake} from './memory.js';import {Practice} from './practice.js';import {Juice} from './juice.js';import {targetArt,practiceEffects,graphicsPainter,blob} from './practice-art.js';
 import {survivor,FRAME} from './character.js';import {LAYERS,ORDER,origin,sheetSize,paintLayers,pose,drawLayers,armed} from './layers.js';import {ROOM,ROOM_NPCS,TALK_RANGE,OBJECTS} from './model.js';import {PAINT} from './equipment.js';
 import {TG,PROPS,GATE_DOOR} from '../grounds/data.js';
 import {groundArt,groundTiles,frontArt,FRONT_Y,lightArt,LIGHT_SCALE,glowArt,propArt,PROP_PAD,botArt,BOT,BOT_ROW,bruteArt,BRUTE,SPIT,ledSpots,screenRects,splat} from '../grounds/art.js';
@@ -9,16 +9,17 @@ const facing=(dx,dy)=>(Math.round(Math.atan2(dy,dx)/(Math.PI/4))+8)%8;
 const FLOOR_MARKS=320;
 export function makeStudyScene(model,bridge){return class CharacterRoom extends Phaser.Scene{
  constructor(){super('CharacterRoom');this.model=model;this.practice=new Practice(model,bridge.loadout());}
- texture(key,w,h,draw){if(this.textures.exists(key))return this.textures.get(key);let t=this.textures.createCanvas(key,w,h);draw(t.context);t.refresh();return t;}
+ // once: painted a single time, so only the graphics card keeps it (memory.js).
+ texture(key,w,h,draw,once){if(this.textures.exists(key))return this.textures.get(key);let t=this.textures.createCanvas(key,w,h);draw(t.context);t.refresh();return once?bake(this,t,draw):t;}
  create(){
  // The chamber: rock, floor, cords and old paint in one canvas, then every piece of scrap as its own sprite so you walk behind it.
  // The floor comes in tiles, so no single texture is too big for a phone.
- for(const [i,t] of groundTiles().entries()){const key='tg-ground-'+i;this.texture(key,t.w*2,t.h*2,c=>groundArt(c,t));this.add.image(t.x,t.y,key).setOrigin(0).setScale(.5).setDepth(-10);}
+ // The front wall and the light map are just as big, so all three wait until you first come into the room: a night that starts at home never holds them.
+ const paintRoom=()=>{for(const [i,t] of groundTiles().entries()){const key='tg-ground-'+i;this.texture(key,t.w*2,t.h*2,c=>groundArt(c,t),true);this.add.image(t.x,t.y,key).setOrigin(0).setScale(.5).setDepth(-10);}this.texture('tg-front',TG.w*2,(TG.h-FRONT_Y)*2,frontArt,true);this.add.image(0,FRONT_Y,'tg-front').setOrigin(0).setScale(.5).setDepth(5000);this.texture('tg-light',Math.ceil(TG.w/LIGHT_SCALE),Math.ceil(TG.h/LIGHT_SCALE),lightArt,true);this.add.image(0,0,'tg-light').setOrigin(0).setScale(LIGHT_SCALE).setDepth(6000).setBlendMode(Phaser.BlendModes.MULTIPLY);};if(bridge.here?.()===false)this.events.once('wake',paintRoom);else paintRoom();
  // Paint puddles from the spitters and the parts robots drop lie on the floor.
  this.floorFx=this.add.graphics().setDepth(-4);
  this.floorPaint=this.add.graphics().setDepth(-5);this.floorMarks=[];this.markGen=this.practice.markGen;
  this.props=new Map();for(const o of PROPS){const key='tg-'+o.id,t=this.texture(key,(o.w+PROP_PAD*2)*2,(o.h+o.z+PROP_PAD*2)*2,c=>propArt(c,o));this.props.set(o.id,{o,t,painted:false});this.add.image(o.x-PROP_PAD,o.y-o.z-PROP_PAD,key).setOrigin(0).setScale(.5).setDepth(o.y+o.h);}
- this.texture('tg-front',TG.w*2,(TG.h-FRONT_Y)*2,frontArt);this.add.image(0,FRONT_Y,'tg-front').setOrigin(0).setScale(.5).setDepth(5000);
  // Paper targets in the lane.
  this.texture('practice-target',48,66,targetArt);this.targetSprites=this.practice.targets.map(t=>this.add.image(t.x-24,t.y-60,'practice-target').setOrigin(0).setDepth(t.y));this.targetPaint=this.practice.targets.map(t=>({g:this.add.graphics().setDepth(t.y+.5),n:-1}));
  // Gadget's robots: one sheet of variants and frames, a sprite and a paint layer for each robot on the floor.
@@ -34,8 +35,7 @@ export function makeStudyScene(model,bridge){return class CharacterRoom extends 
   return {data:n,sprite:this.add.image(n.x,n.y,key,n.direction).setOrigin(.5,85/96).setScale(.5).setDepth(n.y)};});this.target=null;
  this.pet=bridge.pet?addPet(this,bridge.petLook()):null;
  this.parts={};for(const k of ORDER){const L=LAYERS[k];this.parts[k]=this.add.image(model.x,model.y,L.key,0).setOrigin(...origin(L)).setScale(.5);}this.actor=this.parts.body;
- // Lighting multiplies everything below it; lamp glows, screens and LEDs sit above it so they stay bright.
- this.texture('tg-light',Math.ceil(TG.w/LIGHT_SCALE),Math.ceil(TG.h/LIGHT_SCALE),lightArt);this.add.image(0,0,'tg-light').setOrigin(0).setScale(LIGHT_SCALE).setDepth(6000).setBlendMode(Phaser.BlendModes.MULTIPLY);
+ // Lighting multiplies everything below it (painted with the floor above); lamp glows, screens and LEDs sit above it so they stay bright.
  this.texture('tg-glow',128,128,c=>glowArt(c,[235,240,255]));this.texture('tg-glow-warm',128,128,c=>glowArt(c,[255,214,150]));for(const k of ['tg-glow','tg-glow-warm'])this.textures.get(k).setFilter?.(Phaser.Textures.FilterMode.LINEAR);
  this.glows=PROPS.filter(o=>o.kind==='worklight').map((o,i)=>this.add.image(o.x+6,o.y-70,o.id==='officelight'?'tg-glow-warm':'tg-glow').setScale(.9,.7).setDepth(6001).setBlendMode(Phaser.BlendModes.ADD).setAlpha(.32));
  this.juice=new Juice(this,{quality:bridge.quality,world:TG,reduced:!!globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches});

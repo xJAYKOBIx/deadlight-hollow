@@ -1,6 +1,6 @@
 // The starter house scene: the floors, every prop, the survivor, the dog and the cat, the night light and the candle.
 // Same walking, prompts and camera as the camp; nothing to shoot here. The first time in, it opens on the wake-up scene (wake.js).
-import {survivor,FRAME,FRAME_COUNT} from '../study/character.js';
+import {bake} from '../study/memory.js';import {survivor,FRAME,FRAME_COUNT} from '../study/character.js';
 import {HOME,HOUSE,PROPS,SOLIDS,ROOMS,DOORS,PETS,INSIDE,CANDLE} from './data.js';
 import {groundArt,lightArt,LIGHT_SCALE,glowArt,propArt,PROP_PAD,HOME_DECOR} from './art.js';
 import {iconArt,ICON,ICONS} from '../camp/art.js';
@@ -13,9 +13,10 @@ const inRect=(x,y,r,b)=>{const dx=x-Math.max(b.x,Math.min(x,b.x+b.w)),dy=y-Math.
 const FADES=new Set(['wall','window','doorway','frontdoor']);
 export function makeHomeScene(model,bridge){return class Home extends Phaser.Scene{
  constructor(){super('Home');}
- texture(key,w,h,draw){if(this.textures.exists(key))return this.textures.get(key);const t=this.textures.createCanvas(key,w,h);draw(t.context);t.refresh();return t;}
+ // once: painted a single time, so only the graphics card keeps it (memory.js).
+ texture(key,w,h,draw,once){if(this.textures.exists(key))return this.textures.get(key);const t=this.textures.createCanvas(key,w,h);draw(t.context);t.refresh();return once?bake(this,t,draw):t;}
  create(){
-  this.texture('home-ground',HOME.w*2,HOME.h*2,groundArt);this.add.image(0,0,'home-ground').setOrigin(0).setScale(.5).setDepth(-10);
+  this.texture('home-ground',HOME.w*2,HOME.h*2,groundArt,true);this.add.image(0,0,'home-ground').setOrigin(0).setScale(.5).setDepth(-10);
   // Props. Walls keep their order so the vertical runs sit under the horizontal walls they meet; decorations go just above their wall.
   this.opts={};const kit=bridge.kit?.();if(kit?.guns['light-pistol'])this.opts.nightstand={open:true};if(kit?.guns['pump-shotgun'])this.opts.closet={open:true,box:'empty'};
   this.walls=[];PROPS.forEach((o,i)=>{const key='home-'+o.id;this.texture(key,(o.w+PROP_PAD*2)*2,(o.h+o.z+PROP_PAD*2)*2,c=>propArt(c,{...o,...this.opts[o.id]}));
@@ -28,14 +29,14 @@ export function makeHomeScene(model,bridge){return class Home extends Phaser.Sce
   this.actor=this.add.image(model.x,model.y,'survivor-01',model.direction).setOrigin(.5,FRAME.footY/FRAME.displayH).setScale(.5);
   // The dog and the cat, each on its own sheet.
   const blocked=(x,y,p,plan)=>{const r=p.def.radius;if(x-r<INSIDE.left||x+r>INSIDE.right||y-r*.6<INSIDE.top||y+r*.4>INSIDE.bottom)return true;if(!plan&&Math.hypot(x-model.x,(y-model.y)*1.4)<r+9)return true;return SOLIDS.some(b=>inRect(x,y,r,b));};
-  this.pets=PETS.map(def=>{const key='home-pet-'+def.id,t=this.texture(key,PET_FRAME.w*8,PET_FRAME.h*PET_FRAME_COUNT,c=>paintPetSheet(c,def.look));for(let f=0;f<PET_FRAME_COUNT;f++)for(let d=0;d<8;d++)if(!t.has(f*8+d))t.add(f*8+d,0,d*PET_FRAME.w,f*PET_FRAME.h,PET_FRAME.w,PET_FRAME.h);
+  this.pets=PETS.map(def=>{const key='home-pet-'+def.id,t=this.texture(key,PET_FRAME.w*8,PET_FRAME.h*PET_FRAME_COUNT,c=>paintPetSheet(c,def.look),true);for(let f=0;f<PET_FRAME_COUNT;f++)for(let d=0;d<8;d++)if(!t.has(f*8+d))t.add(f*8+d,0,d*PET_FRAME.w,f*PET_FRAME.h,PET_FRAME.w,PET_FRAME.h);
    const pet=new HousePet(def,{rooms:ROOMS,blocked});return {pet,def,sprite:this.add.image(pet.x,pet.y,key,0).setOrigin(.5,PET_FRAME.footY/PET_FRAME.displayH).setScale(.5),target:{id:'pet-'+def.id,kind:'pet',name:def.name,role:def.role,range:40,facing:true,ref:pet}};});
   bridge.pets?.(this.pets.map(p=>p.pet));
   // First night: the cat is curled up on the couch beside you, and the scene plays before you can move.
   if(bridge.woke&&!bridge.woke()){const [dog,cat]=this.pets.map(p=>p.pet);cat.place(cat.def.spots.find(s=>s.perch&&s.room==='living'&&s.perch.h<20));this.wake=new Wake({dog,cat,you:model});}
   this.zzz=this.add.graphics().setDepth(7002);this.fade=this.add.rectangle(-200,-200,HOME.w+400,HOME.h+400,0x000000,1).setOrigin(0).setDepth(9000).setVisible(!!this.wake);
   // Night: the light map multiplies everything under it; the candle's glow, the hearts and the markers sit above it.
-  this.texture('home-light',Math.ceil(HOME.w/LIGHT_SCALE),Math.ceil(HOME.h/LIGHT_SCALE),lightArt);this.add.image(0,0,'home-light').setOrigin(0).setScale(LIGHT_SCALE).setDepth(6000).setBlendMode(Phaser.BlendModes.MULTIPLY);
+  this.texture('home-light',Math.ceil(HOME.w/LIGHT_SCALE),Math.ceil(HOME.h/LIGHT_SCALE),lightArt,true);this.add.image(0,0,'home-light').setOrigin(0).setScale(LIGHT_SCALE).setDepth(6000).setBlendMode(Phaser.BlendModes.MULTIPLY);
   this.texture('home-glow',128,128,glowArt);this.textures.get('home-glow').setFilter(Phaser.Textures.FilterMode.LINEAR);
   this.glow=this.add.image(CANDLE.x,CANDLE.y+8,'home-glow').setScale(1.4,1).setDepth(6001).setBlendMode(Phaser.BlendModes.ADD);
   // The police car's light bar: a red and a blue glow that sweep past the front windows as it passes, then keep turning down the street.

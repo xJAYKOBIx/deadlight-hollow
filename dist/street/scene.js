@@ -1,5 +1,6 @@
 // The street scene: the ground, every prop, you (in the Training Grounds' layers, so the gun points exactly where you aim), the
 // dead, the night light, the cruiser's light bar and the fight's effects. The fight itself is street/fight.js; this only draws it.
+import {bake,worthBaking} from '../study/memory.js';
 import {survivor,FRAME} from '../study/character.js';
 import {LAYERS,ORDER,origin,sheetSize,paintLayers,pose,armed} from '../study/layers.js';
 import {DEFAULT_APPEARANCE,UNIFORMS} from '../study/appearance.js';
@@ -21,7 +22,8 @@ const ZF={x:16,y:8,w:128,h:176,rows:9};
 const glow=(c,[r,g,b])=>{const gr=c.createRadialGradient(64,64,0,64,64,64);gr.addColorStop(0,`rgba(${r},${g},${b},.8)`);gr.addColorStop(.45,`rgba(${r},${g},${b},.22)`);gr.addColorStop(1,`rgba(${r},${g},${b},0)`);c.fillStyle=gr;c.fillRect(0,0,128,128);};
 export function makeStreetScene(model,bridge){return class Street extends Phaser.Scene{
  constructor(){super('Street');}
- texture(key,w,h,draw){if(this.textures.exists(key))return this.textures.get(key);const t=this.textures.createCanvas(key,w,h);draw(t.context);t.refresh();return t;}
+ // Everything here is painted once, so the big ones keep only the graphics card's copy (memory.js).
+ texture(key,w,h,draw){if(this.textures.exists(key))return this.textures.get(key);const t=this.textures.createCanvas(key,w,h);draw(t.context);t.refresh();return worthBaking(w,h)?bake(this,t,draw):t;}
  create(){
   this.texture('street-ground',STREET.w*2,STREET.h*2,groundArt);this.add.image(0,0,'street-ground').setOrigin(0).setScale(.5).setDepth(-10);
   this.props=new Map();PROPS.forEach((o,i)=>{const key='street-'+o.id,draw=c=>propArt(c,o);this.texture(key,(o.w+PROP_PAD*2)*2,(o.h+o.z+PROP_PAD*2)*2,draw);
