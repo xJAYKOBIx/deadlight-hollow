@@ -607,3 +607,10 @@ html body.deck #drillHud b{font-size:12px}
 html body.deck #drillHud .row,html body.deck #drillHud .vitals{justify-content:flex-start;gap:2px 7px}
 html body.deck #drillHud .hp{width:72px;height:6px}
 html body.deck.fishing #zoomBar,html body.deck.talking #zoomBar{visibility:hidden}
+/* v0.30: blood, smears and scrapes on the deck, painted by grime.js, and a few marks on the buttons. */
+#grime{display:none}
+html body.deck #grime{display:block;position:absolute;left:0;top:0;width:100%;height:100%;image-rendering:pixelated;pointer-events:none;opacity:.88}
+html body.deck.touch:not(.pad) #reload::after,html body.deck.touch:not(.pad) #swapGun::after,html body.deck .topbar #menu::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;image-rendering:pixelated;background-repeat:no-repeat}
+html body.deck.touch:not(.pad) #reload::after{background-image:var(--gore-print);background-size:20px 24px;background-position:82% 14%;opacity:.8;transform:rotate(-18deg)}
+html body.deck.touch:not(.pad) #swapGun::after{background-image:var(--gore-fleck);background-size:32px 20px;background-position:20% 8%;opacity:.9}
+html body.deck .topbar #menu::after{background-image:var(--gore-wipe);background-size:44px 14px;background-position:0 100%;opacity:.6}

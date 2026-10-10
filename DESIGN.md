@@ -419,3 +419,13 @@ In the Training Grounds the survivor is drawn in layers, the way top-down twin-s
 - **Crops:** each layer is cropped to the part of the 160 × 192 frame it uses, measured over random looks with room to spare. Together the four sheets are about a quarter smaller than the old full sheet.
 - **One source of truth:** `survivor()` stacks the same layers for one facing. So the creator preview (now drawn from the game's own layers), camp, residents and thumbnails all match. Unarmed and side-view frames are pixel-identical to v0.28. Front, back and diagonal facings with a gun now point the barrel exactly along the facing.
 - **Camp:** no gun is carried there, so the body and legs still face the way you walk.
+
+## v0.30.0 — The phone controller (portrait)
+On a phone held upright everything that used to sit over the game lives in the controller deck below it, so the view is clear.
+- **Top band:** the place name on the left (Holdout status takes its spot during a drill), weapon and ammo on the right (camp stamina and supplies in camp).
+- **Sticks** raised to the middle of the deck. Between them: the camera zoom (− slider +, 0.35× to 1.8× on a log scale, remembered per device), then **Run** and **Reload** side by side. In camp, Run sits there alone and Use takes the right stick's place.
+- **Bottom row:** Character and Menu on the left; Use, Grenade and Swap toward the right thumb.
+- **No camera lead:** the view stays centred on the survivor, so flicking the aim back and forth doesn't swing it.
+- **Run is a toggle** and spending stamina is a choice: tap to run, tap to stop, and it stays on after you let go of the stick. The ring round the button is your stamina. Run switches itself off with a buzz when you run dry and stays locked until you are no longer winded. The Training Grounds share the camp's stamina.
+- **Grime** (`study/grime.js`): blood, smears and scrapes painted on the deck as pixel art from a fixed seed. A splash on the hazard stripe that runs toward the zoom bar, a hand dragged down the left edge, claw gouges on the right edge and along the bottom, a spray behind Grenade and Swap, dried specks and worn chips. It is kept off the sticks and the HUD text. Reload has a bloody thumbprint, Swap a few flecks and Menu a wipe.
+- Landscape keeps the earlier layout for now; it will be redesigned to match once the portrait layout settles.
