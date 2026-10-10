@@ -5,13 +5,16 @@ export const GUNS={
  'tactical-ar':{name:'Tactical AR',mag:30,damage:19,interval:.105,reload:1.6,range:670,rifle:true,description:'Teal furniture · optic and foregrip · fast automatic fire'},
  'heavy-ar':{name:'Heavy AR',mag:20,damage:31,interval:.18,reload:1.9,range:710,rifle:true,description:'Sand receiver · black magazine · slower, heavier automatic fire'}
 };
+// In the Training Grounds every gun is its paintball twin: same handling, its own paint color.
+export const PAINT={'light-pistol':'#e0457b','heavy-pistol':'#f08a24','hand-cannon':'#e8d43a','tactical-ar':'#4fc76a','heavy-ar':'#3f8fe0'};
 export const GRENADES={smoke:{name:'Smoke Grenade',color:'#59818a',description:'Blue canister · lingering smoke screen',duration:6,radius:78},incendiary:{name:'Incendiary Grenade',color:'#bc582b',description:'Orange canister · burning ground',duration:4,radius:54},explosive:{name:'Explosive Grenade',color:'#7d8050',description:'Olive body · yellow band · immediate blast',duration:.55,radius:85}};
 export const LOADOUT_KEY='deadlight-character-room-equipment-v1';
 export function normalizeLoadout(v){return {gun:v?.gun==='none'||Object.hasOwn(GUNS,v?.gun)?v.gun:'light-pistol',grenade:Object.hasOwn(GRENADES,v?.grenade)?v.grenade:'smoke'};}
 export function readLoadout(storage){try{return normalizeLoadout(JSON.parse(storage.getItem(LOADOUT_KEY)));}catch{return normalizeLoadout();}}
 export function saveLoadout(storage,v){try{storage.setItem(LOADOUT_KEY,JSON.stringify(normalizeLoadout(v)));return true;}catch{return false;}}
 // Author-sized half-pixel silhouettes translated from the approved design sheets.
-export function gunArt(g,id){const{p,r}=g,ink='#10151c',steel='#535c65',hi='#a1a7aa';if(!GUNS[id])return;
+export function gunArt(g,id,paint){gunShape(g,id);if(paint&&GUNS[id])paintKit(g,id,paint);}
+function gunShape(g,id){const{p,r}=g,ink='#10151c',steel='#535c65',hi='#a1a7aa';if(!GUNS[id])return;
  if(!GUNS[id].rifle){const heavy=id==='heavy-pistol',rev=id==='hand-cannon',len=heavy?15:rev?13:11;
  p([[-3,-3],[len,-3],[len+1,-1],[len+1,2],[4,2],[2,8],[-3,8],[-1,2],[-4,1]],ink);
  r(-2,-2,len+2,3,heavy?'#88858b':steel);r(-1,-2,len, .5,hi);r(len,-1,1.5,2,'#282e36');
@@ -29,6 +32,10 @@ export function gunArt(g,id){const{p,r}=g,ink='#10151c',steel='#535c65',hi='#a1a
  for(let x=8;x<18;x+=3)r(x,-2,2,1,ink);r(17,-5,1,2,ink);
  if(!heavy){r(12,2,2,5,ink);r(12.5,3,1,3,'#64828a');}else r(14,0,3,2,'#30343b');
 }
+// The paintball twin: a hopper of paint balls on top and a painted muzzle, so you can tell at a glance it is not the real thing.
+function paintKit(g,id,paint){const{p,r}=g,ink='#10151c',rifle=GUNS[id].rifle,x0=rifle?7:1,w=rifle?9:6,t=rifle?-4:-3,hh=rifle?6:4.5;
+ p([[x0,t],[x0+w,t],[x0+w+1,t-hh+1.5],[x0+w-1,t-hh],[x0+1,t-hh],[x0-1,t-hh+1.5]],ink);r(x0+.5,t-hh+1,w-.5,hh-1.5,'#2c3138');r(x0+1.5,t-hh+1.5,w-2.5,hh-3,paint);r(x0+1.5,t-hh+1.5,1,.5,'#f4efe2');r(x0+w-2.5,t-1.5,1,.5,'#00000055');
+ const tip=rifle?25:id==='heavy-pistol'?14.5:id==='hand-cannon'?12.5:10.5;r(tip,-1.5,2,2.5,ink);r(tip+.5,-1,1.5,1.5,paint);}
 export function grenadeArt(g,id){const{p,r}=g;const col=GRENADES[id]?.color||'#7d8050';p([[-2,-7],[2,-7],[2,-5],[4,-3],[4,4],[2,6],[-2,6],[-4,4],[-4,-3],[-2,-5]],'#141a20');r(-1,-6,3,2,'#737a7b');p([[-2,-4],[2,-4],[3,-2],[3,4],[1,5],[-2,4],[-3,2],[-3,-2]],col);r(-2,-2,1,6,id==='explosive'?'#aaa473':'#96a1a0');r(-3,0,6,2,id==='smoke'?'#ddd2ad':id==='incendiary'?'#e4823c':'#d0ac43');r(3,-5,1,8,'#4b5157');r(2,-6,3,.5,'#b3ada0');r(4,-5,.5,2,'#b3ada0');if(id==='explosive'){r(-3,3,6,.5,'#343c27');r(0,-3,.5,8,'#44482c');}else r(0,0,1,2,'#e7d8b5');}
 // Projection shares the sprite's eight-facing convention. Grip is local (0,0).
 // Front and back views foreshorten the gun and angle it across the body, so it reads as aimed toward or away from the camera.
@@ -38,9 +45,9 @@ function aim(back,quarter,side){const t=side?0:(back?-1:1)*(quarter?.39:.9),L=si
 // Where each hand closes on the gun: the trigger grip, and the fore-end for rifles (pistols use a cupped support hand).
 export function gunHands(id,back,quarter,side){const {point}=aim(back,quarter,side),grip=point([0,3]);return {grip,support:GUNS[id]?.rifle?point([12,3]):[grip[0]-1.5,grip[1]+1]};}
 function hand(g,[x,y],near){g.p([[x-2.5,y-1.5],[x+2.5,y-1.5],[x+2.5,y+2.5],[x-1,y+3.5],[x-3.5,y+1.5]],'#111319');g.p([[x-2,y-1],[x+2,y-1],[x+2,y+2],[x-1,y+3],[x-3,y+1]],near?'#d99b73':'#ae7356');g.r(x-1,y-.5,2,1.5,near?'#ecb18a':'#d99b73');}
-export function heldGun(g,id,back,quarter,side){if(!GUNS[id])return;const {point}=aim(back,quarter,side);
+export function heldGun(g,id,back,quarter,side,paint){if(!GUNS[id])return;const {point}=aim(back,quarter,side);
  const projected={p:(pts,col)=>g.p(pts.map(point),col),r:(x,y,w,h,col)=>g.p([[x,y],[x+w,y],[x+w,y+h],[x,y+h]].map(point),col)};
- gunArt(projected,id);
+ gunArt(projected,id,paint);
  // Hands close around the trigger and the fore-end, over the gun.
  if(back&&!quarter)return;const h=gunHands(id,back,quarter,side);hand(g,h.support,false);hand(g,h.grip,true);
 }

@@ -284,3 +284,42 @@ Aaron also stands inside the Training Grounds by the range doorway (x604, y322),
 - Talk with E, or A on a controller.
 - On a touch screen, tap the floating Talk prompt. The shooting controls stay where they are.
 - His answers there say "here" instead of "down there".
+
+### v0.26.0 Gadget and the Training Grounds
+
+The story is now set: Marrow Industries, LZ-6 (the Lazarus drug), and Rebecca Lynell's revival on live TV. Everyone dosed turned within two months, then everyone they bit. The world collapsed in under six months. The game opens 41 days after the collapse. The full write-up is in the zombie roster doc. In camp, Macy names LZ-6 and Ava explains bite timing (the sick go fast, the young and strong last longer).
+
+The Training Grounds were rebuilt as a cave chamber under the camp (1720×1720, `grounds/data.js` and `grounds/art.js`):
+- The arena is 1600×1200, two thirds of each side of the old 2400×1800 wave map. It is built from pallets, old doors, corrugated sheet, plywood, tires, cable spools, sandbags, drums, crates and stacked shopping carts.
+- A barricade of the same scrap runs along the south side, with a gate. Below it is the front office: Gadget's desk (CRT, radar LCD, laptop, camera monitor), a wire-shelf server rack, a battery bank, the DRILL whiteboard, a car-seat couch and a camp stove. Aaron's counter sits under a pegboard of paintball guns, next to the paint crate. The robot bench, three parked robots and their charger are there too.
+- Everything runs on extension cords from a generator in camp, next to the steel doors. The cords run under the doors and down the stairs, then along the floor to every light, screen and charger.
+- Work lights on tripods light the arena: a cool white, multiplied over a dark ambient. The office is warmer, and the screens and LEDs blink above the lighting.
+- You arrive at the foot of the stairs. Climb them (E, A, or tap) to go back up to camp.
+
+Gadget is the second LEET AF soldier (Engineer). There is no command left, just her, Aaron and a lot of gear. She sits at her desk and has eight topics. Two of them run the drill:
+- **Send in the robots** starts a drill. Three waves (4, 6, then 8 robots) roll out of the two hatches in the back wall.
+- **Call off the drill** shows only while one is running.
+
+The robots are built from pillows, bedsheets, broom or plunger arms, shopping-cart casters and a car battery:
+- They follow a breadth-first flow field around the cover, keep apart from each other, and roll faster each wave.
+- They stop at the gate line, so the office is safe.
+- Contact is a bump, not a bite. It shoves you 16 units, flashes the screen edge and counts against you. You cannot walk through a robot, but you can always step away from one.
+- A robot falls over after 66 damage and stays down, paint and all, until the next drill.
+
+The drill readout under the top bar shows the wave, robots left and the clock. At the end it shows time, hit percentage, bumps and your best time. The best time is saved on this device as `deadlight-drill-best-v1`.
+
+Every gun in the Training Grounds is its paintball twin, with the same magazine, fire rate, reload and range. The held gun gets a hopper and a muzzle in its paint color:
+
+| Gun | Paint |
+|---|---|
+| Light Pistol | pink |
+| Heavy Pistol | orange |
+| Hand Cannon | yellow |
+| Tactical AR | green |
+| Heavy AR | blue |
+
+The weapon readout shows a dot in that color. Paint behaves like this:
+- Hits are still decided at once. The ball flies at 900 units per second, then splats on whatever it reached. On cover, the splat goes on the visible face, or on the top for low cover. Targets and robots carry their own paint. Shots that hit nothing splat on the floor.
+- Reset clears the paint.
+
+Aaron moved to his counter. His answers now cover the arena, paintball, Gadget, and the army being gone.

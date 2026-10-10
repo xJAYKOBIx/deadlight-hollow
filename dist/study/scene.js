@@ -1,19 +1,66 @@
-import {Practice} from './practice.js';import {targetArt,practiceEffects} from './practice-art.js';
-import {survivor,FRAME,FRAME_COUNT} from './character.js';import {ROOM,SOLIDS,ROOM_NPCS,TALK_RANGE} from './model.js';import {roomFloor,roomProp} from './room.js';import {addPet,placePet,petSheet} from '../companion/sprite.js';
+import {Practice} from './practice.js';import {targetArt,practiceEffects,graphicsPainter,blob} from './practice-art.js';
+import {survivor,FRAME,FRAME_COUNT} from './character.js';import {ROOM,ROOM_NPCS,TALK_RANGE,OBJECTS} from './model.js';import {PAINT} from './equipment.js';
+import {TG,PROPS} from '../grounds/data.js';
+import {groundArt,frontArt,FRONT_Y,lightArt,LIGHT_SCALE,glowArt,propArt,PROP_PAD,botArt,BOT,ledSpots,screenRects,splat} from '../grounds/art.js';
+import {painter} from '../camp/art.js';
+import {addPet,placePet,petSheet} from '../companion/sprite.js';
+const facing=(dx,dy)=>(Math.round(Math.atan2(dy,dx)/(Math.PI/4))+8)%8;
+// Paint on the floor is redrawn from scratch past this many splats, keeping only the newest.
+const FLOOR_MARKS=320;
 export function makeStudyScene(model,bridge){return class CharacterRoom extends Phaser.Scene{
  constructor(){super('CharacterRoom');this.model=model;this.practice=new Practice(model,bridge.loadout());}
- texture(key,w,h,draw){let t=this.textures.createCanvas(key,w,h);draw(t.context);t.refresh();return t;}
- create(){this.texture('study-floor',ROOM.w,ROOM.h,roomFloor);this.add.image(0,0,'study-floor').setOrigin(0).setDepth(-1);
- for(let o of SOLIDS){this.texture(o.id,o.w+20,o.h+o.height+14,c=>roomProp(c,o));this.add.image(o.x,o.y-o.height,o.id).setOrigin(0).setDepth(o.y+o.h);}
- this.texture('practice-target',48,66,targetArt);this.targetSprites=this.practice.targets.map(t=>this.add.image(t.x-24,t.y-60,'practice-target').setOrigin(0).setDepth(t.y));this.fx=this.add.graphics().setDepth(2000);
- this.texture('survivor-01',FRAME.w*8,FRAME.h*FRAME_COUNT,()=>{});let t=this.textures.get('survivor-01');for(let f=0;f<FRAME_COUNT;f++)for(let d=0;d<8;d++)t.add(f*8+d,0,d*FRAME.w,f*FRAME.h,FRAME.w,FRAME.h);this.setAppearance(bridge.appearance());
- // People on the range: the eight idle facings, drawn once. They turn to you when you come close.
+ texture(key,w,h,draw){if(this.textures.exists(key))return this.textures.get(key);let t=this.textures.createCanvas(key,w,h);draw(t.context);t.refresh();return t;}
+ create(){
+ // The chamber: rock, floor, cords and old paint in one canvas, then every piece of scrap as its own sprite so you walk behind it.
+ this.texture('tg-ground',TG.w*2,TG.h*2,groundArt);this.add.image(0,0,'tg-ground').setOrigin(0).setScale(.5).setDepth(-10);
+ this.floorPaint=this.add.graphics().setDepth(-5);this.floorMarks=[];this.markGen=this.practice.markGen;
+ this.props=new Map();for(const o of PROPS){const key='tg-'+o.id,t=this.texture(key,(o.w+PROP_PAD*2)*2,(o.h+o.z+PROP_PAD*2)*2,c=>propArt(c,o));this.props.set(o.id,{o,t,painted:false});this.add.image(o.x-PROP_PAD,o.y-o.z-PROP_PAD,key).setOrigin(0).setScale(.5).setDepth(o.y+o.h);}
+ this.texture('tg-front',TG.w*2,(TG.h-FRONT_Y)*2,frontArt);this.add.image(0,FRONT_Y,'tg-front').setOrigin(0).setScale(.5).setDepth(5000);
+ // Paper targets in the lane.
+ this.texture('practice-target',48,66,targetArt);this.targetSprites=this.practice.targets.map(t=>this.add.image(t.x-24,t.y-60,'practice-target').setOrigin(0).setDepth(t.y));this.targetPaint=this.practice.targets.map(t=>({g:this.add.graphics().setDepth(t.y+.5),n:-1}));
+ // Gadget's robots: one sheet of variants and frames, a sprite and a paint layer for each robot on the floor.
+ const bots=this.texture('tg-bots',BOT.w*2*BOT.frames,BOT.h*2*BOT.variants,botArt);for(let v=0;v<BOT.variants;v++)for(let f=0;f<BOT.frames;f++){const id=v*BOT.frames+f;if(!bots.has?.(id))bots.add(id,0,f*BOT.w*2,v*BOT.h*2,BOT.w*2,BOT.h*2);}this.botSprites=new Map();
+ this.fx=this.add.graphics().setDepth(6002);
+ this.texture('survivor-01',FRAME.w*8,FRAME.h*FRAME_COUNT,()=>{});let t=this.textures.get('survivor-01');for(let f=0;f<FRAME_COUNT;f++)for(let d=0;d<8;d++)if(!t.has?.(f*8+d))t.add(f*8+d,0,d*FRAME.w,f*FRAME.h,FRAME.w,FRAME.h);this.setAppearance(bridge.appearance());
+ // Aaron and Gadget: the eight idle facings, drawn once. They turn to you when you come close.
  this.npcs=ROOM_NPCS.map(n=>{const key='camp-res-'+n.id;if(!this.textures.exists(key)){const t=this.texture(key,FRAME.w*8,FRAME.h,c=>{c.imageSmoothingEnabled=false;for(let d=0;d<8;d++){c.save();c.translate(d*FRAME.w,0);c.scale(2,2);survivor(c,d,0,true,{...n.look,gun:'none',grenade:null});c.restore();}});for(let d=0;d<8;d++)t.add(d,0,d*FRAME.w,0,FRAME.w,FRAME.h);}
   return {data:n,sprite:this.add.image(n.x,n.y,key,n.direction).setOrigin(.5,85/96).setScale(.5).setDepth(n.y)};});this.target=null;
  this.pet=bridge.pet?addPet(this,bridge.petLook()):null;
- this.actor=this.add.image(model.x,model.y,'survivor-01',1).setOrigin(.5,85/96).setScale(.5);this.cameras.main.setBackgroundColor('#242630').setBounds(0,0,ROOM.w,ROOM.h).setZoom(bridge.zoom()).centerOn(model.x,model.y-20);this.game.canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();bridge.contextLost();});this.game.canvas.addEventListener('webglcontextrestored',()=>bridge.contextRestored());bridge.ready(this);}
+ this.actor=this.add.image(model.x,model.y,'survivor-01',1).setOrigin(.5,85/96).setScale(.5);
+ // Lighting multiplies everything below it; lamp glows, screens and LEDs sit above it so they stay bright.
+ this.texture('tg-light',Math.ceil(TG.w/LIGHT_SCALE),Math.ceil(TG.h/LIGHT_SCALE),lightArt);this.add.image(0,0,'tg-light').setOrigin(0).setScale(LIGHT_SCALE).setDepth(6000).setBlendMode(Phaser.BlendModes.MULTIPLY);
+ this.texture('tg-glow',128,128,c=>glowArt(c,[235,240,255]));this.texture('tg-glow-warm',128,128,c=>glowArt(c,[255,214,150]));for(const k of ['tg-glow','tg-glow-warm'])this.textures.get(k).setFilter?.(Phaser.Textures.FilterMode.LINEAR);
+ this.glows=PROPS.filter(o=>o.kind==='worklight').map((o,i)=>this.add.image(o.x+6,o.y-70,o.id==='officelight'?'tg-glow-warm':'tg-glow').setScale(.9,.7).setDepth(6001).setBlendMode(Phaser.BlendModes.ADD).setAlpha(.32));
+ this.leds=ledSpots();this.screens=screenRects();this.blink=this.add.graphics().setDepth(6001);
+ this.cameras.main.setBackgroundColor('#0b0c10').setBounds(0,0,ROOM.w,ROOM.h).setZoom(bridge.zoom()).centerOn(model.x,model.y-20);this.game.canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();bridge.contextLost();});this.game.canvas.addEventListener('webglcontextrestored',()=>bridge.contextRestored());bridge.ready(this);}
  setPetLook(look){if(this.pet)petSheet(this,look);}
- setAppearance(look){const t=this.textures.get('survivor-01'),c=t.context;c.clearRect(0,0,FRAME.w*8,FRAME.h*FRAME_COUNT);c.imageSmoothingEnabled=false;for(let f=0;f<FRAME_COUNT;f++)for(let d=0;d<8;d++){c.save();c.translate(d*FRAME.w,f*FRAME.h);c.scale(2,2);survivor(c,d,f,true,{...look,...this.practice.loadout});c.restore();}t.refresh();}
- update(now,delta){if(!bridge.paused()){const input=bridge.input();model.update(delta/1000,input);this.practice.update(delta/1000,input);}this.actor.setPosition(model.x,model.y).setDepth(model.y).setFrame(model.direction+model.frame*8);this.target=null;for(const n of this.npcs){const dx=model.x-n.data.x,dy=model.y-n.data.y,d=Math.hypot(dx,dy);n.sprite.setFrame(d<130?(Math.round(Math.atan2(dy,dx)/(Math.PI/4))+8)%8:n.data.direction);if(d<TALK_RANGE)this.target=n.data;}if(this.pet){bridge.petStep(delta/1000);placePet(this.pet,bridge.pet());}let cam=this.cameras.main;cam.setZoom(bridge.zoom());const lead=bridge.lead?.(delta/1000)||{x:0,y:0};// When the view is bigger than the room, the room sits in the middle of it.
- const vw=cam.width/cam.zoom,vh=cam.height/cam.zoom,bx=Math.min(0,(ROOM.w-vw)/2),by=Math.min(0,(ROOM.h-vh)/2);cam.setBounds(bx,by,ROOM.w-2*bx,ROOM.h-2*by);cam.centerOn(model.x+lead.x,model.y-20+lead.y);practiceEffects(this.fx,this.practice);for(let i=0;i<this.targetSprites.length;i++)this.targetSprites[i].setAlpha(this.practice.targets[i].hp>0?1:.3);bridge.tick(now);}
+ // In the Training Grounds every gun is its paintball twin, hopper and all.
+ setAppearance(look){const t=this.textures.get('survivor-01'),c=t.context,gear=this.practice.loadout;c.clearRect(0,0,FRAME.w*8,FRAME.h*FRAME_COUNT);c.imageSmoothingEnabled=false;for(let f=0;f<FRAME_COUNT;f++)for(let d=0;d<8;d++){c.save();c.translate(d*FRAME.w,f*FRAME.h);c.scale(2,2);survivor(c,d,f,true,{...look,...gear,paint:PAINT[gear.gun]});c.restore();}t.refresh();}
+ // Paint that lands on cover is drawn into that prop's own canvas, so it sits on the right face and behind whatever is in front.
+ paintProp(m){const p=this.props.get(m.id);if(!p)return;const {o,t}=p,c=t.context,top=o.z<30||m.fy<o.y,lx=Math.max(2,Math.min(o.w-2,m.x-o.x)),ly=top?Math.max(-o.z+1,Math.min(o.h-o.z-1,m.y-o.y-o.z)):o.h-Math.min(30,o.z-3)+((m.seed%7)-3);
+  c.save();c.scale(2,2);c.translate(PROP_PAD,o.z+PROP_PAD);splat(painter(c),lx,ly,m.s,m.col,m.seed,top);c.restore();t.refresh();p.painted=true;}
+ floorSplat(m){splat(graphicsPainter(this.floorPaint),m.x,m.y,m.s,m.col,m.seed,true);}
+ paintMarks(){const p=this.practice;
+  if(p.markGen!==this.markGen){this.markGen=p.markGen;this.floorPaint.clear();this.floorMarks=[];for(const v of this.props.values())if(v.painted){const c=v.t.context;c.clearRect(0,0,v.t.width??c.canvas.width,v.t.height??c.canvas.height);propArt(c,v.o);v.t.refresh();v.painted=false;}for(const tp of this.targetPaint)tp.n=-1;}
+  if(!p.marks.length)return;for(const m of p.marks){if(m.kind==='prop')this.paintProp(m);else{this.floorMarks.push(m);this.floorSplat(m);}}p.marks.length=0;
+  if(this.floorMarks.length>FLOOR_MARKS){this.floorMarks=this.floorMarks.slice(-FLOOR_MARKS+60);this.floorPaint.clear();for(const m of this.floorMarks)this.floorSplat(m);}}
+ drawPaint(g,list,x,y,squash=1,spread=1){g.clear();for(const s of list)blob(g,x+s.x*spread,y+s.y*squash,s.s,s.col,s.seed);}
+ drawBots(){const bots=this.practice.drill.bots,seen=new Set();
+  for(const b of bots){seen.add(b.id);let s=this.botSprites.get(b.id);if(!s){s={img:this.add.image(b.x,b.y,'tg-bots',0).setOrigin(BOT.ax/BOT.w,BOT.ay/BOT.h).setScale(.5),g:this.add.graphics(),n:-1};this.botSprites.set(b.id,s);}
+   const down=b.hp<=0;s.img.setPosition(b.x,b.y).setFrame(b.variant*BOT.frames+(down?2:b.frame)).setFlipX(!!b.flip).setDepth(b.y);
+   if(s.n!==b.paint.length||s.x!==b.x||s.y!==b.y||s.down!==down){s.n=b.paint.length;s.x=b.x;s.y=b.y;s.down=down;s.g.setDepth(b.y+.5);this.drawPaint(s.g,b.paint,b.x+(down?(b.flip?4:-4):0),down?b.y+1:b.y,down?.28:1,down?1.5:1);}}
+  for(const [id,s] of this.botSprites)if(!seen.has(id)){s.img.destroy();s.g.destroy();this.botSprites.delete(id);}}
+ drawBlink(now){const g=this.blink;g.clear();for(const [i,l] of this.leds.entries()){const on=l.kind==='port'?((Math.floor(now/90)+i*7)%5)>1:l.kind==='hatch'?(this.practice.drill.state==='run'?Math.floor(now/250)%2===0:true):l.kind==='charge'?((Math.floor(now/400)+i)%6)>i%3:((Math.floor(now/700)+i*3)%4)>0;if(!on)continue;
+   const col=l.kind==='hatch'?0xff4a3a:l.kind==='charge'?0x7cf08a:l.kind==='park'?0xff6a4a:i%4===1?0xf0c040:0x6cf08a;g.fillStyle(col,1).fillRect(l.x-.5,l.y-.5,1,1);g.fillStyle(col,.25).fillCircle(l.x,l.y,l.kind==='hatch'?4:2);}
+  // The screens: a faint flicker and a scan line rolling down each one.
+  for(const [i,s] of this.screens.entries()){const k=(now/1400+i*.37)%1;g.fillStyle(s.kind==='crt'?0x8cffd0:0x7ad8ff,.08+.04*Math.sin(now/90+i)).fillRect(s.x,s.y,s.w,s.h);g.fillStyle(0xffffff,.12).fillRect(s.x,s.y+k*s.h,s.w,1);}}
+ update(now,delta){if(!bridge.paused()){const input=bridge.input();model.update(delta/1000,input);this.practice.update(delta/1000,input);}this.actor.setPosition(model.x,model.y).setDepth(model.y).setFrame(model.direction+model.frame*8);
+ // The nearest person or thing you can use, by where you stand to use it.
+ this.target=null;let best=TALK_RANGE;for(const n of this.npcs){const dx=model.x-n.data.x,dy=model.y-n.data.y,d=Math.hypot(dx,dy);n.sprite.setFrame(d<130?facing(dx,dy):n.data.direction);const s=n.data.talk||n.data,td=Math.hypot(model.x-s.x,model.y-s.y);if(td<best){best=td;this.target=n.data;}}
+ for(const o of OBJECTS){const td=Math.hypot(model.x-o.x,model.y-o.y);if(td<best){best=td;this.target=o;}}
+ if(this.pet){bridge.petStep(delta/1000);placePet(this.pet,bridge.pet());}let cam=this.cameras.main;cam.setZoom(bridge.zoom());const lead=bridge.lead?.(delta/1000)||{x:0,y:0};// When the view is bigger than the room, the room sits in the middle of it.
+ const vw=cam.width/cam.zoom,vh=cam.height/cam.zoom,bx=Math.min(0,(ROOM.w-vw)/2),by=Math.min(0,(ROOM.h-vh)/2);cam.setBounds(bx,by,ROOM.w-2*bx,ROOM.h-2*by);cam.centerOn(model.x+lead.x,model.y-20+lead.y);
+ this.paintMarks();this.drawBots();practiceEffects(this.fx,this.practice);
+ for(let i=0;i<this.targetSprites.length;i++){const t=this.practice.targets[i],tp=this.targetPaint[i];this.targetSprites[i].setAlpha(t.hp>0?1:.3);if(tp.n!==t.paint.length){tp.n=t.paint.length;this.drawPaint(tp.g,t.paint,t.x,t.y);}tp.g.setAlpha(t.hp>0?1:.3);}
+ this.glows.forEach((g,i)=>g.setAlpha(.3+.03*Math.sin(now*.004+i*1.7)));this.drawBlink(now);bridge.tick(now);}
 };}

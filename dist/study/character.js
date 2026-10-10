@@ -424,12 +424,12 @@ export function survivor(c,direction=1,frame=0,pack=true,look={}){
  // Long hair falls behind the shoulders in forward views, so that part is painted before the torso.
  const headG=female?tailor(g,side?2:quarter?1.5:-.5,JAW,-.5):g;if(look.hair===7)hairBehind(headG,back,quarter,side,look.hair,hairPalette(look));
  torso(body,back,quarter,side,T,straps?packG:null);if(zombie)zombieTorso(c,body,back,quarter,side,look);
- if(back&&GUNS[look.gun]){weaponArms(g,back,quarter,side,look.gun,sleeve,shoulder);heldGun(g,look.gun,back,quarter,side);}
+ if(back&&GUNS[look.gun]){weaponArms(g,back,quarter,side,look.gun,sleeve,shoulder);heldGun(g,look.gun,back,quarter,side,look.paint);}
  if(pack&&back)backpack(packG,true,quarter,false);
  if(!side&&!GUNS[look.gun]&&!reachBehind)farArm();
  if(!GUNS[look.gun]&&!reachBehind)nearArm();
  if(look.grenade&&!back){const belt={p:(pts,col)=>g.p(pts.map(([x,y])=>[x*.6-8,y*.6-25]),col),r:(x,y,w,h,col)=>g.r(x*.6-8,y*.6-25,w*.6,h*.6,col)};grenadeArt(belt,look.grenade);}
- if(!back&&GUNS[look.gun]){weaponArms(g,back,quarter,side,look.gun,sleeve,shoulder);heldGun(g,look.gun,back,quarter,side);}
+ if(!back&&GUNS[look.gun]){weaponArms(g,back,quarter,side,look.gun,sleeve,shoulder);heldGun(g,look.gun,back,quarter,side,look.paint);}
  // Neck/collar connect torso and skull; the head is the final silhouette layer.
  if(T.hood)hood(body,back,quarter,side,true);if(female)g.r(side?.5:-2.5,-51,5,4,C.skinLo);else g.r(side?0:-3,-51,6,4,C.skinLo);body.p([[-6,-51],[1,-50],[6,-51],[8,-48],[4,-46],[-5,-47],[-8,-49]],C.coatDeep);body.r(-5,-49,5,1,C.coatHi);neckline(body,back,quarter,side,T);if(zombie)zombieBite(c,body,back,quarter,side,look);
  // The female head narrows the jaw and lifts the chin slightly; crown, hair volume and hats are unchanged above the cheekbones.

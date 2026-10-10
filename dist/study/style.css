@@ -311,3 +311,15 @@ body.deck.touch:not(.pad) #weaponHud{left:calc(var(--vx) + var(--sl));right:auto
 @media(orientation:landscape) and (max-height:560px){#talkTopics{margin-top:6px;gap:5px}#talkTopics button{min-height:28px;padding:4px 8px;font-size:12px}}
 /* On the range, a touch screen taps the prompt itself to talk. */
 #prompt.tap{pointer-events:auto;cursor:pointer;z-index:4;padding:8px 12px;border-color:var(--ember);touch-action:none}
+
+/* Gadget's drill: a readout under the top bar, and a red edge flash when a robot bumps you. */
+#drillHud{position:fixed;z-index:3;left:50%;top:calc(var(--vy) + var(--st) + 52px);transform:translateX(-50%);display:flex;gap:10px;align-items:baseline;padding:6px 12px;background:var(--hud);border:1px solid var(--hud-edge);border-radius:8px;font:600 12px/1.2 var(--ui);letter-spacing:.04em;color:#cfc6b4;white-space:nowrap;pointer-events:none;font-variant-numeric:tabular-nums}
+#drillHud b{color:#f2ead8;letter-spacing:.06em;text-transform:uppercase}
+#drillHud span::before{content:'·';margin-right:10px;color:#6f6759}
+.camp #drillHud{display:none!important}
+#hitFlash{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:0;box-shadow:inset 0 0 70px 14px #d0452ca6}
+#hitFlash.on{animation:hitflash .45s ease-out}
+@keyframes hitflash{0%{opacity:1}100%{opacity:0}}
+@media(prefers-reduced-motion:reduce){#hitFlash.on{animation-duration:.2s}}
+/* The paint color of the gun you are holding. */
+#weaponName::before{content:'';display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:50%;background:var(--paint,transparent);box-shadow:0 0 0 1px #0008;vertical-align:1px}

@@ -293,6 +293,25 @@ const ART={
   r(w-8,top-58,3.5,60,EDGE);r(w-7.5,top-57,2.5,58,W[2]);r(w-14,top-58,9,2,EDGE);r(w-13.5,top-57.5,8,1,W[2]);r(w-13,top-56,.5,3,M[1]);r(w-16,top-53,6,8,EDGE);r(w-15,top-52,4,6,GLASS);r(w-14.5,top-51,2,4,GLASS_HI);r(w-16.5,top-54,7,1.5,M[1]);},
  // The Training Grounds: a storm-bunker portal poured into the back wall. Steel doors with one leaf ajar and warm light behind it,
  // a bullseye sign, sandbag walls, a gun rack and a shot-up paper target, and a floodlight on the corner.
+ // Gadget's generator on a pallet by the steel doors: a yellow cage around a diesel engine, a tank on top and a taped note.
+ generator(g,o){const {e,r,p,l}=g,w=o.w,h=o.h,z=o.z,F=h-z,Y=['#5e4a1c','#8f7026','#c9a23a','#e6c766'],D=['#1c1e22','#2a2d32','#3a3e44','#4f545b'];e(w/2+2,h,w/2+7,5,SHADOW);
+  r(-1,h-6.5,w+2,6.5,EDGE);r(-.5,h-6,w+1,5.5,W[2]);for(let x=1;x<w-2;x+=7)r(x,h-5,3.5,4.5,W[1]);r(-.5,h-6,w+1,.5,W[4]);
+  // The engine and the tank, inside the cage.
+  r(1.5,-z+5,w-3,h-1,EDGE);r(2,-z+5.5,w-4,h-2,D[2]);r(2,-z+5.5,w-4,1,D[3]);e(11,-z+11,3,2,EDGE);e(11,-z+10.6,2.4,1.5,'#b33a2a');r(20,-z+9,14,6,D[1]);r(20.5,-z+9.5,13,.5,D[3]);
+  r(1.5,F+3,w-3,h-F-9.5,EDGE);r(2,F+3.5,w-4,h-F-10.5,D[1]);for(let x=4;x<26;x+=3)r(x,F+5,1.5,h-F-14,D[2]);r(4,F+5,22,.5,D[3]);
+  // Control panel: two dials, a red switch and the outlet strip the cords come out of.
+  r(28,F+4.5,13,12,EDGE);r(28.5,F+5,12,11,D[0]);for(const x of [31.5,37])e(x,F+8.5,2.2,2.2,'#d6d0c2');l(31.5,F+8.5,32.5,F+7.2,.5,EDGE);l(37,F+8.5,36,F+7.4,.5,EDGE);r(30,F+12,3,2.5,'#c43a2a');r(35,F+12,4,2.5,'#8a8f94');r(35.5,F+12.5,1,1,EDGE);r(37.5,F+12.5,1,1,EDGE);
+  // The yellow cage: corner posts and rails.
+  for(const x of [.5,w-3]){r(x-.5,-z+3.5,3.5,h+z-9,EDGE);r(x,-z+4,2.5,h+z-10,Y[2]);r(x,-z+4,.8,h+z-10,Y[3]);}
+  for(const y of [-z+3.5,F+1.5,h-8]){r(.5,y,w-1,2.5,EDGE);r(1,y+.4,w-2,1.6,Y[2]);r(1,y+.4,w-2,.5,Y[3]);}
+  // Exhaust pipe, black with soot, and Gadget's note.
+  r(5,-z-6,3.5,11,EDGE);r(5.5,-z-5.5,2.5,10,D[3]);r(5.5,-z-6,2.5,1.5,'#111214');e(7,-z-9,3,2,'#2a2b2f88');e(9,-z-13,4,2.5,'#3a3b4066');
+  r(10,F+6,14,6.5,'#d6d0c2');r(10,F+6,14,1,'#c2bba9');for(let k=0;k<3;k++)r(11.5,F+8+k*1.5,8+((k*5)%4),.5,'#2a2a2e');
+  e(w-8,F+17,1.6,1.1,'#e0457b');e(w-5.5,F+18.5,.6,.5,'#e0457b');r(w-8.2,F+17,.6,2.5,'#e0457b');},
+ // Gadget's cords: from the generator, along the rock and under the steel doors, taped down every so often.
+ gencords(g,o){const {l,r}=g;for(const [col,pts] of [['#c9622a',[[0,9],[14,13],[30,11],[46,15],[62,4],[66,-2]]],['#c9a23a',[[0,12],[16,18],[34,16],[52,19],[70,6],[72,-2]]]]){
+   for(let i=1;i<pts.length;i++){const [ax,ay]=pts[i-1],[bx,by]=pts[i];l(ax,ay+.5,bx,by+.5,1.6,'#141416');l(ax,ay,bx,by,1,col);}
+   for(const k of [2,4]){const [x,y]=pts[k];r(x-1.5,y-1.5,3,3,'#6b6e72');r(x-1.5,y-1.5,3,.5,'#9a9ea2');}}},
  range(g,o){const {e,r,p,l}=g,C=['#3d3f44','#55585e','#6d7076','#868990','#a0a3a8'],OLIVE=['#2b3122','#3c4430','#4e5840','#626d50'];
   e(56,15,64,5,SHADOW);
   // The concrete portal, set into the rock: a heavy lintel and two piers, stained and chipped.
@@ -520,3 +539,4 @@ export function fishArt(c,id,cook=null,scale=1){const {p,r,e}=painter(c);let [ba
  if(id==='cod')for(const [x,y] of [[-6,-2],[-2,-3],[3,-1.5],[6,-3],[-4,1]])r(x*s,y*s,1.5*s,1*s,mark);
  if(id==='moonfin'&&cook===null){r(-4*s,-1*s,12*s,.5*s,'#d9f3ff');p(P([[-12.5,0],[-17,-5],[-15.5,0],[-17,5]]),'#8fd3ffcc');}
  r(8*s,-2*s,2*s,2*s,'#14161a');r(8.5*s,-2*s,.6*s,.6*s,'#e8e0d1');r(10.5*s,1*s,2*s,.5*s,mark);}
+export {fbm,bayer,boulder,rgb,box,W,CV,M,R,RUST,GLASS,GLASS_HI,TEAL,TEAL_HI};

@@ -32,6 +32,9 @@ export const PROPS=[
  // Along the back wall: the barred gate, the Training Grounds door, tents, Macy's board, the medic tent.
  {id:'gate',kind:'gate',x:112,y:212,w:104,h:16,z:88},
  {id:'range',kind:'range',x:330,y:214,w:112,h:14,z:100},
+ // Gadget's generator, with its cords running under the steel doors and down to the Training Grounds.
+ {id:'generator',kind:'generator',x:234,y:214,w:44,h:24,z:34},
+ {id:'gencords',kind:'gencords',x:276,y:220,w:70,h:20,z:2,flat:true},
  {id:'lamp-4',kind:'lantern',x:300,y:240,w:10,h:8,z:72},
  {id:'tent-a',kind:'tent',x:540,y:236,w:108,h:52,z:64},
  {id:'sacks',kind:'sacks',x:662,y:258,w:30,h:22,z:20},
@@ -100,21 +103,22 @@ export const PROPS=[
 ];
 // Aaron answers questions about the Training Grounds, at the door and down on the range.
 export const AARON_TOPICS=[
- {q:'What are the Training Grounds?',a:['It was a storm bunker under the cave. We swept it out and turned it into a firing range.','Nothing down there counts. Every gun and every piece of armor we have is unlocked, and the ammo never runs out. Break it all you like.']},
- {q:'How does the range work?',a:['Through the doorway on the east side are three paper targets. Knock one down and it stands back up.','Pick a gun in Gear and shoot. Learn how many rounds you get before you have to reload. That number keeps you alive out there.']},
+ {q:'What are the Training Grounds?',a:['It was a storm bunker under the cave. Gadget and I built an arena down there out of pallets, doors and whatever we could drag in.','Nothing down there counts. Every gun and every piece of armor we have is unlocked, and the paint never runs out. Break it all you like.']},
+ {q:'How does the range work?',a:['Every gun down there has a paintball twin: same magazine, same rate of fire, same reload. Paint washes off. Habits don\'t.','Paper targets stand in the lane in the far corner; knock one down and it stands back up. Learn how many rounds you get before you reload. That number keeps you alive out there.','When you want targets that move, ask Gadget.']},
+ {q:'Who is Gadget?',a:['Our engineer. She keeps the generator, the lights and her servers alive, and she builds robot zombies out of pillows, bedsheets and shopping cart wheels.','She is the smartest person in this cave. Don\'t touch her cords.']},
  {q:'Which gun should I pick?',a:['The Light Pistol is quick and forgiving: fifteen rounds and a fast reload. Start there.','The Heavy Pistol and the Hand Cannon hit harder but fire slower, with fewer rounds. Make every shot count.','The ARs are for when there are too many to count. The Tactical AR sprays fast; the Heavy AR is slower and hits like a truck. Both chew through a magazine.']},
  {q:'What about grenades?',a:['Three kinds. Smoke hides you, incendiary leaves the ground burning, and the explosive one goes off right away.','Throw as many as you like at the targets. Out there you\'ll be lucky to carry one.']},
- {q:'Who are LEET AF?',a:['Elite Armed Forces. What was left of a few units when the cities fell. Everyone reads the vest and calls us LEET AF, so that stuck.','We keep the camp\'s weapons and teach anyone who\'ll listen. Macy runs the place. We just keep it standing.']},
+ {q:'Who are LEET AF?',a:['Elite Armed Forces. What was left of a few units when the cities fell. Everyone reads the vest and calls us LEET AF, so that stuck.','There is no command anymore. No orders, no resupply. Just Gadget and me, a lot of gear, and Macy telling us where to be useful.','So we keep the camp\'s weapons and teach anyone who\'ll listen.']},
  {q:'Who are G.U.N.?',a:['Guardians of the Underground Network. They live in the tunnels and the old transit lines.','If you meet them down there, keep your hands where they can see them. They don\'t trust us, and we don\'t trust them.']},
- {q:'What\'s coming next?',a:['Wave drills, once we can get power to the lights. The dead come in waves and you hold the line as long as you can.','And a supply counter, so you can trade for gear. Until then, practice.']}];
+ {q:'What\'s coming next?',a:['Gadget\'s drills are running now that the lights are on. Her robots come out of the hatches in waves and you hold the line. Ask her down there.','Next is a supply counter, so you can trade for gear. Until then, practice.']}];
 // The cast. Looks use the character creator's options.
 export const RESIDENTS=[
  {id:'macy',name:'Macy',role:'Runs the camp · Quest board',icon:'lantern',x:900,y:320,direction:2,
   look:{body:1,skin:2,hair:2,color:4,beard:0,hat:0,top:0,shirt:5,coat:6,bottom:2,pants:2,shoes:3,boots:0,pack:1,packColor:0},
-  lines:['There you are. Come here, let me look at you. Eat something before you go anywhere, okay?','I used to keep the big cats at the county zoo, and on weekends I walked tourists up the ridge trails. Forty-one days ago that stopped mattering.','Somehow everyone started bringing their problems to me, so now I keep the board. If it needs doing, it gets pinned up there.','No jobs yet. When there are, you\'ll be the first I ask. We look after each other here.']},
+  lines:['There you are. Come here, let me look at you. Eat something before you go anywhere, okay?','I used to keep the big cats at the county zoo, and on weekends I walked tourists up the ridge trails. Forty-one days ago that stopped mattering.','Before all this, Marrow Industries told the world nobody had to stay dead. LZ-6. Everyone who took it turned, and then everyone they bit. I don\'t say that name around the kids.','Somehow everyone started bringing their problems to me, so now I keep the board. If it needs doing, it gets pinned up there.','No jobs yet. When there are, you\'ll be the first I ask. We look after each other here.']},
  {id:'ava',name:'Ava',role:'Camp doctor',icon:'cross',x:1150,y:404,direction:2,
   look:{body:1,skin:5,hair:9,color:0,beard:0,hat:0,top:2,shirt:1,coat:0,bottom:3,pants:4,shoes:1,boots:4,pack:1,packColor:0},
-  lines:['Sit. You\'re bleeding and you haven\'t noticed. Typical.','I need everything. Bandages, alcohol, thread, pills, clean water. Anything helps, but bring me real medical supplies and I will owe you.','If you get bitten, you come straight to me. Not to your bunk, not to the fire. Me. There are ways to slow it down, and I mean to find them.','The better this camp gets, the more I can do for you. Remember that when you\'re out there scavenging.']},
+  lines:['Sit. You\'re bleeding and you haven\'t noticed. Typical.','I need everything. Bandages, alcohol, thread, pills, clean water. Anything helps, but bring me real medical supplies and I will owe you.','If you get bitten, you come straight to me. Not to your bunk, not to the fire. Me. There are ways to slow it down, and I mean to find them.','Nobody knows how long a bite gives you. The sick go fast. The young and strong can hold out for days. Don\'t count on being strong.','The better this camp gets, the more I can do for you. Remember that when you\'re out there scavenging.']},
  {id:'pike',name:'Scoutmaster Pike',role:'Cook · Field survival',icon:'bowl',x:986,y:800,direction:1,
   look:{body:0,skin:1,hair:1,color:4,beard:2,hat:1,top:0,shirt:0,coat:6,bottom:4,pants:2,shoes:3,boots:0,pack:0,packColor:3},
   lines:['Thirty-two years of leading scout troops and I finally have a troop that listens. Funny what it takes.','Grill a fish before you head out. Hot food keeps your legs under you.','The perch bite at dusk off the end of the pier. Keep the line tight and let them tire.','Bring me more than fish and I\'ll cook proper meals, the kind that patch you up. That\'s field cooking, and I know a lot of it.']},
@@ -158,7 +162,8 @@ export const OBJECTS=[
  {id:'pier',verb:'Fish',my:322,name:'Fishing pier',role:'The inlet',x:1598,y:382,lines:['The water\'s deep off the end of the pier.']},
  {id:'passage',verb:'Look',my:726,name:'Collapsed passage',role:'Deeper caverns',x:122,y:854,lines:['An old mine frame, choked with fallen rock. Cool air breathes through the gaps.','Something green is growing in there. You can smell wet soil, not salt.','Stan, from his forge: "One day we dig that out. Not today. My back says not today."']},
  {id:'forge',verb:'Look',my:500,name:'Stan\'s forge',role:'Blacksmith',x:328,y:626,lines:['A brick forge, an anvil worn smooth and a bucket of black water. The coals never quite go out.','Stan will make and mend weapons here once there is steel to work.']},
- {id:'range',verb:'Enter',my:108,name:'Training Grounds',role:'Firing range and store',x:386,y:250,lines:['The old storm bunker, swept out and turned into a firing range.']},
+ {id:'range',verb:'Enter',my:108,name:'Training Grounds',role:'Arena and firing range',x:386,y:250,lines:['The old storm bunker, swept out and turned into a training arena.']},
+ {id:'generator',verb:'Look',my:176,name:'Generator',role:'Power for the Training Grounds',x:256,y:254,lines:['A diesel generator on a pallet, coughing away to itself. Two extension cords run from it, under the steel doors and down the stairs.','A strip of tape on the tank, in marker: "FEED ME. DO NOT UNPLUG. — G."']},
  {id:'garden',verb:'Look',my:1050,name:'The garden',role:'Zyn and Clyde\'s field',x:385,y:1086,lines:['Six beds of potatoes, cabbage, squash, carrots and beans, in soil hauled up from the tide line a bucket at a time.','Zyn and Clyde run it. Planting and harvesting will come later.']},
  {id:'scarecrow',verb:'Look',my:1150,name:'Scarecrow',role:'The garden',x:645,y:1258,lines:['A burlap scarecrow in a tall, crooked hat. Someone stitched him a big smile.','Zyn says he doesn\'t need eyes to keep watch.']},
  {id:'fire',verb:'Sit',my:586,name:'Campfire',role:'Firelight Camp',x:800,y:674,lines:['The fire crackles. For a moment, everything is quiet.']}
