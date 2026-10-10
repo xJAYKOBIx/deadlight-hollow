@@ -1,6 +1,6 @@
 // Character creator panel: section rail, picture tiles, color swatches, name and undo history.
 // Tiles are drawn with the real survivor painter, so every thumbnail shows this character wearing that choice.
-import {APPEARANCE_OPTIONS,DEFAULT_APPEARANCE,randomAppearance,readAppearance} from './appearance.js';
+import {APPEARANCE_OPTIONS,DEFAULT_APPEARANCE,UNIFORMS,randomAppearance,readAppearance} from './appearance.js';
 import {survivor,HAIR_TONES} from './character.js';
 import {GUNS,GRENADES,gunArt,grenadeArt} from './equipment.js';
 import {SKIN_TONES,DYES,SHIRT_TOPS,ROT_TONES,rotRamp} from './palette.js';
@@ -15,7 +15,7 @@ export const SECTIONS=[
  {id:'body',name:'Body',rows:[{key:'body',crop:'full'},{key:'skin'}]},
  {id:'head',name:'Head',rows:[{key:'hair',crop:'head'},{key:'color'},{key:'beard',crop:'face'}]},
  {id:'hat',name:'Headwear',rows:[{key:'hat',crop:'head'}]},
- {id:'top',name:'Top',rows:[{key:'top',crop:'torso'},{key:'coat',show:l=>!SHIRT_TOPS.has(l.top),label:l=>l.top===3?'Hoodie color':'Jacket color'},{key:'shirt',show:l=>l.top!==3}]},
+ {id:'top',name:'Top',rows:[{uniform:true},{key:'top',crop:'torso'},{key:'coat',show:l=>!SHIRT_TOPS.has(l.top),label:l=>l.top===3?'Hoodie color':l.top===7||l.top===8?'Fatigue color':l.top===10?'Uniform color':'Jacket color'},{key:'shirt',show:l=>![3,7,8,10].includes(l.top)}]},
  {id:'pants',name:'Pants',rows:[{key:'bottom',crop:'legs'},{key:'pants'}]},
  {id:'shoes',name:'Shoes',rows:[{key:'shoes',crop:'feet'},{key:'boots'}]},
  {id:'pack',name:'Pack',rows:[{key:'pack',crop:'back'},{key:'packColor',show:l=>l.pack!==1}]},
@@ -62,6 +62,9 @@ export function createCreator({$,storage,look,setLook,loadout,setLoadout,compani
   return `<div class="cr-row"><h3>${title}<b>${esc(opts[cur])}</b></h3><div class="cr-tiles">${opts.map((n,i)=>`<button class="cr-tile" data-pet="${key}" data-value="${i}" aria-pressed="${i===cur}" aria-label="${esc(n)}"><canvas width="96" height="96" data-petthumb="${key}:${i}"></canvas><span>${esc(n)}</span></button>`).join('')}</div></div>`;}
  function petVariant(c,key,v){if(key==='species')return petLook({...c,species:v});return {...petLook(c),[key]:v};}
  function rowHtml(row,l){
+  // Uniform sets dress the whole outfit in one tap; the tile shows this character wearing it.
+  if(row.uniform){const on=UNIFORMS.findIndex(u=>Object.entries(u.look).every(([k,v])=>l[k]===v));
+   return `<div class="cr-row"><h3>Uniform sets<b>${on<0?'Mix and match':esc(UNIFORMS[on].name)}</b></h3><div class="cr-tiles">${UNIFORMS.map((u,i)=>`<button class="cr-tile" data-uniform="${i}" aria-pressed="${i===on}" aria-label="${esc(u.name)} uniform"><canvas width="96" height="96" data-uniformthumb="${i}"></canvas><span>${esc(u.name)}</span></button>`).join('')}</div></div>`;}
   if(row.gear){const items=row.gear==='gun'?[['none','Unarmed'],...Object.entries(GUNS).map(([id,g])=>[id,g.name])]:Object.entries(GRENADES).map(([id,g])=>[id,g.name]),cur=loadout()[row.gear];
    const title=row.gear==='gun'?'Firearm':'Grenade',desc=row.gear==='gun'?(GUNS[cur]?.description||'Hands free. Grenades stay available.'):GRENADES[cur].description;
    return `<div class="cr-row"><h3>${title}<b>${esc(items.find(i=>i[0]===cur)?.[1]||'')}</b></h3><div class="cr-tiles">${items.map(([id,n])=>`<button class="cr-tile${id==='none'?' cr-none':''}" data-gear="${row.gear}" data-value="${id}" aria-pressed="${id===cur}" aria-label="${esc(n)}"><canvas width="96" height="96" data-gearthumb="${row.gear}:${id}"></canvas><span>${esc(n)}</span></button>`).join('')}</div><p class="cr-note">${esc(desc)}</p></div>`;}
@@ -82,14 +85,15 @@ export function createCreator({$,storage,look,setLook,loadout,setLoadout,compani
   for(const b of $('kindSwitch').querySelectorAll?.('[data-kind]')||[])b.setAttribute('aria-pressed',String((b.dataset.kind==='zombie')===!!l.zombie));
   $('creatorKicker')&&($('creatorKicker').textContent=l.zombie?'Infected specimen · File 01':'Survivor intake · File 01');
   for(const c of panel.querySelectorAll?.('canvas[data-thumb]')||[]){const [key,v,crop]=c.dataset.thumb.split(':');thumb(c,{...l,[key]:Number(v)},crop);}
+  for(const c of panel.querySelectorAll?.('canvas[data-uniformthumb]')||[])thumb(c,{...l,...UNIFORMS[Number(c.dataset.uniformthumb)].look},'full');
   for(const c of panel.querySelectorAll?.('canvas[data-gearthumb]')||[]){const [kind,id]=c.dataset.gearthumb.split(':');gearThumb(c,kind,id);}
   $('undoLook').disabled=!history.length;}
  function change(next){history.push(look());if(history.length>40)history.shift();setLook(next);}
  function changePet(next){petHistory.push(companion());if(petHistory.length>40)petHistory.shift();setCompanion(next);}
  function pickPet(t){const key=t.dataset.pet,v=Number(t.dataset.value),c=companion();if(key==='species'){if(c.species!==v){changePet({...c,species:v});}return;}if(petLook(c)[key]!==v)changePet(withLook(c,{...petLook(c),[key]:v}));}
- function pick(t){if(!t)return;if(t.dataset?.pet){pickPet(t);return;}if(t.dataset?.gear){setLoadout({...loadout(),[t.dataset.gear]:t.dataset.value});return;}
+ function pick(t){if(!t)return;if(t.dataset?.pet){pickPet(t);return;}if(t.dataset?.uniform!==undefined){const u=UNIFORMS[Number(t.dataset.uniform)];if(u)change({...look(),...u.look});return;}if(t.dataset?.gear){setLoadout({...loadout(),[t.dataset.gear]:t.dataset.value});return;}
   if(t.dataset?.key){const key=t.dataset.key,v=Number(t.dataset.value);if(look()[key]!==v)change({...look(),[key]:v});}}
- $('creatorPanel').addEventListener('click',e=>pick(e.target?.closest?e.target.closest('[data-key],[data-gear],[data-pet]'):e.target));
+ $('creatorPanel').addEventListener('click',e=>pick(e.target?.closest?e.target.closest('[data-key],[data-gear],[data-pet],[data-uniform]'):e.target));
  $('categoryRail').addEventListener('click',e=>{const t=e.target?.closest?e.target.closest('[data-section]'):e.target;if(t?.dataset?.section)show(t.dataset.section);});
  const field=$('survivorName');
  $('randomLook').onclick=()=>{if(mode==='pet'){const c=companion();changePet(withLook(c,randomPet(c.species)));return;}change({...randomAppearance(),body:look().body,zombie:look().zombie});};

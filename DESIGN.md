@@ -227,3 +227,18 @@ Camp gains two places. The old laundry spot on the back wall (x246–358) is now
 The garden sits south of the fire (x340–516, y660–744): a fenced, tilled plot with staked beans along the back, potatoes, squash and seedlings, a scarecrow in a hard hat with a crow, and a rain barrel, watering can and rake outside the west fence. It has its own lamp and a warm-white light. For now it is Look only; planting and harvesting come later. The rock and driftwood that stood there moved aside.
 
 The planned zombie roster (fodder, specials, heavies, bosses, alert levels and counters, played like Helldivers) is a separate Claude Doc.
+
+### v0.24.0 factions, Aaron and uniforms
+
+Two factions join the world. The Elite Armed Forces are the primary military force; their vests are taped "LEET AF" and everyone calls them that. G.U.N., the Guardians of the Underground Network, is a paramilitary group holed up in the public tunnels that reach every corner of the map; once made safe, the network becomes a fast-travel route later in the game. The faction table lives in the zombie roster doc.
+
+Aaron, a LEET AF range warden, stands guard beside the Training Grounds door (x352, y244) with a target badge. His lines introduce LEET AF, the unlocked range and G.U.N.
+
+New wearable pieces, all in the character creator (indices appended, so saved looks keep working):
+- Tops 7 Fatigues and 8 LEET AF fatigues: a camouflage jacket (jacket dye) under a plate carrier with mag pouches. The carrier keeps its own colors; LEET AF adds a black tape stenciled "LEET AF" on chest and back. Top 9 Police shirt (shirt dye, short sleeves) with a badge, name bar, shoulder radio and duty belt. Top 10 SWAT armor: black carrier taped "SWAT", padded shoulders and elbows.
+- Hat 6 Combat helmet with a cover band, ear cut-outs, chin strap and night-vision mount.
+- Pants 5 Fatigue pants (camouflage cargo) and 6 Tactical pants (knee pads).
+- Shirt dyes Police navy and Sky blue.
+- Uniform sets (Military, LEET AF, Police, SWAT) at the top of the Top page dress the whole outfit in one tap and leave body, face and hair alone.
+
+Stencil lettering is a 3 × 5 half-unit font. Mirrored directions reverse it so it still reads, it skips the female tailoring warp (which would pinch letters), and on the narrower tailored chest "LEET AF" stacks into two lines. Pack straps tuck under a vest.

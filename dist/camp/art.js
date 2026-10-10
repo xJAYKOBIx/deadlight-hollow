@@ -430,7 +430,7 @@ export function lightArt(c){const w=Math.ceil(CAMP.w/LIGHT_SCALE),h=Math.ceil(CA
 export function glowArt(c){const g=c.createRadialGradient(64,64,0,64,64,64);g.addColorStop(0,'rgba(255,170,90,.75)');g.addColorStop(.4,'rgba(255,130,60,.3)');g.addColorStop(1,'rgba(255,120,50,0)');c.fillStyle=g;c.fillRect(0,0,128,128);}
 // Badges float over residents and above the lighting: a role icon on a dark plate with an ember rim.
 export const ICON={w:20,h:24};
-export const ICONS=['hammer','cross','bowl','lantern','chevron'];
+export const ICONS=['hammer','cross','bowl','lantern','chevron','target'];
 export function iconArt(c){c.save();c.scale(2,2);const {r,p,l,e}=painter(c);
  ICONS.forEach((kind,i)=>{c.save();c.translate(i*ICON.w,0);
   if(kind==='chevron'){p([[3,6],[17,6],[10,15]],EDGE);p([[5,7.5],[15,7.5],[10,13]],EMBER);p([[7,7.5],[13,7.5],[10,10.5]],EMBER_HI);c.restore();return;}
@@ -438,6 +438,7 @@ export function iconArt(c){c.save();c.scale(2,2);const {r,p,l,e}=painter(c);
   if(kind==='hammer'){l(6,14,13,6,2,BONE);r(9,3.5,8,4,BONE);r(9,6.5,8,1,'#a2998a');}
   if(kind==='cross'){r(8.5,4,3,10,TEAL_HI);r(5,7.5,10,3,TEAL_HI);}
   if(kind==='bowl'){p([[4.5,9],[15.5,9],[13,13.5],[7,13.5]],BONE);r(4.5,9,11,1,'#a2998a');l(8,8,7,4,.8,'#a2998a');l(11,8,12,4,.8,'#a2998a');}
+  if(kind==='target'){e(10,9,5.5,5.5,BONE);e(10,9,4.5,4.5,'#1c1a17');e(10,9,2.5,2.5,BONE);e(10,9,1.5,1.5,EMBER_HI);r(9.5,2,1,3,BONE);r(9.5,13,1,3,BONE);r(3,8.5,3,1,BONE);r(14,8.5,3,1,BONE);}
   if(kind==='lantern'){r(9.5,3,1,2,BONE);r(7,5,6,1,BONE);r(7,6,6,7,BONE);r(8,7,4,5,GLASS);r(9,8,2,3,GLASS_HI);r(7,13,6,1,BONE);}
   c.restore();});c.restore();}
 // Fish for the basket, the catch card and the spit. Facing right, about 26 x 12 units, centered on (0, 0).

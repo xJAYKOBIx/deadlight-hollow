@@ -70,7 +70,11 @@ export const RESIDENTS=[
   lines:['Soup\'s thin, but it\'s hot.','Grill a fish on the fire before you head out. It keeps your legs under you.','Your catch goes in my basket. I salt it, so nothing spoils.','Once we have more than fish, I\'ll cook real meals. Those patch you up, too. Not yet, though.']},
  {id:'wren',name:'Wren',role:'Camp steward',icon:'lantern',x:640,y:324,direction:2,
   look:{body:1,skin:2,hair:2,color:1,beard:0,hat:1,top:0,shirt:0,coat:1,bottom:1,pants:6,shoes:0,boots:0,pack:0,packColor:1},
-  lines:['You\'re the new one. Good. We need people who come back.','Jobs get pinned to the board. Nothing\'s up yet. We\'re still counting what we have.','When that gate opens, you\'ll be the first one through it.']}
+  lines:['You\'re the new one. Good. We need people who come back.','Jobs get pinned to the board. Nothing\'s up yet. We\'re still counting what we have.','When that gate opens, you\'ll be the first one through it.']},
+ // Aaron keeps the Training Grounds door. Elite Armed Forces, the main military: LEET AF on the vest.
+ {id:'aaron',name:'Aaron',role:'LEET AF · Range warden',icon:'target',x:352,y:244,direction:2,
+  look:{body:0,skin:4,hair:4,color:0,beard:1,hat:6,top:8,shirt:0,coat:1,bottom:5,pants:3,shoes:3,boots:1,pack:1,packColor:1},
+  lines:['Aaron. Elite Armed Forces. Everyone reads the vest and calls us LEET AF, so that stuck.','The range is open to anyone who pulls their weight. Every gun and every piece of armor we have is unlocked down there. Try it all.','Better to learn on paper targets than on the dead. Wave drills and a supply counter go in once we have the power.','If you meet G.U.N. in the tunnels, keep your hands where they can see them. Guardians of the Underground Network. They don\'t trust us, and we don\'t trust them.']}
 ];
 // Things you can walk up to. (x, y) is where you stand to use them; my is where the marker floats.
 export const OBJECTS=[

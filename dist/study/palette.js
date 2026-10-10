@@ -30,14 +30,14 @@ export const SKIN_TONES=[
 // Each dye is the new base color for that material; [name, hex].
 export const DYES={
  coat:[['Field blue','#29465a'],['Olive drab','#45502f'],['Charcoal','#34373d'],['Rust brown','#6a3e2a'],['Forest green','#2c4a36'],['Burgundy','#58293a'],['Canvas tan','#75664a'],['Black','#232328']],
- shirt:[['Tan','#b8a082'],['Off-white','#cdc7bb'],['Gray','#8d8e94'],['Brick red','#94433a'],['Black','#3b3b40'],['Sage','#808162']],
+ shirt:[['Tan','#b8a082'],['Off-white','#cdc7bb'],['Gray','#8d8e94'],['Brick red','#94433a'],['Black','#3b3b40'],['Sage','#808162'],['Police navy','#2b3a52'],['Sky blue','#8ea5bf']],
  pants:[['Navy','#213344'],['Black','#252529'],['Khaki','#76684d'],['Olive','#444a30'],['Gray','#4c5057'],['Brown','#4a3628'],['Denim','#34506e'],['Faded denim','#5f7d9b']],
  boots:[['Brown','#5b4030'],['Black','#2c2b2e'],['Tan','#8a6a45'],['Oxblood','#5a2b27'],['White','#cfcbc2'],['Red','#8b3a33'],['Gray','#6b6e74']],
  pack:[['Brown','#5b4030'],['Olive','#4e5434'],['Black','#2e2e32'],['Tan','#85704e'],['Navy','#2f4357']]
 };
 // The T-shirt reuses the jacket silhouette, so its body takes the shirt dye through the coat ramp.
-// Tops dyed with the shirt color: T-shirt, long sleeve, business shirt, shirt and tie, tank top. The jacket and hoodie take the jacket color.
-export const SHIRT_TOPS=new Set([1,2,4,5,6]);
+// Tops dyed with the shirt color: T-shirt, long sleeve, business shirt, shirt and tie, tank top, police shirt. The jacket, hoodie and the fatigue and SWAT uniforms take the jacket color.
+export const SHIRT_TOPS=new Set([1,2,4,5,6,9]);
 const SHIRT_AS_COAT=['#b8a082','#ccb596','#d6c1a3','#c0a888','#8f775f','#7a6450'];
 
 // Zombie skin keeps the survivor's own lightness steps, so a deep-skinned survivor stays deep after turning.

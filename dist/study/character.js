@@ -28,7 +28,7 @@ function shoe(g,x,y,side,near,style){if(!style){boot(g,x,y,side,near);return;}co
  for(let i=0;i<3;i++)r(x+(side?1.5:-1),y-5.5+i*1.5,side?1.5:2.5,.5,'#c99a4a');r(x-4,y+1,9.5+tip,1.5,'#26262b');for(let i=0;i<4;i++)r(x-3+i*2.5,y+2,1,.5,'#3a3a40');}
 function boot(g,x,y,side,near){let {p,r}=g,tip=side?4:1;p([[x-4,y-6],[x+3,y-6],[x+3,y-2],[x+5+tip,y-1],[x+5+tip,y+2],[x-4,y+2],[x-5,y]],C.ink);p([[x-3,y-5],[x+2,y-5],[x+2,y-1],[x+4+tip,y],[x+4+tip,y+1],[x-3,y+1]],near?C.leather:C.leatherLo);r(x-2,y-5,3,3,near?C.leatherHi:C.leather);r(x-3,y+1,8+tip,1,'#17171c');r(x+1,y-1,3+tip,.5,C.leatherHi);}
 // Each foot follows the facing direction: forward/back along the stride, lifted while it swings through.
-// Pants: 0 work trousers (original), 1 jeans, 2 cargo pants, 3 slacks, 4 shorts.
+// Pants: 0 work trousers (original), 1 jeans, 2 cargo pants, 3 slacks, 4 shorts, 5 fatigue pants, 6 tactical pants.
 function leg(g,x,foot,side,near,depth=0,bootG=g,bottom=0,shoeStyle=0){const {p,r}=g,{dx,dy,lift,knee}=foot,y=-2-lift-depth+dy;
  if(bottom){fittedLeg(g,x,foot,side,near,y,bottom);shoe(bootG,x+dx,y,side,near,shoeStyle);return;}
  p([[x-4,-27],[x+4,-27],[x+4+knee,-14],[x+3+dx,y-3],[x-4+dx,y-3],[x-5+knee,-14]],C.ink);
@@ -49,7 +49,7 @@ function fittedLeg(g,x,foot,side,near,y,bottom){const {p,r}=g,{dx,knee}=foot,bas
   r(x-3+dx,y-6,5.5,1.5,SOCK);
   const k=knee*.62;p([[x-4,-27],[x+4,-27],[x+4.5+k,-17.5],[x-5.5+k,-17.5]],C.ink);p([[x-2.5,-25],[x+2.5,-25],[x+3+k,-18.5],[x-4+k,-18.5]],base);
   p([[x-2,-24],[x,-24],[x-.5+k,-18.5],[x-3+k,-18.5]],hi);r(x-4+k,-19,7.5,.5,lo);if(near){r(x+.5,-23,2,3,'#263e50');}return;}
- const w=bottom===2?1:bottom===3?-.5:0; // cargo pants are roomier, slacks a little slimmer
+ const w=bottom===2||bottom>=5?1:bottom===3?-.5:0; // cargo, fatigue and tactical pants are roomier, slacks a little slimmer
  p([[x-4-w,-27],[x+4+w,-27],[x+4+w+knee,-14],[x+3+w*.5+dx,y-3],[x-4-w*.5+dx,y-3],[x-5-w+knee,-14]],C.ink);
  p([[x-2.5-w,-25],[x+2.5+w,-25],[x+2.5+w+knee,-15],[x+1.5+w*.5+dx,y-4],[x-2.5-w*.5+dx,y-4],[x-3-w+knee,-14]],base);
  p([[x-2-w,-24],[x,-24],[x-.5+knee,-15],[x-1+dx,y-6],[x-2.5-w*.5+dx,y-6],[x-2-w+knee,-15]],hi);
@@ -57,14 +57,17 @@ function fittedLeg(g,x,foot,side,near,y,bottom){const {p,r}=g,{dx,knee}=foot,bas
   const sx=out<0?-2.5:out>0?2:0;p([[x+sx,-25],[x+sx+.5,-25],[x+sx+.5+knee,-14],[x+sx*.8+.5+dx,y-5],[x+sx*.8+dx,y-5],[x+sx+knee,-14]],STITCH);
   r(x-2+knee,-14,3,1,lo);if(near){r(x+.5,-23,2.5,.5,STITCH);r(x+2.5,-23,.5,2,STITCH);}
   r(x-3+dx,y-5.5,5.5,1.5,near?'#40586a':C.pantsHi);r(x-3+dx,y-4,5.5,.5,lo);return;}
- if(bottom===2){ // Cargo: a flapped thigh pocket on the outer side and a reinforced knee.
+ if(bottom===2||bottom>=5){ // Cargo: a flapped thigh pocket on the outer side and a reinforced knee. Fatigues add camouflage; tactical pants add knee pads.
   const cx=x+out*2.5,k=knee*.55;p([[cx-2,-22],[cx+2,-22],[cx+2+k,-16],[cx-2+k,-16]],near?'#263e50':lo);r(cx-2,-22,4,1.5,hi);r(cx-.5,-21,1,.5,lo);r(cx-2+k,-16.5,4,.5,lo);
-  p([[x-2.5+knee,-14.5],[x+2+knee,-14.5],[x+1.5+knee*.9+dx*.25,-11],[x-2.5+knee*.9+dx*.25,-11]],near?'#263e50':lo);r(x-3+dx,y-4.5,6,1,lo);return;}
+  p([[x-2.5+knee,-14.5],[x+2+knee,-14.5],[x+1.5+knee*.9+dx*.25,-11],[x-2.5+knee*.9+dx*.25,-11]],near?'#263e50':lo);r(x-3+dx,y-4.5,6,1,lo);
+  if(bottom===5){r(x-2.75+knee*.15,-24,2,1.5,lo);r(x-.5+knee*.5,-19.5,2,1,hi);r(x-2.5+knee*.7,-17.5,1.5,1.5,lo);r(x+.25+knee*.75+dx*.25,-10,1.5,1.5,lo);r(x-2+knee*.2+dx*.8,y-8,2,1,hi);}
+  if(bottom===6){const k=knee*.95+dx*.1;p([[x-3.5+k,-16],[x+2.5+k,-16],[x+2.5+k,-11],[x-3.5+k,-11]],C.ink);p([[x-3+k,-15.5],[x+2+k,-15.5],[x+2+k,-11.5],[x-3+k,-11.5]],'#2a2b30');r(x-2.5+k,-15,2.5,1,'#44464d');r(x-3+k,-13,5,.5,'#1a1b1e');}
+  return;}
  // Slacks: a pressed crease down the front and a clean break over the shoe.
  p([[x-.25,-25],[x+.25,-25],[x+.25+knee,-14],[x-.25+dx*.9,y-4.5],[x-.75+dx*.9,y-4.5],[x-.75+knee,-14]],near?'#40586a':C.pantsHi);r(x-2.5+dx,y-4,4.5,.5,lo);
 }
 // The sleeve bends progressively below the shoulder; forearm and hand move rigidly with the swing.
-// Sleeves: 0 jacket (elbow patch), 1 short, 2 plain long, 3 ribbed hoodie cuff, 4 shirt cuff, 5 bare arm.
+// Sleeves: 0 jacket (elbow patch), 1 short, 2 plain long, 3 ribbed hoodie cuff, 4 shirt cuff, 5 bare arm, 6 fatigue camo, 7 SWAT pads.
 function arm(base,x,y,hand,near,sleeve=0){const warp=(px,py)=>{const t=Math.max(0,Math.min(1,(py-y-4)/9));return [px+hand.dx*t,py+hand.dy*t-hand.bend*t*t];};
  const g={p:(pts,col)=>base.p(pts.map(([a,b])=>warp(a,b)),col),r:(a,b,w,h,col)=>{const [nx,ny]=warp(a,b+h/2);base.r(nx,ny-h/2,w,h,col);}},{p,r}=g;
  p([[x-3,y],[x+2,y-1],[x+4,y+3],[x+4,y+14],[x+2,y+19],[x-3,y+18],[x-5,y+12],[x-5,y+4]],C.ink);
@@ -75,6 +78,10 @@ function arm(base,x,y,hand,near,sleeve=0){const warp=(px,py)=>{const t=Math.max(
  else if(sleeve===2)r(x-2,y+11,4,2,C.coatLo);
  else if(sleeve===3){r(x-3,y+11,5.5,2.5,C.coatDeep);for(let i=0;i<3;i++)r(x-2.5+i*2,y+11.5,.5,1.5,C.coatLo);}
  else if(sleeve===4){r(x-3,y+11,5.5,2,near?C.coatLight:C.coatHi);r(x+1,y+11.5,.5,.5,C.coatLo);}
+ // Fatigue sleeves carry camouflage blotches in the jacket's own shades; SWAT sleeves add shoulder and elbow pads.
+ else if(sleeve===6){r(x-2,y+11,4,2,C.coatLo);r(x-2.5,y+2.5,2,2,near?C.coatDeep:C.coatLo);r(x,y+6,2,1.5,near?C.coatLight:C.coatHi);r(x-3,y+8.5,1.5,1.5,near?C.coatDeep:C.coatLo);r(x+.5,y+9.5,1.5,1,near?C.coatLo:C.coatDeep);}
+ else if(sleeve===7){r(x-2,y+11,4,2,C.coatLo);r(x-3,y+8,5,2.5,C.ink);r(x-2.5,y+8.5,4,1.5,VESTS.swat[0]);r(x-2,y+8.5,2,.5,VESTS.swat[1]);
+  p([[x-4,y-1],[x+2.5,y-2],[x+4.5,y+2.5],[x+3.5,y+6],[x-4.5,y+6],[x-5.5,y+2.5]],C.ink);p([[x-3.5,y-.25],[x+2,y-1.25],[x+3.75,y+2.5],[x+3,y+5.25],[x-3.75,y+5.25],[x-4.75,y+2.5]],VESTS.swat[0]);r(x-3,y+.5,3,1,VESTS.swat[1]);r(x-4,y+4,7,.5,VESTS.swat[2]);}
  p([[x-2,y+14],[x+2,y+13],[x+2.5,y+17],[x+.5,y+19],[x-2.5,y+18]],near?C.skin:C.skinLo);
  r(x-1.5,y+14,2,2,near?C.skinHi:C.skin);r(x+.5,y+17,1,1,C.skinLo);
  // Short sleeves end above the elbow; the forearm is bare skin down to the existing hand.
@@ -106,13 +113,65 @@ function backpack(g,back,quarter,side=false){const {p,r}=g;
  for(let x of [-7+dx,3+dx]){r(x,-43,2,12,'#352a26');r(x,-42,1,8,C.leatherLight);r(x,-35,2,2,C.metal);r(x+.5,-34.5,1,1,C.leatherLo);}r(-4+dx,-31,4,2,'#8a8170');r(-3+dx,-30.5,2,1,'#4c4d49');r(-9+dx,-27,3,.5,C.leatherHi);
 }
 // Tops: closed fronts share the T-shirt body; extra details are drawn on top of it.
-const TOPS=[{sleeve:0},{sleeve:1,closed:1},{sleeve:2,closed:1},{sleeve:3,closed:1,hood:1},{sleeve:4,closed:1,collar:1},{sleeve:4,closed:1,collar:1,tie:1},{sleeve:5,closed:1,scoop:1}];
+// Uniforms: 7 fatigues with a plate carrier, 8 the same carrier taped LEET AF, 9 police patrol shirt, 10 SWAT armor.
+const TOPS=[{sleeve:0},{sleeve:1,closed:1},{sleeve:2,closed:1},{sleeve:3,closed:1,hood:1},{sleeve:4,closed:1,collar:1},{sleeve:4,closed:1,collar:1,tie:1},{sleeve:5,closed:1,scoop:1},
+ {sleeve:6,closed:1,vest:'mil'},{sleeve:6,closed:1,vest:'leet'},{sleeve:1,closed:1,collar:1,police:1},{sleeve:7,closed:1,vest:'swat'}];
+// Plate carriers keep their own colors whatever the jacket dye: base, light, shadow, webbing.
+const VESTS={mil:['#6b6446','#837b58','#4f4a34','#3a3727'],leet:['#4a5136','#5f6845','#363b28','#272b1d'],swat:['#26272b','#3a3b41','#1a1b1e','#121215']};
+const TAPE='#1a1c16',TAPE_TEXT='#e3dcc6',SWAT_TEXT='#e8e6df',DUTY='#16171b',DUTY_HI='#2e3036',BADGE=['#8a6d2a','#d9b54a','#f3df8f'];
+// Stencil letters for vest tape, 3 × 5 half-unit pixels. Mirrored views reverse them so the words still read.
+const GLYPH={L:[4,4,4,4,7],E:[7,4,6,4,7],T:[7,2,2,2,2],A:[2,5,7,5,5],F:[7,4,6,4,4],S:[3,4,2,1,6],W:[5,5,7,7,5]};
+// Tape lettering skips the female tailoring warp (it would pinch letters together); SQUEEZE moves it to the tailored spot instead.
+let MIRROR=false,FLAT=null,SQUEEZE=x=>x,TIGHT=false;
+function stencil(g,str,x,y,col){const chars=[...str];if(MIRROR)chars.reverse();let cx=x;
+ for(const ch of chars){if(ch===' '){cx+=1;continue;}GLYPH[ch].forEach((bits,i)=>{for(let c=0;c<3;c++)if(bits>>(MIRROR?c:2-c)&1)g.r(cx+c*.5,y+i*.5,.5,.5,col);});cx+=2;}}
+const textWidth=str=>[...str].reduce((w,ch)=>w+(ch===' '?1:2),0)-.5;
+function vest(g,view,quarter,kind){const {p,r}=g,V=VESTS[kind];
+ // On the narrower tailored chest a two-word tape stacks into two lines so the arms never cover it.
+ const label=(word,x,y,bg,col)=>{const f=FLAT||g;x=Math.round(SQUEEZE(x)*2)/2;const lines=TIGHT&&word.includes(' ')?word.split(' '):[word],w=Math.max(...lines.map(textWidth));
+  if(lines.length>1)y-=1;f.r(x-w/2-.75,y-.5,w+1.5,lines.length*3+.5,bg);lines.forEach((t,i)=>stencil(f,t,x-textWidth(t)/2,y+i*3,col));};
+ if(view==='side'){
+  p([[-8.5,-46],[-5.5,-49.5],[-2.5,-49.5],[-1,-46],[2,-48.5],[4.5,-48],[7.5,-43],[8,-28.5],[-9.5,-28.5],[-10,-43]],C.ink);
+  p([[-7.75,-45.5],[-5,-48.75],[-3,-48.75],[-1.5,-45],[2.25,-47.75],[4,-47.25],[6.75,-42.75],[7.25,-29.25],[-8.75,-29.25],[-9.25,-42.75]],V[0]);
+  p([[-8.5,-44.5],[-5.5,-44.5],[-6.5,-31],[-9,-31]],V[1]);r(-5,-48.5,2,3.5,V[3]);r(3,-47.5,1.5,3.5,V[3]);
+  r(-9,-32,16,2.5,V[2]);for(let x=-8.5;x<6;x+=2)r(x,-31.25,1.5,.5,V[3]);
+  r(5,-37,4,7.5,C.ink);r(5.5,-36.5,3,6.5,V[0]);r(5.5,-36.5,3,2,V[1]);r(6.5,-35,1,.75,V[3]);
+  if(kind==='swat'){r(-1,-41,6,3,'#141417');stencil(g,'S',.25,-40.5,SWAT_TEXT);}else if(kind==='leet'){r(-.5,-41,5.5,3,TAPE);r(0,-40.5,4.5,.5,TAPE_TEXT);r(0,-39.5,3,.5,TAPE_TEXT);}
+  return;}
+ if(view==='back'){const dx=quarter?-1.5:0;
+  p([[-11.5,-49],[9.5,-49],[11,-42],[10.5,-28],[-11.5,-28],[-12.5,-42]],C.ink);p([[-10.75,-48.25],[8.75,-48.25],[10.25,-42],[9.75,-28.75],[-10.75,-28.75],[-11.75,-42]],V[0]);
+  p([[-10.75,-47.5],[-7,-47.5],[-8,-30],[-11,-30]],V[1]);p([[6.5+dx,-47.5],[8.75,-47.5],[10,-42],[9.5,-29],[6.5+dx,-29]],V[2]);
+  r(-10.5,-48.25,19.5,1.5,V[3]);r(-2.5+dx,-50.5,4.5,2,C.ink);r(-2+dx,-50,3.5,1,V[3]);
+  for(const y of [-35,-33,-31])for(let x=-9.5;x<8;x+=2)r(x+dx,y,1.5,.5,V[3]);r(-11,-29.5,20.5,1.25,V[3]);
+  if(kind==='leet')label('LEET AF',-1+dx,-45,TAPE,TAPE_TEXT);else if(kind==='swat')label('SWAT',-1+dx,-45,'#141417',SWAT_TEXT);else for(const y of [-45,-43,-41])for(let x=-8.5;x<7;x+=2)r(x+dx,y,1.5,.5,V[3]);
+  return;}
+ const q=quarter?1.5:0;
+ p([[-10.5,-47.5],[-9+q,-51],[-4.5+q,-51],[-3.5+q,-47.5],[1.5+q,-47.5],[2.5+q,-51],[7+q,-51],[8.5+q,-47.5],[10.5,-42],[10.5,-28],[-11.5,-28],[-12,-42]],C.ink);
+ p([[-9.75,-47],[-8.5+q,-50.25],[-5+q,-50.25],[-4+q,-46.75],[2+q,-46.75],[3+q,-50.25],[6.5+q,-50.25],[7.75+q,-47],[9.75,-41.5],[9.75,-28.75],[-10.75,-28.75],[-11.25,-41.5]],V[0]);
+ r(-8+q,-50.25,2.5,3.5,V[3]);r(3.5+q,-50.25,2.5,3.5,V[3]);
+ p([[-9.75,-46.5],[-7+q,-46.5],[-8+q,-30],[-10.75,-30]],V[1]);p([[7+q,-46],[9.75,-41],[9.75,-29],[7+q,-29]],V[2]);
+ r(-10.75,-29.5,20.5,1.25,V[3]);
+ for(const px of [-8.5,-3.5,1.5]){const x=px+q;r(x-.5,-36.5,5.5,7,C.ink);r(x,-36,4.5,6,V[0]);r(x,-36,4.5,2,V[1]);r(x+1.75,-34.5,1,.75,V[3]);r(x,-30.5,4.5,.5,V[2]);}
+ for(let x=-9;x<8;x+=2)r(x+q,-38,1.5,.5,V[3]);
+ if(kind==='leet')label('LEET AF',-1+q,-45,TAPE,TAPE_TEXT);
+ else if(kind==='swat')label('SWAT',-1+q,-45,'#141417',SWAT_TEXT);
+ else{r(-8+q,-45.5,5.5,3,V[3]);r(-7.5+q,-45,4.5,2,V[2]);r(1+q,-45.5,5.5,1.5,V[3]);r(1.5+q,-43.5,4.5,.5,V[2]);}
+}
+// Patrol shirt kit: badge, name bar, a second pocket, a shoulder radio and the duty belt.
+function policeKit(g,view,quarter,x){const {p,r}=g;
+ if(view==='side'){r(-8,-29.5,15,2.5,DUTY);r(-8,-29.5,15,.5,DUTY_HI);r(-2,-32,3.5,5,DUTY);r(-1.5,-31.5,2.5,.5,DUTY_HI);p([[3,-45],[5,-45],[5.25,-43],[4,-42],[2.75,-43]],BADGE[0]);r(3.25,-44.5,1.5,1.5,BADGE[1]);r(-4.5,-48,2,3,'#1b1c20');return;}
+ if(view==='back'){r(-9.5,-29.5,19,2.5,DUTY);r(-9.5,-29.5,19,.5,DUTY_HI);r(-4,-29,3.5,2.5,'#24252a');r(2,-29.5,3,3,'#24252a');r(-10,-49,4,1,C.coatLo);r(5,-49,4,1,C.coatLo);return;}
+ p([[x-6,-44],[x-3,-44],[x-3,-40.5],[x-6,-40.5]],C.coatMid);r(x-6,-44,3,.5,C.coatLo);r(x-5.75,-45.25,2.5,.75,'#d8d0b8');
+ p([[x+4,-45],[x+6,-45],[x+6.25,-43],[x+5,-41.75],[x+3.75,-43]],BADGE[0]);p([[x+4.25,-44.75],[x+5.75,-44.75],[x+5.9,-43.1],[x+5,-42.25],[x+4.1,-43.1]],BADGE[1]);r(x+4.5,-44.5,.5,.5,BADGE[2]);
+ r(-9.5,-29.5,19,2.5,DUTY);r(-9.5,-29.5,19,.5,DUTY_HI);r(x-.5,-29,2.5,1.5,'#9ea3a8');r(6.5,-32,3,5,DUTY);r(7,-31.5,2,.5,DUTY_HI);r(-9.5,-32,2.5,3,DUTY);
+ r(-8.5,-48,2,3,'#1b1c20');r(-8,-47.5,1,1,'#3b3d44');}
 const TIE=['#7a2f36','#9a4249','#5a2228'],STRING='#d8d0c0';
 function torso(g,back,quarter,side,T=TOPS[0],strapG=g){let {p,r}=g;const top=T.closed?1:0;
  if(side){p([[-5,-50],[4,-49],[7,-43],[7,-28],[4,-24],[-7,-25],[-9,-30],[-9,-43]],C.ink);p([[-4,-48],[3,-47],[5,-43],[5,-29],[3,-26],[-6,-27],[-7,-31],[-7,-42]],C.coat);p([[-5,-47],[-2,-48],[0,-44],[-1,-28],[-6,-28],[-7,-33]],C.coatHi);r(3,-44,2,15,C.coatLo);if(!T.hood)r(3,-38,2,6,C.shirtLo);r(-5,-28,9,2,C.coatLo);r(-6,-47,9,3,C.coatDeep);
   if(T.hood){p([[2,-37],[6,-37],[6.5,-31],[2,-31]],C.coatLo);r(2,-37,4.5,.5,C.coatDeep);r(-6,-28,11,1.5,C.coatDeep);}
   if(T.collar){r(4,-41,.5,.5,C.coatLight);r(4,-36,.5,.5,C.coatLight);r(4,-31,.5,.5,C.coatLight);}
   if(T.tie)p([[4,-47],[6,-46.5],[6.5,-37],[5,-35.5],[4,-37]],TIE[0]);
+  if(T.vest)vest(g,'side',quarter,T.vest);if(T.police)policeKit(g,'side',quarter,0);
   return;}
  p([[-8,-51],[5,-51],[11,-47],[13,-39],[11,-25],[-10,-25],[-14,-33],[-13,-45]],C.ink);
  p([[-7,-49],[5,-49],[9,-45],[11,-38],[9,-27],[-9,-27],[-12,-34],[-11,-44]],C.coat);
@@ -124,11 +183,11 @@ function torso(g,back,quarter,side,T=TOPS[0],strapG=g){let {p,r}=g;const top=T.c
   if(T.hood){p([[x-5,-37],[x+6,-37],[x+7.5,-30],[x-6.5,-30]],C.coatMid);r(x-5,-37,11,.5,C.coatDeep);p([[x-5,-37],[x-4,-37],[x-5.5,-32],[x-6.5,-32]],C.coatDeep);p([[x+5,-37],[x+6,-37],[x+7.5,-32],[x+6.5,-32]],C.coatDeep);r(-9,-28.5,18,1.5,C.coatDeep);
    r(x-1,-47,.5,5,STRING);r(x+3,-47,.5,4.5,STRING);r(x-1.5,-42,1,.5,STRING);r(x+3,-42.5,1,.5,STRING);}
   if(T.collar){r(x+1,-46,.5,18,C.coatLo);for(const y of [-44,-40,-36,-32])r(x+1.5,y,.5,.5,C.coatLight);if(!T.tie){p([[x+3.5,-44],[x+6.5,-44],[x+6.5,-40.5],[x+3.5,-40.5]],C.coatMid);r(x+3.5,-44,3,.5,C.coatLo);}}
-  if(T.tie){p([[x+.3,-47],[x+2.2,-47],[x+2.8,-37],[x+1.2,-35],[x-.3,-37]],TIE[0]);r(x+1,-45,.5,7,TIE[1]);r(x+.3,-37.5,2.4,.5,TIE[2]);}if(strapG){strapG.p([[-9,-48],[-7,-48],[-6,-40],[-6,-31],[-8,-32]],C.leatherLo);strapG.r(-8,-46,1,10,C.leatherHi);if(!quarter){strapG.r(7,-46,1.5,11,C.leatherLo);strapG.r(7,-44,.5,7,C.leatherHi);}}}
+  if(T.tie){p([[x+.3,-47],[x+2.2,-47],[x+2.8,-37],[x+1.2,-35],[x-.3,-37]],TIE[0]);r(x+1,-45,.5,7,TIE[1]);r(x+.3,-37.5,2.4,.5,TIE[2]);}if(T.vest)vest(g,'front',quarter,T.vest);if(T.police)policeKit(g,'front',quarter,x);if(strapG&&!T.vest){strapG.p([[-9,-48],[-7,-48],[-6,-40],[-6,-31],[-8,-32]],C.leatherLo);strapG.r(-8,-46,1,10,C.leatherHi);if(!quarter){strapG.r(7,-46,1.5,11,C.leatherLo);strapG.r(7,-44,.5,7,C.leatherHi);}}}
  else if(!back){let x=quarter?1:-2;p([[x-2,-48],[x+4,-47],[x+5,-28],[x-3,-28]],C.shirtLo);p([[x-1,-47],[x+3,-46],[x+3,-30],[x-2,-30]],C.shirt);r(x-1,-44,3,3,C.shirtHi);r(x-1,-37,3,1,C.shirtHi);r(x-2,-32,5,1,C.shirtLo);p([[x-3,-49],[x,-48],[x-1,-42],[x-4,-39]],C.coatDeep);p([[x+4,-49],[x+7,-46],[x+4,-39],[x+3,-43]],C.coatHi);r(x-3,-27,7,1,C.leather);r(x,-27,2,1,C.metal);
   r(-8,-37,4,5,C.coatLo);r(-8,-37,4,1,C.coatLight);r(6,-35,2,5,C.coatDeep);r(6,-35,2,.5,C.coatHi);
   if(strapG){strapG.p([[-9,-48],[-7,-48],[-6,-40],[-6,-31],[-8,-32]],C.leatherLo);strapG.r(-8,-46,1,10,C.leatherHi);if(!quarter){strapG.r(7,-46,1.5,11,C.leatherLo);strapG.r(7,-44,.5,7,C.leatherHi);}}
- }else{r(-8,-46,14,1,C.coatLight);r(-1,-44,1,13,C.coatLo);}
+ }else{r(-8,-46,14,1,C.coatLight);r(-1,-44,1,13,C.coatLo);if(T.vest)vest(g,'back',quarter,T.vest);if(T.police)policeKit(g,'back',quarter,0);}
 }
 function head(g,back,quarter,side){const {p,r}=g;
  // Face and ear planes underneath the swept, irregular hair mass.
@@ -253,6 +312,24 @@ function fittedHeadwear(g,back,quarter,side,style,H){const {p,r}=g;
   else{p([[-20,-66],[-15,-65],[-11,-62],[9,-63],[15,-65],[20,-67],[20,-62],[15,-59],[6,-58],[-10,-58],[-17,-60],[-21,-63]],H.ink);p([[-18,-64],[-14,-63],[-10,-61],[9,-62],[15,-63],[18,-65],[18,-62],[14,-60],[5,-59],[-10,-59],[-16,-61]],'#92704c');p([[-18,-64],[-14,-63],[-10,-61],[5,-61],[13,-62],[17,-63],[14,-60],[-10,-60],[-16,-62]],'#ac855a');r(-8,-60,16,.5,'#c6a272');}
   return;
  }
+ if(style===6){ // Combat helmet: rounded shell with ear cut-outs, a cover band, chin strap and a night-vision mount.
+  const S='#4d5236',SH='#636a46',SL='#383c27',SD='#2a2c1f',MOUNT='#6f7377';
+  if(side){
+   p([[-12,-61],[-12,-69],[-8,-75],[-1,-77],[6,-76],[11,-71],[12,-65],[11,-61]],H.ink);
+   p([[-11,-62],[-11,-68],[-7.5,-73.5],[-1,-75.5],[5.5,-74.5],[10,-70.5],[11,-65],[10,-62.5]],S);
+   p([[-9,-69],[-6,-73],[-1,-74.5],[4,-73.5],[0,-72],[-5,-70],[-8,-67]],SH);r(-11,-65,21.5,1.5,SL);
+   p([[-12,-62],[-3,-62],[-2,-57],[-5,-55],[-11,-56]],H.ink);p([[-11,-61.5],[-3.5,-61.5],[-3,-57.5],[-5,-56],[-10.5,-57]],S);r(-9,-60,4,2,SL);
+   r(-1,-61,1,8,SD);r(-1,-53.5,6,1,SD);p([[10,-68.5],[13.5,-68.5],[14,-64],[10,-64]],H.ink);r(10.5,-68,3,3.5,SD);r(11.5,-67,1,1,MOUNT);return;}
+  p([[-13,-60],[-12.5,-69],[-8,-75],[-2,-77],[5,-76],[11,-72],[13,-66],[12.5,-60]],H.ink);
+  p([[-12,-61],[-11.5,-68.5],[-7.5,-73.5],[-2,-75.5],[4.5,-74.5],[10,-71],[11.5,-66],[11.5,-61]],S);
+  p([[-10,-68],[-6.5,-72.5],[-1,-74.5],[3,-73.5],[-1,-72],[-5.5,-69],[-9,-65]],SH);r(-12,-65,23.5,1.5,SL);
+  if(back){p([[-12,-61],[11.5,-61],[10.5,-55.5],[-11,-55.5]],H.ink);p([[-11,-60.5],[10.5,-60.5],[9.5,-56.5],[-10,-56.5]],S);r(-9,-58.5,17,1,SL);r(-2.5,-70,5,3,SL);r(-1,-72.5,2,2,'#7a7f5a');
+   if(quarter){r(9.5,-56,.75,5,SD);}return;}
+  const dx=quarter?1.5:0;r(-11,-61.5,22.5,1,SD);
+  p([[-3+dx,-70],[3+dx,-70],[3+dx,-65.5],[-3+dx,-65.5]],H.ink);r(-2.5+dx,-69.5,5,3.5,SD);r(-1+dx,-68.5,2,1.5,MOUNT);
+  p([[-13,-61],[-9.5,-61],[-9.5,-55.5],[-12.5,-55.5]],H.ink);r(-12.5,-60.5,2.5,4.5,S);
+  p([[9.5,-61],[12.5,-61],[12,-55.5],[9.5,-55.5]],H.ink);r(10,-60.5,2,4.5,S);r(-10.5,-56,.75,4.5,SD);r(9.5,-56,.75,4.5,SD);return;
+ }
  // Riot shell extends over the temples and nape; the visor sits in front of the face.
  p([[-13,-61],[-12,-70],[-8,-75],[-2,-77],[5,-76],[11,-72],[13,-66],[12,-60],[-12,-60]],H.ink);
  // Only the shell's crown spans the face; lower protection wraps around its sides.
@@ -318,7 +395,7 @@ function neckline(g,back,quarter,side,T){const {p,r}=g;
 export function survivor(c,direction=1,frame=0,pack=true,look={}){
  // Zombies drop whatever the survivor was carrying.
  const zombie=look.zombie===1;if(zombie)look={...look,gun:null,grenade:null};
- let dir=((direction%8)+8)%8,side=dir===0||dir===4,back=dir>=5,quarter=dir%2===1,mirror=dir===3||dir===4||dir===5;
+ let dir=((direction%8)+8)%8,side=dir===0||dir===4,back=dir>=5,quarter=dir%2===1,mirror=dir===3||dir===4||dir===5;MIRROR=mirror;
  const G=gait(frame,side,back,quarter,zombie),maps=colorMaps(look),T=TOPS[look.top]||TOPS[0],sleeve=T.sleeve,female=look.body===1;
  // Pack choice 1 removes the pack and its straps; the legacy pack argument only hides the pack itself.
  const straps=look.pack!==1;pack=pack&&straps;
@@ -329,7 +406,7 @@ export function survivor(c,direction=1,frame=0,pack=true,look={}){
  leg(g,L.far.x,L.far.foot,side,false,L.far.depth,boots,look.bottom||0,look.shoes||0);leg(g,L.near.x,L.near.foot,side,true,0,boots,look.bottom||0,look.shoes||0);if(zombie)zombieLegs(c,g,L,look.bottom||0,look);
  c.save();c.translate(G.lean,G.bob);g=tint(painter(c),maps.main);let packG=tint(painter(c),maps.pack);
  // Upper-body parts draw through the tailoring warp; arms keep their thickness and move in with the shoulders.
- const body=female?tailor(g,-.5,side?TORSO_SIDE:TORSO_FRONT):g,shoulder=x=>female&&!side?-.5+(x+.5)*.86:x;if(female)packG=tailor(packG,-.5,side?TORSO_SIDE:TORSO_FRONT);
+ const body=female?tailor(g,-.5,side?TORSO_SIDE:TORSO_FRONT):g,shoulder=x=>female&&!side?-.5+(x+.5)*.86:x;FLAT=g;TIGHT=female&&!side;SQUEEZE=TIGHT?x=>-.5+(x+.5)*.84:x=>x;if(female)packG=tailor(packG,-.5,side?TORSO_SIDE:TORSO_FRONT);
  // Zombie arms reach forward: the same arm art, turned and foreshortened toward the facing direction.
  const armAt=(pg,x,y,hand,near)=>zombie?arm(reachPainter(pg,x,y,zombieReach(x,side,back,quarter,near,G)),x,y,{dx:0,dy:0,bend:0},near,sleeve):arm(pg,x,y,hand,near,sleeve);
  // Other views need a visible far sleeve and hand outside the torso/pack.
