@@ -406,3 +406,16 @@ A large additive bounce glow over the fire was tried and cut, because it cost th
 Frame rate (software renderer, 1280×800):
 - **High:** about 5 fps slower than stage 2, all from the haze.
 - **Low:** matches stage 2. Post 20.3, yard 19.3, 16 robots firing 18.7.
+
+## v0.29.0 — Twin-stick aim: the survivor turns all the way round
+In the Training Grounds the survivor is drawn in layers, the way top-down twin-stick shooters draw their heroes (`study/layers.js`):
+- **Legs** walk the way you move, in 8 directions. Move more than a quarter turn away from your aim and they face the aim side and run their walk cycle backwards, so you backpedal instead of twisting round. Move across your aim and they turn sideways under the body, so you strafe.
+- **Body:** the torso, pack and walking arms take the nearest of the 8 facings toward the aim.
+- **Arms and gun** are drawn ahead of time at 64 angles (one every 5.6°). The barrel points along the aim, and stays crisp pixel art with no runtime rotation.
+  - The angle is worked out in the body facing's own space. Past straight up or down the gun flips over, so it is never held upside down.
+  - Aiming toward or away from the camera foreshortens it by up to 35%. Aimed up, it shifts toward the trigger shoulder so it peeks past the head.
+- **Head and neck** sit above the gun, as they always did. From behind, a gun-holder's pack is in this top layer too, so the arms show between the coat and the pack. The arms and head ride the body's bob and lean (`bodyShift`).
+- **Shots** leave the end of the barrel you see (`muzzle()`) and meet the line of fire where they land. The muzzle flash sits there too.
+- **Crops:** each layer is cropped to the part of the 160 × 192 frame it uses, measured over random looks with room to spare. Together the four sheets are about a quarter smaller than the old full sheet.
+- **One source of truth:** `survivor()` stacks the same layers for one facing. So the creator preview (now drawn from the game's own layers), camp, residents and thumbnails all match. Unarmed and side-view frames are pixel-identical to v0.28. Front, back and diagonal facings with a gun now point the barrel exactly along the facing.
+- **Camp:** no gun is carried there, so the body and legs still face the way you walk.

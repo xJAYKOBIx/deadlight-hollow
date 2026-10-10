@@ -1,4 +1,4 @@
-import{ROOM,SOLIDS}from'./model.js';import{TARGETS}from'../grounds/data.js';import{GUNS,GRENADES,PAINT,normalizeLoadout}from'./equipment.js';import{Drill}from'./drill.js';
+import{ROOM,SOLIDS}from'./model.js';import{TARGETS}from'../grounds/data.js';import{GUNS,GRENADES,PAINT,normalizeLoadout,muzzle}from'./equipment.js';import{Drill}from'./drill.js';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // Every gun in the Training Grounds fires paint. Whether a shot hits is decided at once; the ball and its splat follow at paintball speed.
 export const BALL_SPEED=900,MAX_MARKS=14;
@@ -21,7 +21,8 @@ export class Practice{
   const t=this.targets.find(t=>t.hp>0&&Math.hypot(t.x-x,t.y-y)<14);if(t){this.hurt(t,gun.damage);this.hits++;hit=true;onto={kind:'target',ref:t};break;}
   const bot=this.drill.hit(x,y);if(bot){// Dead centre is a headshot.
    const head=Math.abs(dx*(bot.y-m.y)-dy*(bot.x-m.x))<4.5;this.drill.hurt(bot,gun.damage,{gun:this.loadout.gun,dx,dy,head});this.hits++;hit=true;onto={kind:'bot',ref:bot};break;}}
- const dur=Math.hypot(end.x-m.x,end.y-m.y)/BALL_SPEED;this.traces.push({x:m.x,y:m.y,ex:end.x,ey:end.y,age:0,dur,life:dur+.14,hit,col:this.paint,onto:onto||{kind:'floor'},done:false});return true;
+ const dur=Math.hypot(end.x-m.x,end.y-m.y)/BALL_SPEED;// The ball leaves the end of the barrel you see (ox, oy from the feet) and meets the line of fire where it lands.
+ const mz=muzzle(angle,this.loadout.gun);this.traces.push({x:m.x,y:m.y,ex:end.x,ey:end.y,ox:mz.x,oy:mz.y,age:0,dur,life:dur+.14,hit,col:this.paint,onto:onto||{kind:'floor'},done:false});return true;
  }
  // Where a ball lands it leaves paint: on the robot, the target, the cover it hit, or the floor.
  land(t){t.done=true;const seed=this.seed++,s=1.6+(seed*37%10)/10,j=k=>((seed*(k*131+7))%17)/17-.5,o=t.onto;

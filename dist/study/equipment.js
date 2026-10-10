@@ -37,19 +37,25 @@ function paintKit(g,id,paint){const{p,r}=g,ink='#10151c',rifle=GUNS[id].rifle,x0
  p([[x0,t],[x0+w,t],[x0+w+1,t-hh+1.5],[x0+w-1,t-hh],[x0+1,t-hh],[x0-1,t-hh+1.5]],ink);r(x0+.5,t-hh+1,w-.5,hh-1.5,'#2c3138');r(x0+1.5,t-hh+1.5,w-2.5,hh-3,paint);r(x0+1.5,t-hh+1.5,1,.5,'#f4efe2');r(x0+w-2.5,t-1.5,1,.5,'#00000055');
  const tip=rifle?25:id==='heavy-pistol'?14.5:id==='hand-cannon'?12.5:10.5;r(tip,-1.5,2,2.5,ink);r(tip+.5,-1,1.5,1.5,paint);}
 export function grenadeArt(g,id){const{p,r}=g;const col=GRENADES[id]?.color||'#7d8050';p([[-2,-7],[2,-7],[2,-5],[4,-3],[4,4],[2,6],[-2,6],[-4,4],[-4,-3],[-2,-5]],'#141a20');r(-1,-6,3,2,'#737a7b');p([[-2,-4],[2,-4],[3,-2],[3,4],[1,5],[-2,4],[-3,2],[-3,-2]],col);r(-2,-2,1,6,id==='explosive'?'#aaa473':'#96a1a0');r(-3,0,6,2,id==='smoke'?'#ddd2ad':id==='incendiary'?'#e4823c':'#d0ac43');r(3,-5,1,8,'#4b5157');r(2,-6,3,.5,'#b3ada0');r(4,-5,.5,2,'#b3ada0');if(id==='explosive'){r(-3,3,6,.5,'#343c27');r(0,-3,.5,8,'#44482c');}else r(0,0,1,2,'#e7d8b5');}
-// Projection shares the sprite's eight-facing convention. Grip is local (0,0).
-// Front and back views foreshorten the gun and angle it across the body, so it reads as aimed toward or away from the camera.
-function aim(back,quarter,side){const t=side?0:(back?-1:1)*(quarter?.39:.9),L=side?1:quarter?.84:.8,c=Math.cos(t),n=Math.sin(t),ax=side?6:quarter?5:0,ay=side||quarter?-36:-39;
- // A true rotation (not a shear) keeps every gun's silhouette intact at each angle.
- return {point:([u,v])=>[ax+u*L*c-v*n,ay+u*L*n+v*c]};}
+// Aiming at any angle (v0.29). The body takes the nearest of the eight facings and the gun turns to the exact angle, worked out in
+// that facing's local space: local coordinates always face right, so mirrored facings see the angle reflected. Past straight up or
+// down the gun flips over, so it is never held upside down. Aiming toward or away from the camera foreshortens it a little.
+export const facingOf=angle=>((Math.round(angle/(Math.PI/4))%8)+8)%8;
+export function aimPose(angle){const d=facingOf(angle),side=d===0||d===4,back=d>=5,quarter=d%2===1,mirror=d===3||d===4||d===5;
+ const a=mirror?Math.PI-angle:angle,c=Math.cos(a),n=Math.sin(a),flip=c<-1e-6?-1:1,L=1-.35*n*n,ax=6*c+4*Math.max(0,-n),ay=-36-3*n*n;
+ // A true rotation (not a shear) keeps every gun's silhouette intact at each angle. Grip is gun-local (0,0).
+ return {d,side,back,quarter,mirror,flip,point:([u,v])=>[ax+u*L*c-v*flip*n,ay+u*L*n+v*flip*c]};}
 // Where each hand closes on the gun: the trigger grip, and the fore-end for rifles (pistols use a cupped support hand).
-export function gunHands(id,back,quarter,side){const {point}=aim(back,quarter,side),grip=point([0,3]);return {grip,support:GUNS[id]?.rifle?point([12,3]):[grip[0]-1.5,grip[1]+1]};}
+function gunHands(P,id){const grip=P.point([0,3]);return {grip,support:GUNS[id]?.rifle?P.point([12,3]):[grip[0]-1.5*P.flip,grip[1]+1]};}
+const MUZZLE={'light-pistol':12.5,'heavy-pistol':16.5,'hand-cannon':14.5,'tactical-ar':27,'heavy-ar':27};
+// The end of the barrel on screen, relative to the feet, so shots leave the gun you see.
+export function muzzle(angle,id){const P=aimPose(angle),[x,y]=P.point([MUZZLE[id]??12,-.25]);return {x:P.mirror?-x:x,y};}
 function hand(g,[x,y],near){g.p([[x-2.5,y-1.5],[x+2.5,y-1.5],[x+2.5,y+2.5],[x-1,y+3.5],[x-3.5,y+1.5]],'#111319');g.p([[x-2,y-1],[x+2,y-1],[x+2,y+2],[x-1,y+3],[x-3,y+1]],near?'#d99b73':'#ae7356');g.r(x-1,y-.5,2,1.5,near?'#ecb18a':'#d99b73');}
-export function heldGun(g,id,back,quarter,side,paint){if(!GUNS[id])return;const {point}=aim(back,quarter,side);
+export function heldGun(g,id,angle,paint){if(!GUNS[id])return;const P=aimPose(angle),{point}=P;
  const projected={p:(pts,col)=>g.p(pts.map(point),col),r:(x,y,w,h,col)=>g.p([[x,y],[x+w,y],[x+w,y+h],[x,y+h]].map(point),col)};
  gunArt(projected,id,paint);
  // Hands close around the trigger and the fore-end, over the gun.
- if(back&&!quarter)return;const h=gunHands(id,back,quarter,side);hand(g,h.support,false);hand(g,h.grip,true);
+ if(P.back&&!P.quarter)return;const h=gunHands(P,id);hand(g,h.support,false);hand(g,h.grip,true);
 }
 // Two-bone arm: upper sleeve, bent elbow and forearm with the same thickness and shading as the walking arms.
 // sleeve: 0 jacket, 1 short (bare forearm), 2 long, 3 ribbed cuff, 4 shirt cuff, 5 bare arm, 6 fatigue, 7 SWAT padded.
@@ -69,7 +75,7 @@ function limb(g,s,e,h,near,sleeve){const short=sleeve===1||sleeve===true,bare=sl
 function elbow(s,h,out,lu=9,lf=9){const dx=h[0]-s[0],dy=h[1]-s[1],d=Math.min(Math.hypot(dx,dy)||1,lu+lf-.5),ux=dx/(Math.hypot(dx,dy)||1),uy=dy/(Math.hypot(dx,dy)||1),a=(lu*lu-lf*lf+d*d)/(2*d),k=Math.sqrt(Math.max(0,lu*lu-a*a)),px=s[0]+ux*a,py=s[1]+uy*a;
  const c1=[px-uy*k,py+ux*k],c2=[px+uy*k,py-ux*k];return out(c1)>=out(c2)?c1:c2;}
 // shoulderX scales shoulder spread for narrower bodies.
-export function weaponArms(g,back,quarter,side,id,sleeve=0,shoulderX=x=>x){if(!GUNS[id])return;const h=gunHands(id,back,quarter,side);
+export function weaponArms(g,id,angle,sleeve=0,shoulderX=x=>x){if(!GUNS[id])return;const P=aimPose(angle),{side,back,quarter}=P,h=gunHands(P,id);
  // Far arm (support hand) first, then near arm (trigger hand); elbows bend outward and down, never across the chest.
  // Front diagonals put the near (right) shoulder on screen-left, matching the walking arms and legs.
  const fq=quarter&&!back,far=side?[-1,-46]:[shoulderX(back&&quarter?-12:fq?9:-10),-46],near=side?[1,-45]:[shoulderX(fq?-9:quarter?9:10),-45];

@@ -32,7 +32,7 @@ export class Juice{
  ring(x,y,r,col,life,width=1){this.rings.push({x,y,r,col,life,age:0,width});}
  // Read the practice state once a frame: new shots, landed balls, fallen robots, stuns, hits on you and grenades going off.
  watch(now,p){const d=p.drill;
-  for(const t of p.traces){if(!t._seen){t._seen=true;const dx=t.ex-t.x,dy=t.ey-t.y,L=Math.hypot(dx,dy)||1,mx=t.x+dx/L*14,my=t.y-34+dy/L*14;
+  for(const t of p.traces){if(!t._seen){t._seen=true;const dx=t.ex-t.x,dy=t.ey-t.y,mx=t.x+(t.ox??0),my=t.y+(t.oy??-34);
     this.flash(mx,my,.4,.5,.07);this.flash(t.x,t.y-24,1.15,.13,.09);this.bits(2,mx,my,{dir:Math.atan2(dy,dx),spread:.6,speed:40,lift:8,z:0,col:0xf4efe2,life:.18,kind:'mist'});}
    if(t.done&&!t._burst){t._burst=true;const h=t.onto?.kind==='floor'?0:30,col=hex(t.col);this.bits(9,t.ex,t.ey,{speed:70,lift:70,z:h,col,life:.45,kind:'drop'});this.ring(t.ex,t.ey-h,9,col,.18);}}
   for(const b of d.bots){const big=b.kind==='brute';
