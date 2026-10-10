@@ -70,7 +70,7 @@ export const LANE={x:430,y0:1500,y1:1800};
 // Floors laid over the rock: lino and plywood in the building, plywood at the post.
 export const FLOORS=[{x:B.x+16,y:B.y+16,w:B.w-32,h:B.h-32,kind:'lino'},{x:540,y:1458,w:880,h:260,kind:'ply'}];
 // Lights: x, y, radius, r, g, b. Work lights are a cool white; the post is warmer, and Gadget's screens are cyan.
-export const LIGHTS=[...WORKLIGHTS.map(([x,y])=>[x,y+20,360,1,1,.97]),[790,1640,230,1,.88,.66],[1170,1640,230,1,.88,.66],[1160,1500,120,.55,.85,1],
+export const LIGHTS=[...WORKLIGHTS.map(([x,y])=>[x,y+20,350,.96,.99,1]),[790,1640,230,1,.88,.66],[1170,1640,230,1,.88,.66],[1160,1500,120,.55,.85,1],
  [1276,1470,60,.5,1,.6],[1530,1640,120,1,.86,.62],[1690,1846,70,1,.7,.42],[980,1890,140,.8,.84,.9],[530,1660,200,.96,.9,.78],
  ...HATCHES.map(h=>[h.x,h.side==='n'?h.y-16:h.y,70,1,.42,.36]),...[160,420,660,1300,1540,1800].map(x=>[x,1474,110,1,.82,.55])];
 // Who works here. Aaron keeps the range and the shop; Gadget keeps the lights on, builds the robots and buys their parts back.

@@ -146,7 +146,7 @@ export function frontArt(c){c.save();c.scale(2,2);c.translate(0,-FRONT_Y);const 
  rocks.sort((a,b)=>a[1]-b[1]);for(const [x,cy,rx,ry] of rocks){const cut=Math.min(rx,Math.max(4,Math.abs(x-(STAIRS.x+STAIRS.w/2))-STAIRS.w/2-6));e(x,cy+ry*.5,cut+2,ry,EDGE);e(x,cy,cut,ry,R[1]);e(x-cut*.15,cy-ry*.3,cut*.75,ry*.6,R[2]);e(x-cut*.3,cy-ry*.45,cut*.35,ry*.28,R[3]);}
  for(let x=0;x<TG.w;x+=6)if(x<STAIRS.x-4||x>STAIRS.x+STAIRS.w+4)r(x,TG.h-8,6,8,R[0]);c.restore();}
 // Lighting: a cold, dark cave lit by work lights, Gadget's screens and the string lights along the wall.
-export const LIGHT_SCALE=2,AMBIENT=[.64,.67,.78];
+export const LIGHT_SCALE=2,AMBIENT=[.42,.48,.64];
 export function lightArt(c){const w=Math.ceil(TG.w/LIGHT_SCALE),h=Math.ceil(TG.h/LIGHT_SCALE),img=c.createImageData(w,h),d=img.data;
  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const wx=x*LIGHT_SCALE+1,wy=y*LIGHT_SCALE+1,th=bayer(x,y);let F=0,acc=[0,0,0];
   for(const [lx,ly,rad,lr,lg,lb] of LIGHTS){const dx=wx-lx,dy=(wy-ly)*1.25;if(Math.abs(dx)>rad||Math.abs(dy)>rad)continue;const dist=Math.hypot(dx,dy)/rad;if(dist>=1)continue;let f=(1-dist)**1.2;f=Math.min(1,Math.floor(f*6+th)/6);F+=f;acc[0]+=f*lr;acc[1]+=f*lg;acc[2]+=f*lb;}

@@ -161,7 +161,12 @@ $('closeShop').onclick=()=>closeDialog('shop');$('shop').addEventListener('close
 const HOLD_KEY='deadlight-holdout-best-v1';function readHold(){try{return Number(storage?.getItem(HOLD_KEY))||0;}catch{return 0;}}
 const BEST_KEY='deadlight-drill-best-v1',clock=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');let drillShown='',drillDoneAt=0;
 function readBest(){try{return Number(storage?.getItem(BEST_KEY))||0;}catch{return 0;}}
-function paintDrill(d,now){for(const e of d.drain()){if(e.type==='bump'||e.type==='hurt')flashHit();else if(e.type==='part'){wallet.parts+=e.n;saveWallet(storage,wallet);}else if(e.type==='downed'){buzz(120);if(device==='pad')pad.rumble(.8,.8,300);}
+// A banner slams in at the middle of the screen for the moments that matter: a wave starting or cleared, the gate locking, going down.
+let bannerAt=0;function banner(title,text=''){const b=$('banner');$('bannerTitle').textContent=title;$('bannerText').textContent=text;b.hidden=false;b.classList.remove('show');void b.offsetWidth;b.classList.add('show');bannerAt=performance.now();
+ clearTimeout(banner.t);banner.t=setTimeout(()=>{if(performance.now()-bannerAt>=1900){b.hidden=true;b.classList.remove('show');}},2000);}
+function drillBanner(d,e){if(e.type==='wave')banner('Wave '+e.wave,d.holdout?(e.wave===1?'Here they come':'They get meaner'):'Warm-up · '+e.wave+' of '+WAVES.length);else if(e.type==='clear')banner('Wave '+e.wave+' cleared',d.holdout?'Grab the parts':'');
+ else if(e.type==='locked')banner('Gate locked','Hold out');else if(e.type==='downed')banner('Down','Gadget is coming');else if(e.type==='revive')banner('Back up','Make it count');else if(e.type==='over')banner('Holdout over',plural(e.summary.cleared,'wave')+' cleared');else if(e.type==='done')banner('Drill done',clock(e.summary.time));}
+function paintDrill(d,now){for(const e of d.drain()){drillBanner(d,e);if(e.type==='bump'||e.type==='hurt')flashHit();else if(e.type==='part'){wallet.parts+=e.n;saveWallet(storage,wallet);}else if(e.type==='downed'){buzz(120);if(device==='pad')pad.rumble(.8,.8,300);}
   else if(e.type==='over'){if(e.summary.cleared>readHold()){try{storage?.setItem(HOLD_KEY,String(e.summary.cleared));}catch{}e.summary.best=true;}drillDoneAt=now;}
   else if(e.type==='done'){const best=readBest();if(!best||e.summary.time<best){try{storage?.setItem(BEST_KEY,String(e.summary.time));}catch{}e.summary.best=true;}drillDoneAt=now;}}
  let html='';

@@ -389,3 +389,20 @@ Every screen now shares one salvage look, built in CSS on top of the old layers 
 - **Auto** (the default): starts on High and samples the game's frame rate once a second while you play. Three slow seconds in a row (under 45 fps) switch it to Low; ten smooth ones (55 or more) switch it back.
 
 A large additive bounce glow over the fire was tried and cut, because it cost the most frame rate for the least gain.
+
+### v0.28.0 — stage 3: the arena and how the fight feels
+- **Grade:** the Training Grounds are colder and moodier. The ambient is `.42/.48/.64` and the work lights are cool white (radius 350), so each lamp throws a pool, with darker floor between. The warm post and the red hatches stand out against the cold.
+- **Haze:** a tileable soft-noise sheet drifts under the lighting, so it glows in the lamp pools and disappears in the dark. It is on High only, and it is the single most expensive effect.
+- **Combat feel** (`study/juice.js`) is decoration read off the practice state. It never changes the fight.
+  - **Shots:** every shot pops a small light at the muzzle, briefly lights the shooter, and puffs a little gas.
+  - **Paint:** a ball that lands throws nine arcing drops in its colour and leaves a quick ring.
+  - **Robots falling:** they pop with a flash, sparks, bouncing debris and smoke. The camera shakes a touch, and the game holds for 45 ms (110 ms for the brute).
+  - **Other hits:** brute stuns, hits on you and grenade blasts each have their own shake. Blasts also flash, throw sparks and hold for 70 ms. Reduced motion turns every shake off.
+  - **Tells:** a robot about to act shows a pip above its head in its kind's colour. A winding brute also marks a red ring on the floor where it will hit, and a shrieking runner sends out rings.
+  - **Low quality:** keeps the flashes, shakes and tells, and halves the particles.
+- **Pickups:** parts on the floor have a pulsing ring under their glint.
+- **Banners:** a stencil title slams in mid-screen for a wave starting or cleared, the gate locking, going down, getting back up, and the end of a Holdout or drill.
+
+Frame rate (software renderer, 1280×800):
+- **High:** about 5 fps slower than stage 2, all from the haze.
+- **Low:** matches stage 2. Post 20.3, yard 19.3, 16 robots firing 18.7.

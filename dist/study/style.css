@@ -494,3 +494,15 @@ body.touch:not(.pad) #runToggle.on{background:radial-gradient(circle at 50% 30%,
 /* v0.28 a soft vignette over the game view, off on low effects. */
 #game::after{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(125% 100% at 50% 46%,transparent 52%,#0b0a0955 80%,#0b0a09b0 100%)}
 .fx-low #game::after{display:none}
+/* v0.28 the banner: a stencil title that slams in over the arena with hazard rules either side, then fades. */
+#banner{position:fixed;z-index:4;left:50%;top:calc(var(--vy) + 30%);transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;text-align:center;white-space:nowrap;opacity:0}
+#banner b{position:relative;padding:0 64px;font:400 46px/1 var(--display);letter-spacing:.06em;text-transform:uppercase;color:var(--bone);text-shadow:0 3px 0 #000,0 0 26px #dd6f2c66}
+#banner b::before,#banner b::after{content:'';position:absolute;top:50%;width:48px;height:6px;margin-top:-3px;background:var(--hazard)}
+#banner b::before{left:0}#banner b::after{right:0}
+#banner span{font:700 13px/1 var(--ui);letter-spacing:.3em;text-transform:uppercase;color:var(--ember-hi);text-shadow:0 2px 0 #000}
+#banner span:empty{display:none}
+#banner.show{animation:banner-in 2s ease-out forwards}
+@keyframes banner-in{0%{opacity:0;transform:translate(-50%,-50%) scale(1.35)}9%{opacity:1;transform:translate(-50%,-50%) scale(.97)}14%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(1)}}
+@media(orientation:portrait){#banner{top:calc(var(--vy) + 25%)}#banner b{font-size:32px;padding:0 44px}#banner b::before,#banner b::after{width:32px;height:5px}#banner span{font-size:11px}}
+@media(prefers-reduced-motion:reduce){#banner.show{animation:banner-fade 2s linear forwards}@keyframes banner-fade{0%,85%{opacity:1}100%{opacity:0}}}
+.camp #banner{display:none!important}
