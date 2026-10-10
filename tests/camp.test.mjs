@@ -23,11 +23,11 @@ test('camp walking slides along solids and never enters a prop, the water or a r
 test('camp art paints every prop, the light map, the flame and the badges',{skip:!createCanvas},()=>{
  const g=createCanvas(CAMP.w*2,CAMP.h*2);groundArt(g.getContext('2d'));const d=g.getContext('2d').getImageData(0,0,g.width,g.height).data;let opaque=0;for(let i=3;i<d.length;i+=4000)opaque+=d[i]===255;assert.equal(opaque,Math.ceil(d.length/4000));
  for(const o of PROPS){const c=createCanvas((o.w+PROP_PAD*2)*2,(o.h+o.z+PROP_PAD*2)*2);propArt(c.getContext('2d'),o);const px=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let n=0;for(let i=3;i<px.length;i+=4)n+=px[i]>0;assert.ok(n>200,`${o.id} paints pixels`);}
- const l=createCanvas(Math.ceil(CAMP.w/LIGHT_SCALE),Math.ceil(CAMP.h/LIGHT_SCALE));lightArt(l.getContext('2d'));const fire=l.getContext('2d').getImageData(560/LIGHT_SCALE,470/LIGHT_SCALE,1,1).data,dark=l.getContext('2d').getImageData(460/LIGHT_SCALE,760/LIGHT_SCALE,1,1).data;
+ const l=createCanvas(Math.ceil(CAMP.w/LIGHT_SCALE),Math.ceil(CAMP.h/LIGHT_SCALE));lightArt(l.getContext('2d'));const fire=l.getContext('2d').getImageData(800/LIGHT_SCALE,640/LIGHT_SCALE,1,1).data,dark=l.getContext('2d').getImageData(1250/LIGHT_SCALE,560/LIGHT_SCALE,1,1).data;
  assert.ok(fire[0]>dark[0]+40&&fire[0]>fire[2],'fire light is brighter and warm');
  for(const [draw,w,h] of [[flameArt,FLAME.w*FLAME.frames,FLAME.h],[iconArt,ICON.w*ICONS.length,ICON.h]]){const c=createCanvas(w*2,h*2);draw(c.getContext('2d'));const px=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let n=0;for(let i=3;i<px.length;i+=4)n+=px[i]>0;assert.ok(n>500);}});
 test('the page offers the camp and its talk controls',()=>{const html=fs.readFileSync(new URL('../dist/index.html',import.meta.url),'utf8');
- for(const id of ['travel','act','prompt','talk','talkFace','talkName','talkRole','talkLine','talkNext','placeName'])assert.match(html,new RegExp(`id="${id}"`));assert.match(html,/0\.24\.0/);});
+ for(const id of ['travel','act','prompt','talk','talkFace','talkName','talkRole','talkLine','talkNext','placeName'])assert.match(html,new RegExp(`id="${id}"`));assert.match(html,/0\.25\.0/);});
 test('cave life keeps to the walls, the lanterns and the wet sand',async()=>{const {DRIPS,FUNGI,wallTop}=await import('../dist/camp/art.js'),{LAMP_GLASS,CRAB}=await import('../dist/camp/life.js');
  for(const d of DRIPS){assert.ok(d.top>wallTop(d.x)&&d.top<d.y,'drip falls down the wall');if(!d.into)assert.ok(d.y>wallBottom(d.x),'puddle at the wall foot');}
  assert.ok(DRIPS.some(d=>d.into),'one drip feeds the medic\'s water drum');assert.equal(LAMP_GLASS.length,PROPS.filter(o=>o.kind==='lantern'||o.glass).length+2);

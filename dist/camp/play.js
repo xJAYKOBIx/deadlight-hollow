@@ -2,9 +2,10 @@
 // The rules live in fishing.js; this file runs a session and paints the page around it.
 import {Fishing,FISH_BY_ID,BASKET_SIZE,sizeLabel,COOK,QUALITY,cookQuality,grilledBuff,readCamp,saveCamp,addToBasket,takeFromBasket,basketSummary} from './fishing.js';
 import {fishArt} from './art.js';
-import {OBJECTS} from './data.js';
+import {OBJECTS,PROPS} from './data.js';
 const PIER=OBJECTS.find(o=>o.id==='pier');
-export const PIER_END=1112,FIRE_SIDE={x:516,y:500};
+const pierProp=PROPS.find(o=>o.id==='pier'),fireProp=PROPS.find(o=>o.id==='fire');
+export const PIER_END=pierProp.x+pierProp.w,FIRE_SIDE={x:fireProp.x+fireProp.w/2-44,y:fireProp.y+50};
 const IDLE=['ready','landed','snapped','lost'];
 const AR={away:'→',up:'↑',down:'↓'},CO={away:'←',up:'↓',down:'↑'};
 const lower=c=>FISH_BY_ID[c.id||c.fish].name.toLowerCase();

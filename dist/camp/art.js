@@ -1,4 +1,6 @@
-import {CAMP,SHORE,AMBIENT,LIGHTS} from './data.js';
+import {CAMP,SHORE,AMBIENT,LIGHTS,PROPS,GARDEN} from './data.js';
+const prop=id=>PROPS.find(o=>o.id===id);
+const inGarden=(x,y)=>x>GARDEN.x&&x<GARDEN.x+GARDEN.w&&y>GARDEN.y&&y<GARDEN.y+GARDEN.h;
 // Camp art follows the character painter: world units, edges snapped to a half-unit grid, drawn on 2x canvases.
 // Readability rules: people have the darkest outlines and strongest color; scenery is muted and low contrast;
 // solid props get a softer edge; things you own or can use carry ember orange; markers sit above the lighting.
@@ -26,21 +28,24 @@ const bayer=(x,y)=>BAYER[(y&3)*4+(x&3)];
 export const wallBottom=x=>210+6*Math.sin(x*.031)+4*Math.sin(x*.083+1);
 export const wallTop=x=>72+12*Math.sin(x*.021)+6*Math.sin(x*.07);
 export const westEdge=y=>86+7*Math.sin(y*.045)+3*Math.sin(y*.13);
-export const southEdge=x=>806+8*Math.sin(x*.04)+4*Math.sin(x*.11);
+export const southEdge=x=>CAMP.h-74+8*Math.sin(x*.04)+4*Math.sin(x*.11);
 export function shoreX(y){if(y<=SHORE[0][1])return SHORE[0][0];for(let i=1;i<SHORE.length;i++){const [x0,y0]=SHORE[i-1],[x1,y1]=SHORE[i];if(y<=y1){const t=(y-y0)/(y1-y0),s=t*t*(3-2*t);return x0+(x1-x0)*(t*.5+s*.5)+3*Math.sin(y*.09);}}return SHORE.at(-1)[0];}
-export const inMouth=(x,y)=>((x-1160)/300)**2+((y-40)/200)**2<1;
-const inMouthRim=(x,y)=>((x-1160)/306)**2+((y-40)/204)**2<1;
+// The cave mouth opens to the night sky in the north-east corner.
+const MOUTH_X=CAMP.w-160,MOON_X=MOUTH_X-62;
+export const inMouth=(x,y)=>((x-MOUTH_X)/300)**2+((y-40)/200)**2<1;
+const inMouthRim=(x,y)=>((x-MOUTH_X)/306)**2+((y-40)/204)**2<1;
 const HORIZON=118;
 // Worn paths from the fire to every station help players read where to go.
-const PATHS=[[[560,500],[560,330]],[[540,480],[300,420],[170,270]],[[590,480],[780,410]],[[590,500],[740,620]],[[530,510],[320,640],[290,700]],[[590,490],[900,486]],[[300,420],[200,450]]];
+const PATHS=[[[800,660],[810,330]],[[780,630],[520,520],[386,262]],[[520,520],[170,270]],[[830,630],[1150,420]],[[830,670],[1000,800]],[[840,650],[1400,486]],[[770,650],[330,620]],[[330,620],[230,560]],[[770,680],[560,840],[300,1040]],[[560,840],[385,1090],[385,1240],[860,1236]],[[640,1236],[640,1150]],[[1000,800],[1090,900]]];
 function pathDist(x,y){let best=1e9;for(const line of PATHS)for(let i=1;i<line.length;i++){const [ax,ay]=line[i-1],[bx,by]=line[i],dx=bx-ax,dy=by-ay,t=Math.max(0,Math.min(1,((x-ax)*dx+(y-ay)*dy)/(dx*dx+dy*dy)));best=Math.min(best,Math.hypot(x-ax-dx*t,y-ay-dy*t));}return best+5*Math.sin(x*.06+y*.04)+3*Math.sin(y*.11);}
 const rgb=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
 const SAND=['#5f5444','#6c604d','#766a55','#80735d','#8b7e66'].map(rgb),PATH=['#7d715b','#857862','#8c806a'].map(rgb),WET=['#4c483f','#545046','#5c574b'].map(rgb),FOAM=rgb('#9fb0ab');
-const MOSS_HEX=['#34422c','#435437','#566a40'],MOSS=MOSS_HEX.map(rgb);
-const ROOTS=[[204,26],[330,40],[452,18],[700,34],[776,22],[870,30]];
+const MOSS_HEX=['#34422c','#435437','#566a40'],MOSS=MOSS_HEX.map(rgb),EARTH=['#4a3d30','#524436','#5a4b3b','#64543f'].map(rgb),STRAW=rgb('#9a8a5c');
+const ROOTS=[[204,26],[520,40],[652,18],[900,34],[1060,22],[1230,30],[1370,26]];
 // Where water drips from the ceiling (the scene animates the drops) and where the glowing fungus grows.
-export const DRIPS=[...[292,488,624].map(x=>({x,top:wallTop(x)+8,y:wallBottom(x)+7})),{x:917,top:wallTop(917)+8,y:224,into:true}];
-export const FUNGI=[[300,wallBottom(300)-1],[617,wallBottom(617)-1],[912,wallBottom(912)],[80,326],[84,700],[134,486]];
+const DRUM_X=prop('drum').x+13;
+export const DRIPS=[...[504,872,1094].map(x=>({x,top:wallTop(x)+8,y:wallBottom(x)+7})),{x:DRUM_X,top:wallTop(DRUM_X)+8,y:224,into:true}];
+export const FUNGI=[[520,wallBottom(520)-1],[1062,wallBottom(1062)-1],[DRUM_X-5,wallBottom(DRUM_X-5)],[80,326],[84,1000],[134,792],[88,1330]];
 // Jittered cells for the boulder field: distance to the nearest two centers.
 function boulder(x,y){const S=17,cx=Math.floor(x/S),cy=Math.floor(y/S);let d1=1e9,d2=1e9,best=null;
  for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){const gx=cx+i,gy=cy+j,px=(gx+.2+hash(gx,gy*3+1)*.6)*S,py=(gy+.2+hash(gx*5+2,gy)*.6)*S,d=Math.hypot((x-px)*1.1,y-py);if(d<d1){d2=d1;d1=d;best=[px,py,gx,gy];}else if(d<d2)d2=d;}
@@ -75,6 +80,8 @@ function groundColor(x,y){
  if(x>sx){const d=x-sx;if(d<2.5)return FOAM;const t=d/110+n*.18+dith*.12;if(y>HORIZON&&y<HORIZON+2&&mouth)return SEA[0];if(g<.01&&d>8)return rgb('#3a6573');return SEA[Math.min(4,Math.floor(t*4))];}
  const ds=sx-x;if(ds<24){const t=ds/24+n*.25;if(ds<3)return WET[0];return t<.55?WET[0]:t<.85?WET[1]:WET[2];}
  if(x-westEdge(y)<6||y-wb<6||se-y<5)return SAND[0];
+ // Inside the garden fence the sand gives way to packed, darker earth with bits of straw.
+ if(inGarden(x,y)){const v=n*.6+g*.4;if(g>.985)return STRAW;return EARTH[v>.78?3:v>.5?2:v>.25?1:0];}
  const pd=pathDist(x,y);if(pd<7+n*7){const v=g*.6+n*.4;return v>.8?PATH[1]:v>.3?PATH[0]:SAND[2];}
  const v=n*.7+g*.3;return SAND[v>.82?4:v>.62?3:v>.4?2:v>.2?1:0];}
 // The whole floor in one canvas: sand, rock walls, the inlet and a glimpse of night sky through the cave mouth.
@@ -84,65 +91,66 @@ export function groundArt(c){
   for(let k=0;k<4;k++){const i=((y*2+(k>>1))*w*2+x*2+(k&1))*4;d[i]=col[0];d[i+1]=col[1];d[i+2]=col[2];d[i+3]=255;}}
  c.putImageData(img,0,0);c.save();c.scale(2,2);const g=painter(c),{r,e,p,l}=g;
  // Moon over the sea, its broken reflection on the water.
- e(1098,54,11,11,'#c9cbbd');e(1096,52,9,9,'#dcdccc');r(1100,50,3,2,'#c2c3b4');r(1093,57,2,2,'#c7c8b9');
- for(let i=0;i<14;i++){const y=HORIZON+6+i*6,wd=24-i*1.2+hash(i,3)*8;if(inMouth(1098,y)||y<200)r(1098-wd/2+hash(i,9)*6,y,wd,1,i<5?'#8b98a6':'#5d7484');}
+ e(MOON_X,54,11,11,'#c9cbbd');e(MOON_X-2,52,9,9,'#dcdccc');r(MOON_X+2,50,3,2,'#c2c3b4');r(MOON_X-5,57,2,2,'#c7c8b9');
+ for(let i=0;i<14;i++){const y=HORIZON+6+i*6,wd=24-i*1.2+hash(i,3)*8;if(inMouth(MOON_X,y)||y<200)r(MOON_X-wd/2+hash(i,9)*6,y,wd,1,i<5?'#8b98a6':'#5d7484');}
  // Stalactites hang from the ceiling edge; damp streaks run down the wall.
  for(let x=10;x<CAMP.w-20;x+=14+Math.floor(hash(x,1)*22)){if(inMouth(x,wallTop(x)+6))continue;const y=wallTop(x),len=10+hash(x,2)*26,wd=4+hash(x,3)*6;p([[x-wd/2,y-2],[x+wd/2,y-2],[x+1,y+len]],R[0]);p([[x-wd/2+1,y-1],[x,y-1],[x+.5,y+len-3]],R[1]);}
- for(let x=20;x<900;x+=30+Math.floor(hash(x,4)*40)){const y=wallTop(x)+12+hash(x,5)*20,len=wallBottom(x)-y-12;r(x,y,1,len,'#2f3b3d');r(x+1,y+len*.3,.5,len*.5,'#3d4a4a');if(hash(x,6)>.5)r(x,y+len-2,1,1,'#8fa6a6');}
- for(let i=0;i<60;i++){const x=hash(i,11)*900,y=wallTop(x)+20+hash(i,12)*(wallBottom(x)-wallTop(x)-34);r(x,y,2+hash(i,13)*6,.5,R[1]);r(x+1,y+.5,1+hash(i,13)*4,.5,R[4]);}
+ const EAST=SHORE[1][0]-60;
+ for(let x=20;x<EAST;x+=30+Math.floor(hash(x,4)*40)){const y=wallTop(x)+12+hash(x,5)*20,len=wallBottom(x)-y-12;r(x,y,1,len,'#2f3b3d');r(x+1,y+len*.3,.5,len*.5,'#3d4a4a');if(hash(x,6)>.5)r(x,y+len-2,1,1,'#8fa6a6');}
+ for(let i=0;i<100;i++){const x=hash(i,11)*EAST,y=wallTop(x)+20+hash(i,12)*(wallBottom(x)-wallTop(x)-34);r(x,y,2+hash(i,13)*6,.5,R[1]);r(x+1,y+.5,1+hash(i,13)*4,.5,R[4]);}
  // Roots push through the ceiling and hang down the face.
  for(const [x,len] of ROOTS){let px=x,py=wallTop(x)-6;for(let k=0;k<len;k+=3){const nx=px+Math.sin(k*.4+x)*1.2,ny=py+3;l(px,py,nx,ny,k<len*.5?2:1.5,'#241d18');l(px,py,nx,ny,k<len*.5?1:.5,'#5a4836');px=nx;py=ny;
   if(hash(x,k)>.8){const s=hash(k,x)>.5?1:-1;l(px,py,px+s*4,py+5,1,'#4a3a2c');}}}
  // Drips: a wet streak down the wall into a little puddle at its foot.
  for(const d of DRIPS){r(d.x-.5,d.top,1.5,(d.into?wallBottom(d.x):d.y)-d.top-6,'#2b3639');if(d.into)continue;r(d.x+1,d.top+8,.5,(d.y-d.top)*.6,'#3d4a4a');e(d.x,d.y,9,3,'#2b3233');e(d.x,d.y-.5,7.5,2.2,'#3b4a52');r(d.x-4,d.y-1.5,4,.5,'#6f8790');r(d.x+2,d.y,2,.5,'#55707a');}
  // Moss at the foot of the walls, thicker where water runs.
- for(let i=0;i<46;i++){const x=40+hash(i,141)*880,y=wallBottom(x)-2-hash(i,142)*5,s=2+hash(i,143)*4;if(inMouth(x,y))continue;e(x,y,s+1.5,s*.55+.5,MOSS_HEX[0]);e(x-.5,y-.5,s,s*.4,MOSS_HEX[1]);r(x-s*.6,y-s*.4,s*.7,.5,MOSS_HEX[2]);}
+ for(let i=0;i<70;i++){const x=40+hash(i,141)*(EAST-20),y=wallBottom(x)-2-hash(i,142)*5,s=2+hash(i,143)*4;if(inMouth(x,y))continue;e(x,y,s+1.5,s*.55+.5,MOSS_HEX[0]);e(x-.5,y-.5,s,s*.4,MOSS_HEX[1]);r(x-s*.6,y-s*.4,s*.7,.5,MOSS_HEX[2]);}
  for(const d of DRIPS.filter(d=>!d.into))for(let k=0;k<4;k++){const x=d.x-8+k*5+hash(k,d.x)*3,y=d.y-5-hash(d.x,k)*3;e(x,y,3,1.6,MOSS_HEX[1]);r(x-1.5,y-1,2.5,.5,MOSS_HEX[2]);}
- for(let i=0;i<26;i++){const y=240+hash(i,151)*540,x=westEdge(y)-3-hash(i,152)*14,s=2+hash(i,153)*3;e(x,y,s+1,s*.6+.5,MOSS_HEX[0]);e(x,y-.5,s,s*.45,MOSS_HEX[1]);}
+ for(let i=0;i<46;i++){const y=240+hash(i,151)*(CAMP.h-340),x=westEdge(y)-3-hash(i,152)*14,s=2+hash(i,153)*3;e(x,y,s+1,s*.6+.5,MOSS_HEX[0]);e(x,y-.5,s,s*.45,MOSS_HEX[1]);}
  // Pale glowing fungus in a few damp corners. Their glow is drawn above the lighting.
  for(const [fx,fy] of FUNGI)for(let k=0;k<5;k++){const x=fx+(hash(k,fx)-.5)*9,y=fy+(hash(fy,k)-.5)*4,s=.8+hash(k,fy)*1.3;r(x-.25,y,.5,s+1,'#8a8f6e');e(x,y,s+.5,s*.6+.3,'#3d4232');e(x,y-.3,s,s*.5,'#c9d68a');r(x-s*.5,y-.6,s*.6,.5,'#eef5c0');}
  // Tunnel behind the barred gate, cut into the back wall.
- const gx=164,gy=wallBottom(gx);p([[gx-50,gy],[gx-46,gy-60],[gx-34,gy-82],[gx,gy-92],[gx+34,gy-82],[gx+46,gy-60],[gx+50,gy]],R[0]);p([[gx-44,gy],[gx-40,gy-58],[gx-30,gy-77],[gx,gy-86],[gx+30,gy-77],[gx+40,gy-58],[gx+44,gy]],'#0b0c10');
+ const gx=prop('gate').x+52,gy=wallBottom(gx);p([[gx-50,gy],[gx-46,gy-60],[gx-34,gy-82],[gx,gy-92],[gx+34,gy-82],[gx+46,gy-60],[gx+50,gy]],R[0]);p([[gx-44,gy],[gx-40,gy-58],[gx-30,gy-77],[gx,gy-86],[gx+30,gy-77],[gx+40,gy-58],[gx+44,gy]],'#0b0c10');
  r(gx-50,gy-1,100,2,R[0]);
  // Rubble along the foot of the walls.
- for(let i=0;i<70;i++){const x=40+hash(i,21)*900,y=wallBottom(x)+2+hash(i,22)*8,s=1.5+hash(i,23)*3;e(x,y,s+.5,s*.7+.5,R[0]);e(x,y-.5,s,s*.6,R[2]);r(x-s*.5,y-s*.5,s*.6,.5,R[3]);}
- for(let i=0;i<40;i++){const y=230+hash(i,31)*560,x=westEdge(y)+3+hash(i,32)*6,s=1.5+hash(i,33)*2.5;e(x,y,s+.5,s*.7+.5,R[0]);e(x,y-.5,s,s*.6,R[2]);}
+ for(let i=0;i<110;i++){const x=40+hash(i,21)*EAST,y=wallBottom(x)+2+hash(i,22)*8,s=1.5+hash(i,23)*3;e(x,y,s+.5,s*.7+.5,R[0]);e(x,y-.5,s,s*.6,R[2]);r(x-s*.5,y-s*.5,s*.6,.5,R[3]);}
+ for(let i=0;i<70;i++){const y=230+hash(i,31)*(CAMP.h-320),x=westEdge(y)+3+hash(i,32)*6,s=1.5+hash(i,33)*2.5;e(x,y,s+.5,s*.7+.5,R[0]);e(x,y-.5,s,s*.6,R[2]);}
  // Pebbles, shells and kelp on the sand.
- for(let i=0;i<520;i++){const x=110+hash(i,41)*880,y=236+hash(i,42)*540,sx=shoreX(y);if(x>sx-2)continue;const t=hash(i,43);
+ for(let i=0;i<1300;i++){const x=110+hash(i,41)*(EAST+60),y=236+hash(i,42)*(CAMP.h-340),sx=shoreX(y);if(x>sx-2||inGarden(x,y))continue;const t=hash(i,43);
   if(t<.62){const s=.8+hash(i,44)*1.4;r(x,y+s*.5,s*2,.5,'#4e4538');r(x,y,s*2,s,'#968970');r(x+.5,y,s,.5,'#a89b80');}
   else if(t<.8){r(x,y,1.5,1,'#c9c0aa');r(x+.5,y,.5,.5,'#e1d9c4');}
   else if(sx-x<40){l(x,y,x+4+t*6,y+2-t*4,1,'#34412f');r(x+2,y,1,1,'#45553c');}}
  // Kelp along the tideline.
- for(let y=240;y<800;y+=5){const x=shoreX(y)-4-hash(y,51)*6;if(hash(y,52)<.4)l(x,y,x-3-hash(y,53)*5,y+2,1,'#2f3a2c');}
+ for(let y=240;y<CAMP.h-80;y+=5){const x=shoreX(y)-4-hash(y,51)*6;if(hash(y,52)<.4)l(x,y,x-3-hash(y,53)*5,y+2,1,'#2f3a2c');}
  // Shade under the sleeping shelter.
- e(219,612,90,13,'#14120f44');e(219,610,80,9,'#14120f33');
+ {const sh=prop('shelter'),cx=sh.x+95,cy=sh.y+16;e(cx,cy,90,13,'#14120f44');e(cx,cy-2,80,9,'#14120f33');}
  // A scorched ring around the fire pit, ash scattered by the wind.
- e(560,474,44,20,'#4c443a55');e(560,474,34,15,'#3c362f66');for(let i=0;i<40;i++){const a=hash(i,61)*Math.PI*2,d=24+hash(i,62)*26;r(560+Math.cos(a)*d,474+Math.sin(a)*d*.45,1,.5,'#3a3530');}
- e(762,612,20,9,'#3c362f55');
+ {const f=prop('fire'),fx=f.x+28,fy=f.y+16;e(fx,fy,44,20,'#4c443a55');e(fx,fy,34,15,'#3c362f66');for(let i=0;i<40;i++){const a=hash(i,61)*Math.PI*2,d=24+hash(i,62)*26;r(fx+Math.cos(a)*d,fy+Math.sin(a)*d*.45,1,.5,'#3a3530');}
+  const pt=prop('pot');e(pt.x+22,pt.y+22,20,9,'#3c362f55');}
  // Footprints between the stations.
- for(let i=0;i<46;i++){const line=PATHS[i%PATHS.length],t=hash(i,71),a=line[0],b=line.at(-1),x=a[0]+(b[0]-a[0])*t+(hash(i,72)-.5)*10,y=a[1]+(b[1]-a[1])*t+(hash(i,73)-.5)*8;r(x,y,2,1,'#6a5e4b');r(x+3,y+2,2,1,'#6a5e4b');}
+ for(let i=0;i<90;i++){const line=PATHS[i%PATHS.length],t=hash(i,71),a=line[0],b=line.at(-1),x=a[0]+(b[0]-a[0])*t+(hash(i,72)-.5)*10,y=a[1]+(b[1]-a[1])*t+(hash(i,73)-.5)*8;r(x,y,2,1,'#6a5e4b');r(x+3,y+2,2,1,'#6a5e4b');}
  // The rowboat was dragged up from the water: a keel groove runs back to the tideline.
- for(let t=0;t<=1;t+=.01){const x=944+t*66,y=540+t*42+Math.sin(t*3)*3;r(x-1.5,y,3,1,'#4e483d');r(x-2.5,y-1,1,1,'#857862');r(x+1.5,y+1,1,1,'#857862');if(hash(Math.floor(t*100),7)>.8)r(x+4,y+3,2,1,'#6a5e4b');}
+ const bt=prop('boat');for(let t=0;t<=1;t+=.01){const x=bt.x+30+t*66,y=bt.y+110+t*42+Math.sin(t*3)*3;r(x-1.5,y,3,1,'#4e483d');r(x-2.5,y-1,1,1,'#857862');r(x+1.5,y+1,1,1,'#857862');if(hash(Math.floor(t*100),7)>.8)r(x+4,y+3,2,1,'#6a5e4b');}
  // Crab holes along the wet sand, each with a little spray of dug-out grains.
- for(let i=0;i<9;i++){const y=470+hash(i,161)*280,x=shoreX(y)-8-hash(i,162)*22;e(x,y,1.6,1,'#2c2a25');for(let k=0;k<4;k++)r(x-3+hash(k,i)*6,y-2+hash(i,k)*4,.5,.5,'#8b7e66');}
+ for(let i=0;i<16;i++){const y=520+hash(i,161)*(CAMP.h-760),x=shoreX(y)-8-hash(i,162)*22;e(x,y,1.6,1,'#2c2a25');for(let k=0;k<4;k++)r(x-3+hash(k,i)*6,y-2+hash(i,k)*4,.5,.5,'#8b7e66');}
  // A rusted anchor, half sunk in the sand, its chain trailing off.
- {const ax=640,ay=690;l(ax,ay-14,ax,ay+4,2.5,EDGE);l(ax,ay-14,ax,ay+4,1.4,RUST);e(ax,ay-15,2.5,2,EDGE);e(ax,ay-15,1.4,1,'#3b3530');l(ax-6,ay-10,ax+6,ay-10,2,EDGE);l(ax-6,ay-10,ax+6,ay-10,1,RUST);
+ {const ax=1160,ay=1010;l(ax,ay-14,ax,ay+4,2.5,EDGE);l(ax,ay-14,ax,ay+4,1.4,RUST);e(ax,ay-15,2.5,2,EDGE);e(ax,ay-15,1.4,1,'#3b3530');l(ax-6,ay-10,ax+6,ay-10,2,EDGE);l(ax-6,ay-10,ax+6,ay-10,1,RUST);
   p([[ax-9,ay+1],[ax,ay+6],[ax+9,ay+1],[ax+8,ay+3.5],[ax,ay+8],[ax-8,ay+3.5]],EDGE);p([[ax-8,ay+2],[ax,ay+6],[ax+8,ay+2],[ax,ay+7]],'#8a5236');e(ax,ay+7,12,2,'#5f544455');
   for(let k=0;k<9;k++){const x=ax+3+k*3.2,y=ay-15-Math.sin(k*.5)*3+k*.4;e(x,y,1.4,1,EDGE);r(x-.5,y-.5,1,.5,'#8a5236');}}
  // A starfish and a few more shells near the water.
- {const sx=868,sy=716;for(let k=0;k<5;k++){const a=k/5*Math.PI*2-Math.PI/2;l(sx,sy,sx+Math.cos(a)*4,sy+Math.sin(a)*3,1.6,'#8a4a35');}e(sx,sy,1.4,1,'#b0654a');}
+ {const sx=1250,sy=1170;for(let k=0;k<5;k++){const a=k/5*Math.PI*2-Math.PI/2;l(sx,sy,sx+Math.cos(a)*4,sy+Math.sin(a)*3,1.6,'#8a4a35');}e(sx,sy,1.4,1,'#b0654a');}
  // Ripples and glints on the water.
- for(let i=0;i<160;i++){const y=230+hash(i,81)*650,sx=shoreX(y),x=sx+12+hash(i,82)*340;if(x>CAMP.w)continue;r(x,y,3+hash(i,83)*8,.5,hash(i,84)>.7?'#4a7584':'#2f5a69');}
+ for(let i=0;i<300;i++){const y=230+hash(i,81)*(CAMP.h-230),sx=shoreX(y),x=sx+12+hash(i,82)*340;if(x>CAMP.w)continue;r(x,y,3+hash(i,83)*8,.5,hash(i,84)>.7?'#4a7584':'#2f5a69');}
  c.restore();
 }
 // The south edge of the cave, drawn in front of everyone.
-export const FRONT_Y=740;
+export const FRONT_Y=CAMP.h-140;
 export function frontArt(c){c.save();c.scale(2,2);c.translate(0,-FRONT_Y);const {e,p,r}=painter(c);
- const rocks=[];for(let x=-30;x<CAMP.w+30;x+=26+Math.floor(hash(x,91)*46)){rocks.push([x,812+hash(x,92)*30,14+hash(x,93)*34,10+hash(x,94)*16]);if(hash(x,95)>.55)rocks.push([x+20,840+hash(x,96)*16,8+hash(x,97)*12,6+hash(x,98)*8]);}
+ const S=CAMP.h-74,rocks=[];for(let x=-30;x<CAMP.w+30;x+=26+Math.floor(hash(x,91)*46)){rocks.push([x,S+6+hash(x,92)*30,14+hash(x,93)*34,10+hash(x,94)*16]);if(hash(x,95)>.55)rocks.push([x+20,S+34+hash(x,96)*16,8+hash(x,97)*12,6+hash(x,98)*8]);}
  rocks.sort((a,b)=>a[1]-b[1]);for(const [x,cy,rx,ry] of rocks){const wet=x>shoreX(cy)-10;
   e(x,cy+ry*.5,rx+2,ry,EDGE);e(x,cy,rx,ry,R[1]);e(x-rx*.15,cy-ry*.3,rx*.75,ry*.6,R[2]);e(x-rx*.3,cy-ry*.45,rx*.35,ry*.28,R[3]);r(x-rx*.4,cy-ry*.6,rx*.3,.5,R[4]);
   if(wet){e(x,cy+ry*.7,rx+3,2,'#9fb0ab66');}}
- for(let x=0;x<CAMP.w;x+=6)r(x,872,6,8,R[0]);c.restore();}
+ for(let x=0;x<CAMP.w;x+=6)r(x,CAMP.h-8,6,8,R[0]);c.restore();}
 // Props. Each draws with the footprint's top left corner at (0, 0); height rises into negative y.
 function box(g,w,h,z,top,front,edge=EDGE){const {r}=g;r(-.5,-z-.5,w+1,h+z+1,edge);r(.5,-z+.5,w-1,h-1,top);r(.5,h-z+.5,w-1,z-1,front);r(.5,h-z,w-1,.5,'#ffffff22');}
 const ART={
@@ -316,44 +324,99 @@ const ART={
   for(const [x,y] of [[101,-44],[106,-37],[103,-40],[108,-46],[99,-33]])r(x,y,1,1,'#16171b');},
  // The garden: a fenced plot of tilled rows under its own lamp. Potatoes, staked beans, squash and seedlings, a scarecrow in a hard hat,
  // and the rain barrel, watering can and tools on the west side. The fence's north and sides are drawn first, the crops, then the south rail.
- farm(g,o){const {e,r,p,l}=g,LEAF=['#2c3b22','#3f5a2e','#567a3a','#6f9446','#8bb05a'],SOIL=['#2e2219','#3d2c20','#4d3a2a','#5d4834','#6e5840'];
-  const X0=24,X1=174,Y0=4,Y1=82;
-  // Tilled bed with its rows.
-  r(X0,Y0,X1-X0,Y1-Y0,SOIL[1]);for(let y=Y0;y<Y1;y+=2)for(let x=X0;x<X1;x+=3)if(hash(x,y)>.82)r(x,y,1,.5,SOIL[hash(y,x)>.5?0:2]);
-  const rows=[16,34,52,70];for(const y of rows){r(X0+4,y-3,X1-X0-8,7,EDGE);r(X0+4,y-2.5,X1-X0-8,6,SOIL[3]);r(X0+4,y-2.5,X1-X0-8,1,SOIL[4]);r(X0+4,y+3,X1-X0-8,.5,SOIL[0]);}
-  // Fence: north rail (with the gap for the gate) and the two sides.
-  const post=(x,y,h=15)=>{r(x-1.5,y-h,3.5,h+1.5,EDGE);r(x-1,y-h+.5,2.5,h,W[2]);r(x-1,y-h+.5,1,h,W[3]);r(x-1.5,y-h-.5,3.5,1,W[1]);};
-  const rail=(x0,x1,y)=>{r(x0,y-11,x1-x0,2.5,EDGE);r(x0,y-10.5,x1-x0,1.5,W[3]);r(x0,y-5,x1-x0,2.5,EDGE);r(x0,y-4.5,x1-x0,1.5,W[2]);};
-  rail(X0,88,Y0);rail(108,X1,Y0);for(const x of [X0,46,68,88,108,130,152,X1])post(x,Y0);
-  // The little gate, swung open into the plot.
-  l(88,Y0-2,96,Y0+10,2.5,EDGE);l(88,Y0-2,96,Y0+10,1.5,W[3]);l(88,Y0-8,96,Y0+4,2.5,EDGE);l(88,Y0-8,96,Y0+4,1.5,W[3]);
-  for(const x of [X0,X1])for(let y=Y0+20;y<Y1;y+=20)post(x,y,13);for(const x of [X0,X1])r(x-1,Y0,2,Y1-Y0,W[1]),r(x-.5,Y0,1,Y1-Y0,W[2]);
-  // Row 2, beans climbing stakes tied with twine, along the back where they shade nothing.
-  for(let x=X0+12;x<X1-6;x+=14){const y=rows[0];l(x-3,y+1,x,y-22,1.5,EDGE);l(x+3,y+1,x,y-22,1.5,EDGE);l(x-3,y+1,x,y-22,.6,W[3]);l(x+3,y+1,x,y-22,.6,W[3]);r(x-1,y-21,2,1,'#c9c0aa');
-   for(let k=0;k<5;k++){const ly=y-2-k*4,lx=x+(k%2?2.5:-2.5);e(lx,ly,2.6,1.8,EDGE);e(lx,ly-.3,2,1.3,LEAF[k%2?2:3]);}r(x+1,y-9,.5,3,'#9ab05a');r(x-1.5,y-14,.5,3,'#9ab05a');}
-  // Row 1, potatoes: low leafy clumps with a few pale flowers.
-  for(let x=X0+10;x<X1-26;x+=12){const y=rows[1];e(x,y-1,6,4.5,EDGE);e(x,y-1.5,5,3.8,LEAF[1]);e(x-1.5,y-2.5,3,2.2,LEAF[2]);e(x+1.5,y-3,2,1.5,LEAF[3]);if(hash(x,7)>.5)r(x,y-5,1,1,'#e8e0d1'),r(x+.5,y-4.5,.5,.5,'#d9b23a');}
-  // The scarecrow stands at the east end of the potato row.
-  {const x=156,y=rows[1]+4;r(x-1,y-40,2.5,42,EDGE);r(x-.5,y-39,1.5,40,W[2]);r(x-13,y-31,26,2.5,EDGE);r(x-12.5,y-30.5,25,1.5,W[3]);
-   p([[x-9,y-30],[x+9,y-30],[x+7,y-12],[x-7,y-12]],EDGE);p([[x-8,y-29.5],[x+8,y-29.5],[x+6.3,y-12.5],[x-6.3,y-12.5]],'#4a4238');r(x-.5,y-29,1,16,'#3a342c');r(x-8,y-29.5,3,2,'#5a5246');r(x+5,y-29.5,3,2,'#5a5246');
-   for(const s of [-1,1])l(x+s*12,y-30,x+s*15,y-25,1.5,'#b9a77d');r(x-8,y-30,16,2,'#7a3a2a');
-   e(x,y-35,5,5,EDGE);e(x,y-35,4.2,4.2,'#b9a77d');r(x-2.5,y-36.5,1.5,.5,EDGE);r(x-2,y-37,.5,1.5,EDGE);r(x+1,y-36.5,1.5,.5,EDGE);r(x+1.5,y-37,.5,1.5,EDGE);r(x-1.5,y-33,3,.5,'#6b5d40');
-   p([[x-6.5,y-38],[x-4.5,y-43],[x+4.5,y-43],[x+6.5,y-38]],EDGE);p([[x-5.5,y-38.5],[x-4,y-42.3],[x+4,y-42.3],[x+5.5,y-38.5]],'#c9a23a');r(x-7.5,y-38.5,15,1.5,EDGE);r(x-7,y-38,14,.5,'#e0bc4a');
-   // A crow, unimpressed, on the left arm.
-   e(x-11,y-34,2.5,2,'#111319');r(x-13.5,y-35,1.5,.5,'#5a5040');r(x-10,y-35,.5,.5,'#e8e0d1');r(x-11,y-32.5,.5,1.5,'#111319');}
-  // Row 3, squash under broad leaves.
-  for(let x=X0+12;x<X1-8;x+=18){const y=rows[2];for(const [dx,dy,s] of [[-4,-2,4.2],[4,-1.5,4],[0,-4,3.6]]){e(x+dx,y+dy,s+1,s*.75+1,EDGE);e(x+dx,y+dy-.4,s,s*.75,LEAF[2]);r(x+dx-s*.5,y+dy-.5,s,.5,LEAF[1]);}
-   if(hash(x,9)>.35){const sx=x+(hash(x,10)>.5?5:-5);e(sx,y+2.5,4,3,EDGE);e(sx,y+2,3.2,2.3,'#b8743a');e(sx-1,y+1.3,1.4,1,'#d0904c');r(sx-.25,y-1,.5,1.5,LEAF[0]);}}
-  // Row 4, seedlings, and the east end freshly turned and waiting.
-  for(let x=X0+10;x<X1-46;x+=8){const y=rows[3];r(x,y-3,.5,3,LEAF[3]);e(x-1.2,y-3.5,1.5,.8,LEAF[4]);e(x+1.6,y-4,1.5,.8,LEAF[3]);}
-  for(let x=X1-42;x<X1-8;x+=4)r(x,rows[3]-1,2.5,1,SOIL[0]);l(X1-38,rows[3]+5,X1-14,rows[3]-6,1.5,EDGE);l(X1-38,rows[3]+5,X1-14,rows[3]-6,.8,W[3]);r(X1-16,rows[3]-9,6,3,EDGE);r(X1-15.5,rows[3]-8.5,5,2,M[2]);
-  // The south rail, in front of everything.
-  rail(X0,X1,Y1);for(const x of [X0,46,68,90,112,134,156,X1])post(x,Y1);
-  // West side, outside the fence: rain barrel with a tap, the watering can, and a rake leaning on the fence.
-  e(11,62,11,3.5,SHADOW);r(1,30,20,30,EDGE);r(2,31,18,28,W[2]);e(11,31,9.5,3,EDGE);e(11,31,8.5,2.4,'#24414c');r(5,33,10,.5,'#6c8f99');for(const y of [38,52])r(1.5,y,19,2,M[1]);r(2,31,4,28,W[3]);r(17,31,3,28,W[1]);
-  r(19,48,4,2,EDGE);r(20,48.5,2.5,1,M[3]);r(21,50,.5,2,'#6c8f99');
-  e(9,77,7,2.5,SHADOW);r(4,68,10,9,EDGE);r(5,69,8,7,M[2]);r(5,69,8,1,M[3]);l(13,71,19,66,1.5,EDGE);l(13,71,19,66,.7,M[2]);r(18,64.5,3,2.5,EDGE);r(5.5,66,7,1.5,EDGE);
-  l(21,27,15,2,2,EDGE);l(21,27,15,2,1,W[3]);r(10,0,10,2.5,EDGE);r(10.5,.5,9,1.5,M[2]);for(let i=0;i<5;i++)r(10.5+i*2,2.5,1,2.5,EDGE),r(10.75+i*2,2.5,.5,2,M[3]);},
+ // Stan's forge: a brick hearth with a hood and chimney, live coals, bellows, an anvil on a stump and a quench bucket.
+ forge(g,o){const {e,r,p,l}=g,BR=['#3b2422','#5a3329','#74443a','#8c5a4a'];e(38,28,44,7,SHADOW);
+  // Hood and chimney rise from the back of the hearth.
+  p([[0,-22],[40,-22],[32,-42],[8,-42]],EDGE);p([[1.5,-22.5],[38.5,-22.5],[31,-41],[9,-41]],M[1]);p([[9,-41],[16,-41],[11,-23],[2,-23]],M[2]);r(1,-24,38,1.5,M[0]);
+  r(14.5,-64.5,11,24,EDGE);r(15,-64,10,23,M[1]);r(15,-64,3,23,M[2]);r(13,-67,14,3.5,EDGE);r(13.5,-66.5,13,2.5,M[2]);for(let y=-60;y<-42;y+=6)r(15,y,10,.5,M[0]);
+  // The hearth: coal bed on top, bricks down the front.
+  r(-.5,-22.5,41,53,EDGE);r(0,-22,40,24,BR[1]);r(0,-22,40,1,BR[3]);
+  e(20,-11,14,6.5,'#22150f');e(20,-11.5,11,4.8,EMBER);e(19,-12,7,3,EMBER_HI);for(let k=0;k<9;k++){const x=9+hash(k,301)*22,y=-14+hash(k,302)*6;r(x,y,1.5,1,k%3?'#3b2422':'#ffe4a0');}
+  r(0,2,40,28,BR[1]);for(let row=0;row<7;row++){const y=2.5+row*4,off=row%2?4:0;for(let x=-4+off;x<40;x+=8){const x0=Math.max(.5,x),x1=Math.min(39.5,x+7);if(x1>x0)r(x0,y,x1-x0,3.5,row%3===0?BR[3]:BR[2]);}}
+  r(12,10,16,11,EDGE);r(13,11,14,10,'#22150f');e(20,20,6,2,EMBER);r(14,18,12,.5,EMBER_HI);
+  // Bellows on the left, the anvil and bucket on the right.
+  p([[-12,6],[-1,2],[-1,14],[-12,12]],EDGE);p([[-11,6.5],[-1.5,3],[-1.5,13],[-11,11.5]],'#5b4030');r(-11,8,9,.5,'#3c2c25');r(-11,10,9,.5,'#3c2c25');l(-12,9,-15,9,1.5,W[3]);
+  e(62,29,11,3.5,SHADOW);r(53.5,11.5,17,17,EDGE);r(54,12,16,16,W[2]);r(54,12,4,16,W[3]);e(62,12,8,3,EDGE);e(62,11.5,7.5,2.5,W[3]);for(let k=0;k<3;k++)e(62,11.5,2+k*2,.8+k*.6,W[2]);
+  p([[49,1],[72,1],[78,2.5],[72,4.5],[67,5],[67,9],[57,9],[57,5],[52,4.5],[48,3]],EDGE);p([[50,1.5],[71.5,1.5],[76,2.6],[71.5,3.8],[66,4.2],[66,8.5],[58,8.5],[58,4.2],[51,3.8]],M[2]);r(50,1.5,21,.5,M[3]);
+  l(55,-1,64,1,1.2,W[3]);r(63,-1,3,2.5,M[3]);r(63,-1,3,.5,BONE);
+  r(42.5,18.5,10,12,EDGE);r(43,19,9,11,M[1]);r(43,19,2,11,M[2]);e(47.5,19.5,4.5,1.5,'#1b2a30');r(45,19,3,.5,'#4f6a74');l(46,18,52,6,.8,M[3]);l(48,18,53,7,.8,M[3]);},
+ // A camp table with stools; the mess table holds bowls and a pot, the other cards and mugs.
+ table(g,o){const {e,r,p,l}=g,w=o.w,mess=o.id==='mess';e(w/2,24,w/2+12,5,SHADOW);
+  const stool=x=>{e(x+5,26,6,2,SHADOW);r(x+.5,10.5,9,3,EDGE);r(x+1,11,8,2,W[3]);r(x+1.5,13.5,1.5,11,EDGE);r(x+7,13.5,1.5,11,EDGE);r(x+1.5,13.5,1,10.5,W[2]);r(x+7,13.5,1,10.5,W[2]);};stool(-13);stool(w+3);
+  r(-.5,-14.5,w+1,22,EDGE);r(0,-14,w,15,W[3]);for(let y=-10;y<1;y+=4)r(0,y,w,.5,W[2]);r(0,-14,w,.5,W[4]);r(0,1,w,5.5,W[2]);r(0,6,w,.5,W[1]);
+  for(const x of [2,w-6]){r(x-.5,6.5,4.5,18,EDGE);r(x,7,3.5,17,W[2]);r(x,7,1,17,W[3]);}
+  const mug=(x,y,col)=>{r(x-.5,y-.5,4,5,EDGE);r(x,y,3,4,col);r(x,y,3,1,'#2a211b');r(x+3,y+1,1.5,2,EDGE);};
+  if(mess){for(const x of [6,22,44]){e(x+4,-6,5,2.4,EDGE);e(x+4,-6.4,4.2,1.8,'#8a7a5a');e(x+4,-6.6,3,1.1,'#c9a24a');}r(30,-15,10,9,EDGE);r(31,-14,8,7,M[1]);r(31,-14,8,1.5,M[2]);l(32,-15,38,-15,1,M[3]);mug(52,-12,'#7a3a2a');l(12,-9,18,-3,.8,BONE);}
+  else{for(let k=0;k<5;k++){const x=10+k*5+hash(k,311)*3,y=-11+hash(k,312)*5;r(x-.5,y-.5,4,5.5,EDGE);r(x,y,3,4.5,k%2?'#e8e0d1':'#c9c0aa');r(x+1,y+1.5,1,1,k%2?'#8b3a33':'#191b21');}mug(40,-11,'#5f6f80');mug(48,-6,'#7a3a2a');r(54,-13,7,5,EDGE);r(54.5,-12.5,6,4,'#8a7a5a');r(55,-11,5,.5,'#5a4a38');}},
+ // Garden fence: rails between posts. Long sides run across the screen; short sides run down it in segments.
+ fence(g,o){const {e,r,l}=g,w=o.w,h=o.h,base=h-1;
+  const post=(x,y,ht=15,cap=false)=>{r(x-1.5,y-ht,3.5,ht+1.5,EDGE);r(x-1,y-ht+.5,2.5,ht,W[2]);r(x-1,y-ht+.5,1,ht,W[3]);r(x-1.5,y-ht-.5,3.5,1,W[1]);if(cap){r(x-2.5,y-ht-2,5.5,2,EDGE);r(x-2,y-ht-1.5,4.5,1,W[3]);}};
+  if(w>h){e(w/2,base+2,w/2,2.5,'#100e0c44');for(const [k,c] of [[11,W[3]],[5,W[2]]]){r(0,base-k,w,2.5,EDGE);r(0,base-k+.5,w,1.5,c);}
+   for(let x=0;x<=w;x+=24)post(Math.min(x,w-1),base);if(o.post==='end'){post(w-1,base,26,true);r(w-9,base-24,8,6,EDGE);r(w-8.5,base-23.5,7,5,W[3]);r(w-6,base-22,1,3,'#3f5a2e');r(w-7,base-21.5,1.5,1,'#6f9446');r(w-5,base-22.5,1.5,1,'#6f9446');r(w-5.5,base-25,.5,1.5,EDGE);}
+   if(o.post==='start'){post(1,base,26,true);for(const [k,c] of [[12,W[3]],[5,W[2]]])l(2,base-k,14,base-k-16,2.5,EDGE),l(2,base-k,14,base-k-16,1.2,c);l(13,base-28,13,base-10,2,EDGE);l(13,base-28,13,base-10,1,W[2]);}
+   return;}
+  for(const [k,c] of [[11,W[3]],[5,W[2]]]){r(1.5,-k,2.5,h,EDGE);r(2,-k,1.5,h,c);}post(3,0);post(3,h);},
+ // A raised bed of one crop. Flat: people walk on its edges and between the rows.
+ plot(g,o){const {e,r,p,l}=g,w=o.w,h=o.h,LEAF=['#2c3b22','#3f5a2e','#567a3a','#6f9446','#8bb05a'],SOIL=['#2e2219','#3d2c20','#4d3a2a','#5d4834','#6e5840'];
+  r(-.5,-.5,w+1,h+1,EDGE);r(0,0,w,h,SOIL[1]);for(let y=1;y<h;y+=2)for(let x=1;x<w;x+=3)if(hash(x+o.x,y+o.y)>.84)r(x,y,1,.5,SOIL[hash(y,x)>.5?0:2]);
+  r(0,0,w,1.5,W[2]);r(0,h-1.5,w,1.5,W[1]);r(0,0,1.5,h,W[2]);r(w-1.5,0,1.5,h,W[1]);
+  const rows=[13,35,57];for(const y of rows){r(5,y-3,w-10,6,SOIL[3]);r(5,y-3,w-10,1,SOIL[4]);r(5,y+3,w-10,.5,SOIL[0]);}
+  const each=(step,fn)=>{for(const y of rows)for(let x=10;x<w-8;x+=step)fn(x+(hash(x,y+o.x)-.5)*2,y);};
+  if(o.crop==='potato')each(12,(x,y)=>{e(x,y-1,6,4.5,EDGE);e(x,y-1.5,5,3.8,LEAF[1]);e(x-1.5,y-2.5,3,2.2,LEAF[2]);e(x+1.5,y-3,2,1.5,LEAF[3]);if(hash(x|0,y)>.55)r(x,y-5,1,1,'#e8e0d1'),r(x+.5,y-4.5,.5,.5,'#d9b23a');});
+  if(o.crop==='cabbage')each(14,(x,y)=>{e(x,y,6,4.2,EDGE);e(x,y-.3,5.2,3.6,'#4f7a5a');e(x,y-.8,3.4,2.4,'#7fa77a');e(x-.5,y-1.4,1.6,1,'#a7c79a');r(x-4,y,2,1,'#3d5e46');r(x+2.5,y-.5,2,1,'#3d5e46');});
+  if(o.crop==='squash')each(18,(x,y)=>{for(const [dx,dy,s] of [[-4,-1,4.2],[4,-.5,4],[0,-3,3.6]]){e(x+dx,y+dy,s+1,s*.75+1,EDGE);e(x+dx,y+dy-.4,s,s*.75,LEAF[2]);r(x+dx-s*.5,y+dy-.5,s,.5,LEAF[1]);}
+   if(hash(x|0,9)>.3){const sx=x+(hash(x|0,10)>.5?5:-5);e(sx,y+2.5,4,3,EDGE);e(sx,y+2,3.2,2.3,'#b8743a');e(sx-1,y+1.3,1.4,1,'#d0904c');r(sx-.25,y-1,.5,1.5,LEAF[0]);}});
+  if(o.crop==='carrot')each(6,(x,y)=>{r(x-1,y,2.5,1.5,'#c86a2e');r(x-.5,y,1,.5,'#e08a44');for(const [dx,ht] of [[-1.5,5],[0,7],[1.5,5]]){l(x+.25,y,x+.25+dx,y-ht,.8,LEAF[3]);r(x+dx-.5,y-ht,1,1,LEAF[4]);}});
+  if(o.crop==='tilled'){for(const y of rows)for(let x=8;x<w-8;x+=4)r(x,y-.5,2.5,1,SOIL[0]);for(let x=12;x<w*.45;x+=8){const y=rows[0];r(x,y-3,.5,3,LEAF[3]);e(x-1.2,y-3.5,1.5,.8,LEAF[4]);e(x+1.6,y-4,1.5,.8,LEAF[3]);}
+   r(w-30,rows[2]-9,10,9,EDGE);r(w-29.5,rows[2]-8.5,9,8,'#a08f6a');r(w-28,rows[2]-6,6,.5,'#6b5d40');r(w-27,rows[2]-10,4,1.5,'#8a7a5a');l(w-18,rows[1]+4,w-10,rows[1]-4,1.5,EDGE);l(w-18,rows[1]+4,w-10,rows[1]-4,.8,W[3]);r(w-11,rows[1]-6,3,3,M[2]);}},
+ // Pole beans on stakes: the one tall crop, so it stands up like a hedge.
+ trellis(g,o){const {e,r,l}=g,w=o.w,h=o.h,LEAF=['#2c3b22','#3f5a2e','#567a3a','#6f9446','#8bb05a'];e(w/2,h,w/2+4,4,SHADOW);
+  r(-.5,-.5,w+1,h+1,EDGE);r(0,0,w,h,'#3d2c20');r(0,0,w,1.5,W[2]);r(0,h-1.5,w,1.5,W[1]);
+  for(const y of [14,34]){r(4,y-2,w-8,4,'#5d4834');for(let x=10;x<w-6;x+=13){l(x-3,y+1,x,y-26,1.5,EDGE);l(x+3,y+1,x,y-26,1.5,EDGE);l(x-3,y+1,x,y-26,.6,W[3]);l(x+3,y+1,x,y-26,.6,W[3]);r(x-1,y-25,2,1,'#c9c0aa');
+   for(let k=0;k<6;k++){const ly=y-2-k*4,lx=x+(k%2?2.5:-2.5);e(lx,ly,2.6,1.8,EDGE);e(lx,ly-.3,2,1.3,LEAF[k%2?2:3]);}r(x+1,y-9,.5,3,'#9ab05a');r(x-1.5,y-15,.5,3,'#9ab05a');if(hash(x,y)>.5)r(x+2,y-19,.5,.5,'#e8e0d1');}
+   l(6,y-20,w-6,y-20,.5,'#c9c0aa');}},
+ // The garden's scarecrow: a tall, crooked hat in faded purple, a burlap head with a stitched grin and no eyes.
+ scarecrow(g,o){const {e,r,p,l}=g,cx=7,PUR=['#2e2738','#43395a','#56496e','#6d5f86'],SACK=['#2f2820','#3d3329','#4b4034'],STRAW=['#a0803a','#c9a24a','#e0bc66'],STITCH='#d6ccb0',COAT=['#24232b','#32313c','#41404c'];
+  e(cx,7,11,3,SHADOW);r(cx-1.5,-31,3,38,EDGE);r(cx-1,-30,2,36,W[2]);r(cx-1,-30,.5,36,W[3]);
+  r(cx-17,-37,34,2.5,EDGE);r(cx-16.5,-36.5,33,1.5,W[3]);
+  // Ragged coat and sleeves along the crossbar, straw poking out of the cuffs.
+  p([[cx-16,-38.5],[cx-6,-40],[cx-5,-34],[cx-16,-33]],EDGE);p([[cx-15.5,-38],[cx-6.5,-39.3],[cx-5.8,-34.5],[cx-15.5,-33.7]],COAT[1]);
+  p([[cx+16,-38.5],[cx+6,-40],[cx+5,-34],[cx+16,-33]],EDGE);p([[cx+15.5,-38],[cx+6.5,-39.3],[cx+5.8,-34.5],[cx+15.5,-33.7]],COAT[1]);
+  for(const s of [-1,1])for(let k=0;k<3;k++)l(cx+s*15.5,-36+k*1.2,cx+s*(19+k*.8),-38+k*2.4,.8,STRAW[1+(k%2)]);
+  p([[cx-7,-41],[cx+7,-41],[cx+9,-24],[cx+5,-19],[cx+2,-22],[cx-1,-19],[cx-5,-22],[cx-9,-24]],EDGE);p([[cx-6.3,-40.3],[cx+6.3,-40.3],[cx+8.2,-24.3],[cx+5,-20.5],[cx+2,-23.3],[cx-1,-20.5],[cx-4.7,-23],[cx-8.2,-24.3]],COAT[1]);
+  p([[cx-6.3,-40.3],[cx-2,-40.3],[cx-4,-23],[cx-8.2,-24.3]],COAT[2]);p([[cx+4,-40.3],[cx+6.3,-40.3],[cx+8.2,-24.3],[cx+5,-20.5]],COAT[0]);
+  r(cx+1,-33,3.5,3.5,PUR[2]);for(let k=0;k<3;k++){r(cx+.5,-32.5+k*1.2,1,.4,STITCH);r(cx+4,-32.5+k*1.2,1,.4,STITCH);}r(cx-5,-27,3,2.5,SACK[2]);r(cx-5.5,-26,1,.4,STITCH);r(cx-2.5,-25.5,1,.4,STITCH);
+  // A straw ruff at the neck.
+  p([[cx-8,-41],[cx-6,-44],[cx-4.5,-41.5],[cx-2.5,-44.5],[cx-.5,-41.5],[cx+1.5,-44.5],[cx+3,-41.5],[cx+5,-44],[cx+6.5,-41.5],[cx+8.5,-43],[cx+8,-39.5],[cx-8,-39.5]],STRAW[0]);
+  for(const x of [-6,-2.5,1.5,5])l(cx+x,-40,cx+x+(x>0?1:-1),-43.5,.6,STRAW[2]);
+  // Burlap head: no eyes, just the stitched grin.
+  e(cx,-49,7,6.5,EDGE);e(cx,-49,6.2,5.7,SACK[1]);e(cx+1.8,-48,3.8,4.2,SACK[0]);e(cx-2.2,-51,2.5,2,SACK[2]);for(let k=0;k<8;k++)r(cx-4+hash(k,321)*8,-53+hash(k,322)*8,.5,.5,k%2?SACK[2]:SACK[0]);
+  for(let k=0;k<=8;k++){const t=k/8,x=cx-4.5+t*9,y=-47.2+Math.sin(t*Math.PI)*1.6;r(x-.25,y,.75,.5,STITCH);if(k%2===0)r(x,y-.75,.4,2,STITCH);}
+  // The tall, bent hat with a patch on the crown and a frayed brim.
+  e(cx,-54.5,11.5,3,EDGE);e(cx,-54.8,10.5,2.3,PUR[1]);for(const x of [-9,-4,3,8])r(cx+x,-53,1,1,EDGE);r(cx-8,-55.5,6,.5,PUR[3]);
+  p([[cx-6,-55.5],[cx+6,-55.5],[cx+4,-62],[cx+3.5,-67],[cx+6.5,-71],[cx+10,-72],[cx+6,-72.5],[cx+1.5,-68.5],[cx-.5,-63],[cx-4,-58]],EDGE);
+  p([[cx-5,-56],[cx+5,-56],[cx+3,-62],[cx+2.6,-66.5],[cx+5.5,-70.3],[cx+8,-71.6],[cx+5.5,-71.7],[cx+2,-68.3],[cx+.3,-63],[cx-3.3,-58.2]],PUR[1]);p([[cx-5,-56],[cx-1.5,-56],[cx-.5,-62.5],[cx-3.3,-58.2]],PUR[2]);
+  r(cx-5,-57.5,10,1.5,PUR[0]);r(cx-1.5,-63.5,3.5,3,PUR[3]);for(let k=0;k<3;k++){r(cx-2,-63+k*1,1,.4,STITCH);r(cx+1.5,-63+k*1,1,.4,STITCH);}
+  // A crow keeps him company on the crossbar.
+  e(cx+13,-39,2.3,1.8,'#111319');r(cx+15,-40,1.5,.5,'#5a5040');r(cx+12.5,-37.5,.5,1.5,'#111319');},
+ // Clyde's shed: plank walls, a tin roof, the door propped open, seed sacks and tools.
+ shed(g,o){const {e,r,p,l}=g,w=o.w,h=o.h,TIN=['#3b3f45','#51565e','#6a7078','#868c93'];e(w/2+4,h+1,w/2+8,6,SHADOW);
+  p([[-3,-24],[w+3,-24],[w-6,-64],[6,-64]],EDGE);p([[-1.5,-25],[w+1.5,-25],[w-6.5,-63],[6.5,-63]],TIN[1]);for(let x=4;x<w;x+=6)l(x,-25,x+(w/2-x)*.12,-63,.8,TIN[0]);p([[6.5,-63],[w-6.5,-63],[w-5.5,-60],[7.5,-60]],TIN[3]);
+  for(let k=0;k<6;k++){const x=8+hash(k,331)*(w-20),y=-58+hash(k,332)*30;r(x,y,3,1.5,RUST);}
+  r(-.5,-24.5,w+1,h+25,EDGE);r(0,-24,w,h+24,W[2]);for(let x=0;x<w;x+=8){r(x,-24,.5,h+24,W[1]);r(x+.5,-24,1,h+24,W[3]);}r(0,-24,w,2,W[1]);r(0,h-3,w,3,W[1]);
+  r(37,-12,24,h+12,EDGE);r(38,-11,22,h+11,'#14110e');r(40,-6,8,4,'#5a4a38');r(52,4,6,9,'#a08f6a');r(41,h-8,14,8,'#3a2c22');
+  p([[61,-12],[74,-6],[74,h+4],[61,h]],EDGE);p([[62,-10.5],[73,-5.5],[73,h+3],[62,h-1]],W[3]);l(62,h/2-6,73,h/2-1,1,W[1]);
+  r(10,-8,18,14,EDGE);r(11,-7,16,12,GLASS);r(11,-7,16,4,GLASS_HI);r(18.5,-7,1,12,EDGE);r(11,-1.5,16,1,EDGE);r(9,6,20,2.5,EDGE);r(9.5,6.5,19,1.5,W[3]);for(const x of [11,17,23]){r(x,3.5,4,3,'#6b4a36');r(x+.5,1.5,1,2,'#6f9446');r(x+2,2,1.5,1,'#8bb05a');}
+  l(80,h-2,86,-14,2,EDGE);l(80,h-2,86,-14,1,W[3]);r(83,-18,6,5,EDGE);r(83.5,-17.5,5,4,M[2]);l(88,h-2,90,-10,2,EDGE);l(88,h-2,90,-10,1,W[4]);for(let k=0;k<4;k++)r(86+k*1.5,-13,.5,3,M[3]);
+  for(const [x,y,col] of [[2,h-14,'#8a7a5a'],[12,h-12,'#a08f6a']]){p([[x,y+14],[x+1,y+3],[x+3,y],[x+9,y],[x+11,y+3],[x+12,y+14]],EDGE);p([[x+1,y+13],[x+2,y+3.5],[x+4,y+1],[x+8,y+1],[x+10,y+3.5],[x+11,y+13]],col);r(x+3,y+6,6,3,'#e8e0d1');r(x+4.5,y+7,1,1,'#3f5a2e');r(x+6,y+7,1.5,1,'#6f9446');}
+  r(42,-22,14,6,EDGE);r(42.5,-21.5,13,5,W[3]);r(46,-20,1,3,'#3f5a2e');r(45,-19.5,1.5,1,'#6f9446');r(47,-20.5,1.5,1,'#6f9446');l(44,-22,46,-26,.5,EDGE);l(54,-22,52,-26,.5,EDGE);},
+ // Compost: a slatted bin of dark scraps with a fork stuck in it.
+ compost(g,o){const {e,r,l}=g,w=o.w,h=o.h;e(w/2+2,h,w/2+5,4,SHADOW);r(-.5,-12.5,w+1,h+13,EDGE);r(0,-12,w,h+12,'#2a2018');e(w/2,-6,w/2-3,6,'#3a2c20');for(let k=0;k<14;k++)r(3+hash(k,341)*(w-8),-10+hash(k,342)*10,1.5,1,k%3?'#567a3a':'#8a6a44');
+  for(let y=-12;y<h;y+=6){r(0,y,w,3.5,W[2]);r(0,y,w,.5,W[3]);}for(const x of [0,w-3])r(x,-14,3,h+14,W[1]);l(w-10,-6,w-4,-24,1.5,EDGE);l(w-10,-6,w-4,-24,.8,W[3]);r(w-6,-27,5,2,M[2]);for(let k=0;k<3;k++)r(w-6+k*2,-26,.5,3,M[3]);},
+ // A wheelbarrow of fresh soil, parked by the shed.
+ wheelbarrow(g,o){const {e,r,p,l}=g;e(20,17,22,4,SHADOW);l(30,2,46,10,2,EDGE);l(30,0,46,6,2,EDGE);l(30,2,46,10,1,W[3]);l(30,0,46,6,1,W[3]);
+  p([[0,-8],[30,-8],[26,6],[6,6]],EDGE);p([[1,-7.5],[29,-7.5],[25.5,5],[6.5,5]],'#3f5a4a');p([[1,-7.5],[29,-7.5],[28,-4],[2,-4]],'#5a7a68');e(15,-7.5,13,3,'#3d2c20');e(15,-8,10,2,'#4d3a2a');for(const x of [9,15,21])e(x,-9,2.2,1.6,'#b8935a');
+  e(4,10,5,5,EDGE);e(4,10,4,4,M[1]);e(4,10,1.5,1.5,M[3]);r(8,8,4,8,EDGE);r(24,6,2,10,EDGE);},
  laundry(g,o){const {e,r,l,p}=g;e(50,6,52,4,SHADOW);for(const x of [0,94]){r(x,-62,5,70,EDGE);r(x+1,-61,3,68,W[2]);r(x+1,-61,1,68,W[3]);}
   const sag=x=>-58+Math.sin(x/96*Math.PI)*7;for(let x=4;x<94;x+=1)r(x,sag(x),1,.5,'#a39a84');
   const cloth=(x,w,h,col,hi)=>{const y=sag(x+w/2)+.5;p([[x,y],[x+w,y],[x+w-.5,y+h],[x+.5,y+h]],EDGE);r(x+.5,y+.5,w-1,h-1,col);r(x+.5,y+.5,w-1,1.5,hi);r(x+1,y-1,1,2,'#c9c0aa');r(x+w-2,y-1,1,2,'#c9c0aa');};
@@ -430,7 +493,7 @@ export function lightArt(c){const w=Math.ceil(CAMP.w/LIGHT_SCALE),h=Math.ceil(CA
 export function glowArt(c){const g=c.createRadialGradient(64,64,0,64,64,64);g.addColorStop(0,'rgba(255,170,90,.75)');g.addColorStop(.4,'rgba(255,130,60,.3)');g.addColorStop(1,'rgba(255,120,50,0)');c.fillStyle=g;c.fillRect(0,0,128,128);}
 // Badges float over residents and above the lighting: a role icon on a dark plate with an ember rim.
 export const ICON={w:20,h:24};
-export const ICONS=['hammer','cross','bowl','lantern','chevron','target'];
+export const ICONS=['hammer','cross','bowl','lantern','chevron','target','sprout'];
 export function iconArt(c){c.save();c.scale(2,2);const {r,p,l,e}=painter(c);
  ICONS.forEach((kind,i)=>{c.save();c.translate(i*ICON.w,0);
   if(kind==='chevron'){p([[3,6],[17,6],[10,15]],EDGE);p([[5,7.5],[15,7.5],[10,13]],EMBER);p([[7,7.5],[13,7.5],[10,10.5]],EMBER_HI);c.restore();return;}
@@ -439,6 +502,7 @@ export function iconArt(c){c.save();c.scale(2,2);const {r,p,l,e}=painter(c);
   if(kind==='cross'){r(8.5,4,3,10,TEAL_HI);r(5,7.5,10,3,TEAL_HI);}
   if(kind==='bowl'){p([[4.5,9],[15.5,9],[13,13.5],[7,13.5]],BONE);r(4.5,9,11,1,'#a2998a');l(8,8,7,4,.8,'#a2998a');l(11,8,12,4,.8,'#a2998a');}
   if(kind==='target'){e(10,9,5.5,5.5,BONE);e(10,9,4.5,4.5,'#1c1a17');e(10,9,2.5,2.5,BONE);e(10,9,1.5,1.5,EMBER_HI);r(9.5,2,1,3,BONE);r(9.5,13,1,3,BONE);r(3,8.5,3,1,BONE);r(14,8.5,3,1,BONE);}
+  if(kind==='sprout'){r(9.5,7,1,8,'#8bb05a');e(7,7.5,3,1.6,'#8bb05a');e(13,6,3,1.6,'#a7c97a');r(5,14,10,1.5,'#8a6a44');}
   if(kind==='lantern'){r(9.5,3,1,2,BONE);r(7,5,6,1,BONE);r(7,6,6,7,BONE);r(8,7,4,5,GLASS);r(9,8,2,3,GLASS_HI);r(7,13,6,1,BONE);}
   c.restore();});c.restore();}
 // Fish for the basket, the catch card and the spit. Facing right, about 26 x 12 units, centered on (0, 0).

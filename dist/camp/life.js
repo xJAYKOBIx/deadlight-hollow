@@ -1,6 +1,6 @@
 // The cave's small life: drips from the ceiling, glowing fungus, moths at the lanterns, bats overhead and crabs on the wet sand.
 // Everything here is decoration: none of it blocks, and none of it can be used.
-import {PROPS} from './data.js';
+import {PROPS,CAMP} from './data.js';
 import {DRIPS,FUNGI,shoreX} from './art.js';
 const px=v=>Math.round(v*2)/2;
 // Where the moths circle: every lantern's glass, the board's lantern and the one at the end of the pier.
@@ -9,7 +9,7 @@ export const LAMP_GLASS=[...PROPS.filter(o=>o.kind==='lantern').map(o=>({x:o.x+1
 export const CANDLES=PROPS.filter(o=>o.candle).map(o=>({x:o.x+o.candle[0],y:o.y+o.candle[1]}));
 // Crabs keep to the wet strip, clear of the pier and the boat.
 export const CRAB={scare:46,flee:70,walk:22,back:[14,24],near:120};
-const tideSpot=(rand=Math.random)=>{const y=470+rand()*270;return {x:shoreX(y)-6-rand()*16,y};};
+const tideSpot=(rand=Math.random)=>{const y=500+rand()*(CAMP.h-760);return {x:shoreX(y)-6-rand()*16,y};};
 export class CaveLife{
  constructor(scene){this.scene=scene;const add=d=>scene.add.graphics().setDepth(d);
   this.drips=DRIPS.map((d,i)=>({...d,g:add(d.into?273:d.y),period:2.4+i*.7,phase:i*.9}));
@@ -40,8 +40,8 @@ export class CaveLife{
  // Small flocks cross under the ceiling and leave by the cave mouth.
  updateBats(now,dt){const g=this.batG;g.clear();
   if(now>this.nextBats){this.nextBats=now+9000+Math.random()*9000;const n=1+Math.floor(Math.random()*3),y=96+Math.random()*60;for(let i=0;i<n;i++)this.bats.push({x:-20-i*18-Math.random()*10,y:y+(Math.random()-.5)*20,vx:95+Math.random()*30,flap:Math.random()*6,bob:Math.random()*6});}
-  this.bats=this.bats.filter(b=>b.x<1360&&b.y>-20);
-  for(const b of this.bats){b.x+=b.vx*dt;b.flap+=dt*18;if(b.x>900)b.y-=40*dt;const y=b.y+Math.sin(b.x*.04+b.bob)*6,w=Math.sin(b.flap)*3;
+  this.bats=this.bats.filter(b=>b.x<CAMP.w-120&&b.y>-20);
+  for(const b of this.bats){b.x+=b.vx*dt;b.flap+=dt*18;if(b.x>CAMP.w-700)b.y-=40*dt;const y=b.y+Math.sin(b.x*.04+b.bob)*6,w=Math.sin(b.flap)*3;
    g.fillStyle(0x0b0c10,1);g.fillRect(px(b.x-1),px(y-1),2,2);g.fillTriangle(b.x-1,y-.5,b.x-6,y-1+w,b.x-3,y+1);g.fillTriangle(b.x+1,y-.5,b.x+6,y-1+w,b.x+3,y+1);g.fillRect(px(b.x-1),px(y-2),.5,1);g.fillRect(px(b.x+.5),px(y-2),.5,1);}}
  // Crabs sidle about on the wet sand and bolt for the water when someone comes close, coming back later somewhere else.
  updateCrabs(t,dt,people){for(const c of this.crabs){const near=Math.min(...people.map(p=>Math.hypot(p.x-c.x,(p.y-c.y)*1.4)));

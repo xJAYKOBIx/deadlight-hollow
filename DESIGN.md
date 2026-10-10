@@ -242,3 +242,45 @@ New wearable pieces, all in the character creator (indices appended, so saved lo
 - Uniform sets (Military, LEET AF, Police, SWAT) at the top of the Top page dress the whole outfit in one tap and leave body, face and hair alone.
 
 Stencil lettering is a 3 × 5 half-unit font. Mirrored directions reverse it so it still reads, it skips the female tailoring warp (which would pinch letters), and on the narrower tailored chest "LEET AF" stacks into two lines. Pack straps tuck under a vest.
+
+### v0.25.0 bigger camp, the cast and the garden
+
+The camp has grown to 1920×1520 (it was about half that). There are no separate sections: the camera follows the survivor across one map. Everything sits in districts:
+- **Back wall:** the barred gate, the Training Grounds door, tents, Macy's quest board and the medic tent. A watch post stands by the gate.
+- **North middle:** the camp store, with crates, sacks and a water barrel.
+- **West:** Stan's forge, with a brick furnace, an anvil and a quench bucket, plus his cart and scrap heap.
+- **Centre:** the campfire ring and its logs.
+- **East:** Pike's kitchen, with the pot, fish crate, rack and mess table. More tents for newer arrivals go up the east side.
+- **South-west:** the shelter beds. The living tents, laundry line and supply crates are close by.
+- **South:** the fenced garden, which has its own lamps. The north gate leads in. Inside are potato, cabbage, squash and carrot beds, a tilled bed, staked beans, the scarecrow, the tool shed, compost and a wheelbarrow.
+- Hard-coded positions in scene.js, life.js and play.js (embers, pot steam, lamp glows, foam, sparkles, crabs, bats, pier end, fire seat) now follow the props or the camp size.
+
+The cast, 41 days after the fall:
+
+| Character | Role | Notes |
+|---|---|---|
+| Macy | Runs the camp from the quest board | Former zoo-keeper and hiking guide. Nurturing. |
+| Ava | Camp doctor | Always short on supplies. Proper medical gear is a premium fetch. Later she'll help with bites, an antidote and slowing the spread. |
+| Scoutmaster Pike | Cook and field survival | Also the fishing expert. |
+| Old-man Stan | Blacksmith | Grumpy ex-gunsmith. The world was lucky it didn't end in his prime. Probably. |
+| Zyn and Clyde | Country farmers who run the garden | The player's contacts for planting and harvesting. |
+| Aaron | LEET AF guide for the Training Grounds | Stands at the door and inside the range. |
+
+Five generic "Survivor" residents fill out the camp: nets, fire, laundry, watch and tent.
+
+The scarecrow is a quiet signature, a loose nod to the Jaykobi Games mascot:
+- A faded purple, bent witch hat with a stitched patch and a frayed brim.
+- A burlap head with a stitched grin and no eyes.
+- A straw ruff and a ragged, patched coat.
+- A crow on the crossbar.
+- Purple appears only on the hat.
+
+Aaron now answers questions. The talk panel supports `topics`, a list of {q, a[]} pairs:
+- A resident with topics opens on a greeting and a set of question buttons.
+- Picking a question plays its answer, then Back returns to the questions. Answered questions dim.
+- There are seven topics: the Training Grounds, how the range works, which gun, grenades, LEET AF, G.U.N., and what's coming.
+
+Aaron also stands inside the Training Grounds by the range doorway (x604, y322), as range officer:
+- Talk with E, or A on a controller.
+- On a touch screen, tap the floating Talk prompt. The shooting controls stay where they are.
+- His answers there say "here" instead of "down there".

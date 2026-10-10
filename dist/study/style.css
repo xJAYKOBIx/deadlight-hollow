@@ -302,3 +302,12 @@ body.touch:not(.pad) #ammoNow{font-size:22px}
 body.touch:not(.pad) #ammoMag{font-size:11px}
 body.touch:not(.pad) #weaponHud .wh-mag{height:4px;margin-left:4px}
 body.deck.touch:not(.pad) #weaponHud{left:calc(var(--vx) + var(--sl));right:auto;top:auto;bottom:calc(var(--sb) + 140px);width:98px;background:transparent;border-color:transparent;padding:4px 2px}
+/* Questions you can put to someone (Aaron): a wrap of small buttons under the line. */
+#talkTopics{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+#talkTopics[hidden]{display:none}
+#talkTopics button{min-height:32px;padding:5px 10px;font:600 13px/1.2 var(--ui);letter-spacing:.02em;text-align:left;color:var(--bone);background:#23201c;border:1px solid var(--edge-hi);border-radius:3px}
+#talkTopics button:hover,#talkTopics button:focus-visible{border-color:var(--ember);color:var(--ember-hi);outline:none}
+#talkTopics button.asked{color:var(--dust);background:#1b1916}
+@media(orientation:landscape) and (max-height:560px){#talkTopics{margin-top:6px;gap:5px}#talkTopics button{min-height:28px;padding:4px 8px;font-size:12px}}
+/* On the range, a touch screen taps the prompt itself to talk. */
+#prompt.tap{pointer-events:auto;cursor:pointer;z-index:4;padding:8px 12px;border-color:var(--ember);touch-action:none}
