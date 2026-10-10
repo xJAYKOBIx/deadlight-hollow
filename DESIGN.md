@@ -25,7 +25,7 @@ Two rooms provide movement space and collision/occlusion checks. The inspection 
 
 Jaykobi, 2026-10-10: "this will be the plan moving forward." The goals are Helldivers 1 combat, 4-player co-op and large Helldivers-style maps, on phones (iPhone first), with tight memory and no leaks. Every new fight, map and system follows these rules. Older code is brought in line when it is next touched, not all at once.
 
-**Aim stick (next control change).** A light push on the right stick turns you and shows a faint laser line. Pushing past about 85% fires, but only once you face within a few degrees of the stick, so a quick flick cannot fire behind you mid-turn. A light pull toward the nearest zombie in a narrow cone in front helps on a small screen. Mouse and controller keep their own aiming. Today the stick fires past a small dead zone (`study/app.js`), which is what makes shots go the wrong way.
+**Aim stick (built in v0.37.0).** A light push on the right stick turns you and shows a faint laser line. Pushing past about 85% fires, but only once you face within a few degrees of the stick, so a quick flick cannot fire behind you mid-turn. A light pull toward the nearest zombie in a narrow cone in front helps on a small screen. Mouse and controller keep their own aiming. Today the stick fires past a small dead zone (`study/app.js`), which is what makes shots go the wrong way.
 
 **Co-op: what every fight is built on.**
 - *Simulation apart from drawing.* Models and fights (`street/fight.js`, `street/model.js`) never touch Phaser, the page or storage; scenes only draw what they report. This is already true and stays true.
@@ -486,6 +486,10 @@ In the house, once you are awake, the Bag button (top right, Tab, or D-pad up on
 Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack), rifle rounds (60), gun oil, scrap metal, cloth and leather, powder, electronics, oil and solvent, each one cell with its weight; spare guns are items too (pistol 2 × 1, shotgun 6 × 1, rifle 6 × 2). The shotgun's spare shells are now the shells in your bag: the closet gives 16 shells and a bottle of gun oil with the gun, and older saves move their spare shells into the bag. Three new places to search in the house, none of them needed to leave: the kitchen drawers (3 scrap metal, 1 electronics), under the sink (oil and solvent) and the laundry basket (2 cloth).
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
+
+## v0.37.0 — The new aim stick
+
+The touch fire stick no longer fires the moment the thumb leaves the middle, which sent shots the wrong way when a thumb landed off centre or flicked across (Jaykobi, 2026-10-10). Now (`dist/study/aimstick.js`): a push past 15% turns you toward the stick at 720 degrees a second (half a turn in a quarter of a second) and shows a faint red laser from the muzzle; pushing past 85% fires, but only while you face within 8 degrees of the stick. A pull toward the nearest zombie (or, in the Training Grounds, robot or paper target) within 12 degrees and 260 of the line moves the aim toward it: all the way when it is right on the line, none at the edge of the cone. The stick ring still lights orange while firing. Mouse and controller aim as before. These numbers are first guesses to tune by feel on a phone.
 
 ## v0.36.0 — The phone crash, and your own thoughts
 

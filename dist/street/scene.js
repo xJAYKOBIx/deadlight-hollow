@@ -1,6 +1,6 @@
 // The street scene: the ground, every prop, you (in the Training Grounds' layers, so the gun points exactly where you aim), the
 // dead, the night light, the cruiser's light bar and the fight's effects. The fight itself is street/fight.js; this only draws it.
-import {bake,worthBaking} from '../study/memory.js';
+import {bake,worthBaking} from '../study/memory.js';import {drawLaser} from '../study/aimstick.js';import {muzzle} from '../study/equipment.js';
 import {survivor,FRAME} from '../study/character.js';
 import {LAYERS,ORDER,origin,sheetSize,paintLayers,pose,armed} from '../study/layers.js';
 import {DEFAULT_APPEARANCE,UNIFORMS} from '../study/appearance.js';
@@ -92,6 +92,8 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   // Tracers: a short bright streak running from the muzzle to where the shot stopped.
   const g=this.fx;g.clear();for(const t of f.traces){const k=Math.min(1,t.age/(t.dur||.001)),mx=t.x+t.ox,my=t.y+t.oy,ex=t.ex,ey=t.ey+t.oy,hx=mx+(ex-mx)*k,hy=my+(ey-my)*k,tx=mx+(ex-mx)*Math.max(0,k-.35),ty=my+(ey-my)*Math.max(0,k-.35),a=Math.max(0,t.life/(t.dur+.07));
    g.lineStyle(1,0xfff1c8,.85*a).lineBetween(tx,ty,hx,hy);if(t.done&&t.onto.kind!=='zombie'){g.fillStyle(0xffe2a0,a).fillRect(ex-.5,ey-.5-(t.onto.kind==='prop'?0:-t.oy),1.5,1.5);}}
+  // The touch stick's laser, while your thumb is on it.
+  const L=bridge.aimLine?.();if(L&&!f.down&&armed(this.look))drawLaser(g,model.x,model.y,muzzle(L.a,this.look.gun),L.a,L.fire);
   const target=f.down?null:paused&&this.target?this.target:model.target(t=>bridge.usable?.(t)!==false);this.target=target;
   if(target){const bob=Math.round(Math.sin(now/180)*2*2)/2;this.marker.setVisible(true).setPosition(target.mx??target.x,target.my+bob);}else this.marker.setVisible(false);
   const cam=this.cameras.main;cam.setZoom(this.zoom());cam.centerOn(model.x,model.y-20);bridge.tick(now,this);}
