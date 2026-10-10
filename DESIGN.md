@@ -323,3 +323,41 @@ The weapon readout shows a dot in that color. Paint behaves like this:
 - Reset clears the paint.
 
 Aaron moved to his counter. His answers now cover the arena, paintball, Gadget, and the army being gone.
+
+### v0.27.0 — Holdout in the Training Grounds
+
+The cavern grew to 1960 × 2000 to fit a building. LEET AF built it out of pallets, doors, sheet metal and plywood in the middle of a yard, so a Holdout down here plays like holding a house out in the world:
+- Five rooms with their names stencilled on the floor: bunks, stores, the hall, the kitchen and the office. Lino from a dozen kitchens on the floor, cots, shelving, tables and sandbags inside.
+- Doorways on every side, and windows. A window stops your feet but not paint, and robots climb through it at a third of their speed.
+- Cover out in the yard, and a barricade across the front with a chain-link gate. Gadget shuts the gate behind you when a Holdout starts and opens it when the run ends.
+- Five robot hatches: three in the back wall and one in each side wall.
+- The floor is drawn in four tiles of at most 2000 × 2000 pixels, so no texture is too big for a phone.
+
+The LEET AF post sits between the stairs and the gate. Aaron's paintball shop (pegboard and counter) is on the left of the aisle and Gadget's parts counter and desk are on the right, side by side and facing you as you walk up. Her robot bench, the parked robots and the car-seat couch are behind her; the lane is off to the west.
+
+Gadget's topics: **Start a Holdout**, **Run the warm-up drill**, **Call it off** (while one runs) and **Turn in parts** (when you have some). Aaron's first topic is **Browse the paintball shop**.
+
+A Holdout:
+- Starts when you walk into the yard. The gate locks and wave 1 comes 3 s later.
+- Is endless. Wave n sends 5 + 2n robots, at most 24 at once, with a 10 s break between waves. Wave 1 is Shamblers; Runners join in wave 2, Husks in 3, a Spitter in 4 and the Brute in 5.
+- You have 100 health. At zero you go down; 2.5 s later Gadget pulls you up at 60, shoving and stunning every robot close by. She does it once a run (twice with a Second wind), and the next down ends it. You cannot move or shoot while down.
+- Ends with waves cleared, time, kills and parts. The best is saved as `deadlight-holdout-best-v1`.
+
+The robots copy the roster (see the Zombie Roster doc). Each has a tell frame:
+
+| Robot | Health | Speed | Tell | Damage | Rules |
+|---|---|---|---|---|---|
+| Shambler | 40 | 44–56 | Arms up for 0.35 s | 12 | Headshot ×2 |
+| Runner | 30 | ~60, sprints at 150 | Shrieks for 0.5 s on sight (within 420) | 10 | Packs of 3–5, toy-car chassis |
+| Husk | 70 | 40–50 | Arms up | 14 | Light Pistol and Tactical AR do ×0.35 to the body; headshot ×2 |
+| Spitter | 60 | 50–60 | Jerks back, launcher glows green for 0.6 s | 8 on landing, puddle 10 a second for 4 s | Keeps 170–260 away |
+| Brute | 400 | 38 | Paws for 1 s, eyes red | 40 and a 40 knockback | Charges at 300 for up to 1.2 s and stuns itself for 1.6 s on a wall. Front ×0.2, sides ×0.6, back or stunned ×1.5, explosives full |
+
+A headshot is a hit within 4.5 units of the robot's centre line. Robots get 1.5 speed per wave.
+
+Parts and chits:
+- Fallen robots drop parts (Shambler and Runner 1, Husk and Spitter 2, Brute 5). They scatter, then pull toward you within 50 and are picked up within 22.
+- Gadget buys parts for a chit each. The wallet (`deadlight-tg-wallet-v1`) keeps parts, chits and what you own on this device.
+- Aaron's shop sells each item once: Padded vest (60, +25 health), Speed loader (50, reload ×0.75), Big hopper (70, magazine ×1.3), Med kit (40, 40 health each break) and Second wind (120, one more pull). The weapon readout shows the bigger magazine.
+
+The readout gains a second row in a Holdout: a health bar, a pip for each pull Gadget has left, and the parts you have picked up. The drill is unchanged as a warm-up.

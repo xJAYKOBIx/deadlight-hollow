@@ -8,7 +8,11 @@ export function blob(g,x,y,s,col,seed){const h=hex(col),dk=((h>>1)&0x7f7f7f);g.f
  for(let k=0;k<4;k++){const a=(seed*(k+3)*2.4)%6.28,d=s*(1+(seed*(k+5))%7/7*.6);g.fillCircle(x+Math.cos(a)*d,y+Math.sin(a)*d*.8,.5+((seed+k)%3)*.35);}
  g.fillRect(x-.5+((seed%5)-2)*.5,y,1,s+((seed*3)%4));g.fillStyle(0xffffff,.55).fillRect(x-s*.4,y-s*.5,1,1);}
 export function practiceEffects(g,p){g.clear();for(const t of p.targets){g.fillStyle(0x222630,.85).fillRect(t.x-20,t.y-72,40,4);g.fillStyle(t.hp>0?0xc4ac86:0x71666e,1).fillRect(t.x-20,t.y-72,40*t.hp/100,4);if(t.flash)g.lineStyle(2,0xffdba0,t.flash/.14).strokeCircle(t.x,t.y-35,18);}
- for(const b of p.drill.bots)if(b.flash)g.lineStyle(2,0xffffff,b.flash/.14).strokeCircle(b.x,b.y-24,15);
+ for(const b of p.drill.bots){const big=b.kind==='brute';if(b.flash)g.lineStyle(2,0xffffff,b.flash/.14).strokeCircle(b.x,b.y-(big?36:24),big?30:15);if(b.headFlash)g.lineStyle(1.5,0xffe27a,b.headFlash/.25).strokeCircle(b.x,b.y-37,7);
+  // A stunned brute sees stars.
+  if(b.stun>0&&b.hp>0)for(let k=0;k<3;k++){const a=b.stun*5+k*2.1;g.fillStyle(0xffe27a,1).fillRect(b.x+Math.cos(a)*14-1,b.y-(big?78:50)+Math.sin(a)*4-1,2,2);}}
+ // Spitter globs: a ball of green paint on a high arc, its shadow on the floor showing where it will land.
+ for(const o of p.drill.globs){const k=Math.min(1,o.age/o.dur),x=o.sx+(o.ex-o.sx)*k,y=o.sy+(o.ey-o.sy)*k,h=Math.sin(k*Math.PI)*70+30*(1-k);g.fillStyle(0x10151c,.3).fillEllipse(x,y,8,4);g.fillStyle(0x3d6a24,.35*k).fillEllipse(o.ex,o.ey,30*k+6,20*k+4);g.fillStyle(0x2a3a22,1).fillCircle(x,y-h,4);g.fillStyle(0x8fd14f,1).fillCircle(x,y-h,3.2);g.fillStyle(0xd8ff9a,1).fillRect(x-1.5,y-h-2,1.5,1.5);}
  // Paint balls in flight, a pop at the muzzle and a burst of drops where they land.
  for(const t of p.traces){const col=hex(t.col),k=Math.min(1,t.age/Math.max(.001,t.dur)),x=t.x+(t.ex-t.x)*k,y=t.y-32+(t.ey-t.y)*k;
   if(t.age<.06){g.fillStyle(0xf4efe2,.7*(1-t.age/.06)).fillCircle(t.x+(t.ex-t.x)*.04,t.y-34+(t.ey-t.y)*.04,3);}

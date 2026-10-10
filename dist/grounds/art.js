@@ -1,6 +1,6 @@
 // Training Grounds art: the cave chamber, the arena built from scrap, Gadget's office and her robots.
 // Same half-unit pixel grid and palettes as the camp, drawn on 2x canvases.
-import {TG,ARENA,GATE,PROPS,HATCHES,WORKLIGHTS,LIGHTS,LANE,START} from './data.js';
+import {TG,ARENA,GATE,GATE_DOOR,BUILDING,STAIRS,FLOORS,PROPS,HATCHES,WORKLIGHTS,LIGHTS,LANE,START} from './data.js';
 import {painter,hash,fbm,bayer,boulder,rgb,box,EDGE,SHADOW,BONE,EMBER,EMBER_HI,W,M,R,RUST,GLASS,GLASS_HI,propArt as campPropArt,PROP_PAD} from '../camp/art.js';
 import {PAINT} from '../study/equipment.js';
 const prop=id=>PROPS.find(o=>o.id===id);
@@ -9,7 +9,6 @@ export const wallBottom=x=>156+6*Math.sin(x*.029)+4*Math.sin(x*.077+1);
 export const wallTop=x=>52+10*Math.sin(x*.023)+6*Math.sin(x*.067);
 export const westEdge=y=>62+6*Math.sin(y*.043)+3*Math.sin(y*.12);
 export const eastEdge=y=>TG.w-62-6*Math.sin(y*.039+2)-3*Math.sin(y*.11);
-const STAIRS={x:124,w:104,y:TG.h-132};
 const inStairs=(x,y)=>x>STAIRS.x&&x<STAIRS.x+STAIRS.w&&y>STAIRS.y;
 export const southEdge=x=>TG.h-84+6*Math.sin(x*.037)+3*Math.sin(x*.1);
 const ROCK=R.map(rgb),CEIL=['#101116','#15161c','#1a1c23'].map(rgb);
@@ -18,33 +17,40 @@ const FLOOR=['#3b3833','#433f39','#4b463f','#534d45','#5c554b'].map(rgb),GRIT=rg
 const PAINTS=Object.values(PAINT);
 const fade=(h,k)=>{const [r,g,b]=rgb(h),m=(r+g+b)/3;return '#'+[r,g,b].map(v=>Math.round(v+(m-v)*k)*.62|0).map(v=>v.toString(16).padStart(2,'0')).join('');};
 // A tiny block font for spray paint and signs: 3 to 5 pixels wide, 5 tall.
-const FONT={A:['010','101','111','101','101'],B:['110','101','110','101','110'],C:['111','100','100','100','111'],D:['110','101','101','101','110'],E:['111','100','110','100','111'],F:['111','100','110','100','100'],G:['111','100','101','101','111'],H:['101','101','111','101','101'],I:['111','010','010','010','111'],K:['101','110','100','110','101'],L:['100','100','100','100','111'],M:['10001','11011','10101','10001','10001'],N:['1001','1101','1011','1001','1001'],O:['111','101','101','101','111'],P:['110','101','110','100','100'],R:['110','101','110','101','101'],S:['111','100','111','001','111'],T:['111','010','010','010','010'],U:['101','101','101','101','111'],Y:['101','101','010','010','010'],'!':['1','1','1','0','1'],'-':['000','000','111','000','000'],' ':['00','00','00','00','00'],'1':['01','11','01','01','01'],'2':['111','001','111','100','111'],'3':['111','001','111','001','111'],':':['0','1','0','1','0']};
+const FONT={A:['010','101','111','101','101'],B:['110','101','110','101','110'],C:['111','100','100','100','111'],D:['110','101','101','101','110'],E:['111','100','110','100','111'],F:['111','100','110','100','100'],G:['111','100','101','101','111'],H:['101','101','111','101','101'],I:['111','010','010','010','111'],K:['101','110','100','110','101'],L:['100','100','100','100','111'],M:['10001','11011','10101','10001','10001'],N:['1001','1101','1011','1001','1001'],O:['111','101','101','101','111'],P:['110','101','110','100','100'],R:['110','101','110','101','101'],S:['111','100','111','001','111'],T:['111','010','010','010','010'],U:['101','101','101','101','111'],V:['101','101','101','101','010'],W:['10001','10001','10101','11011','10001'],X:['101','101','010','101','101'],Y:['101','101','010','010','010'],'!':['1','1','1','0','1'],'-':['000','000','111','000','000'],' ':['00','00','00','00','00'],'0':['111','101','101','101','111'],'1':['01','11','01','01','01'],'2':['111','001','111','100','111'],'3':['111','001','111','001','111'],'4':['101','101','111','001','001'],'5':['111','100','111','001','111'],'6':['111','100','111','101','111'],'7':['111','001','010','010','010'],'8':['111','101','111','101','111'],'9':['111','101','111','001','111'],':':['0','1','0','1','0']};
 export function text(g,s,x,y,px,col){let cx=x;for(const ch of s){const f=FONT[ch]||FONT[' '];for(let j=0;j<5;j++)for(let i=0;i<f[j].length;i++)if(f[j][i]==='1')g.r(cx+i*px,y+j*px,px,px,col);cx+=(f[0].length+1)*px;}return cx-x-px;}
 export const textWidth=(s,px)=>[...s].reduce((n,ch)=>n+((FONT[ch]||FONT[' '])[0].length+1)*px,0)-px;
 // A paint splat: a blob with a few droplets and a run or two.
 export function splat(g,x,y,s,col,seed,flat=true){const {e,r}=g;e(x,y,s,s*(flat?.6:.9),col);for(let k=0;k<5;k++){const a=hash(seed,k)*6.28,d=s*(.7+hash(k,seed)*.7);e(x+Math.cos(a)*d,y+Math.sin(a)*d*(flat?.6:.9),.5+hash(seed+k,3)*s*.35,.4+hash(seed+k,4)*s*.25,col);}
  if(!flat)for(let k=0;k<2;k++)r(x-s*.4+hash(seed,9+k)*s*.8,y,.5,1+hash(seed,11+k)*s,col);}
-// The floor plan of the cords: from the stairs to everything that needs power.
-const CORDS=[
- {col:'#c9622a',pts:[[160,1636],[160,1560],[176,1530],[600,1530],[900,1528],[1240,1530],[1600,1530],[1620,1440]]},
- {col:'#c9a23a',pts:[[190,1636],[196,1548],[250,1518],[250,1506]]},
- {col:'#2a2a2e',pts:[[300,1530],[330,1470],[370,1430]]},
- {col:'#c9622a',pts:[[540,1530],[556,1440],[556,1420]]},
- {col:'#3f6a3a',pts:[[560,1420],[520,1414],[490,1406]]},
- {col:'#2a2a2e',pts:[[700,1530],[790,1594]]},
- {col:'#c9a23a',pts:[[1035,1530],[1035,1466]]},
- {col:'#2a2a2e',pts:[[1300,1530],[1300,1430]]},
- {col:'#c9622a',pts:[[860,1530],[862,1400],[858,1340],[860,1250]]},
- {col:'#c9622a',pts:[[860,1240],[862,900],[856,600],[860,210]]},
- {col:'#c9a23a',pts:[[850,1338],[500,1336],[110,1334],[96,1100],[100,730]]},
- {col:'#c9a23a',pts:[[96,716],[110,400],[150,210]]},
- {col:'#2a2a2e',pts:[[160,190],[300,184],[400,186]]},
- {col:'#c9a23a',pts:[[870,1338],[1300,1336],[1300,1262]]},
- {col:'#c9a23a',pts:[[1310,1336],[1640,1330],[1636,1000],[1624,712]]},
- {col:'#c9a23a',pts:[[1624,690],[1640,400],[1576,210]]},
- {col:'#2a2a2e',pts:[[1560,190],[1420,184],[1320,186]]},
- {col:'#c9622a',pts:[[858,746],[700,744],[486,742]]},
- {col:'#c9622a',pts:[[862,752],[1060,756],[1234,744]]}];
+// The cords: one trunk down the stairs, up the aisle between the counters and out through the gate; a ring around the yard; a run into the building.
+const AISLE=STAIRS.x+STAIRS.w/2-16,MID=1342;
+export const CORDS=[
+ {col:'#c9622a',pts:[[AISLE,TG.h-130],[AISLE+2,1700],[AISLE,1532]]},
+ {col:'#c9a23a',pts:[[AISLE,1532],[700,1534],[560,1536],[536,1640]]},
+ {col:'#2a2a2e',pts:[[700,1534],[740,1488]]},
+ {col:'#c9a23a',pts:[[AISLE,1532],[1160,1530],[1276,1486]]},
+ {col:'#2a2a2e',pts:[[1160,1530],[1150,1500]]},
+ {col:'#3f6a3a',pts:[[1276,1486],[1340,1490]]},
+ {col:'#c9622a',pts:[[1160,1530],[1420,1532],[1500,1640],[1530,1700]]},
+ {col:'#2a2a2e',pts:[[1500,1640],[1420,1700],[1406,1760]]},
+ {col:'#c9622a',pts:[[AISLE,1532],[AISLE-2,1446],[AISLE,MID]]},
+ {col:'#c9a23a',pts:[[AISLE,MID],[640,MID+2],[110,MID],[96,1130]]},
+ {col:'#c9a23a',pts:[[96,1110],[104,860],[96,630]]},
+ {col:'#c9a23a',pts:[[96,610],[110,400],[150,216]]},
+ {col:'#2a2a2e',pts:[[160,200],[400,194],[640,200]]},
+ {col:'#c9a23a',pts:[[AISLE,MID],[1320,MID+2],[1850,MID],[1864,1130]]},
+ {col:'#c9a23a',pts:[[1864,1110],[1856,860],[1864,630]]},
+ {col:'#c9a23a',pts:[[1864,610],[1850,400],[1810,216]]},
+ {col:'#2a2a2e',pts:[[1800,200],[1560,194],[1320,200]]},
+ {col:'#c9622a',pts:[[AISLE,MID],[AISLE+4,1180],[976,1130]]},
+ {col:'#c9622a',pts:[[976,1130],[700,1132],[476,1130]]},
+ {col:'#c9622a',pts:[[976,1130],[1250,1132],[1484,1130]]},
+ {col:'#c9a23a',pts:[[976,1130],[990,880],[984,660],[1170,640],[1176,604]]},
+ {col:'#c9a23a',pts:[[984,660],[790,648],[790,436]]},
+ {col:'#2a2a2e',pts:[[984,700],[690,690],[686,684]]},
+ {col:'#2a2a2e',pts:[[990,700],[1290,694],[1296,684]]}];
+const STRIPS=[[AISLE,1532],[1160,1530],[700,1534],[AISLE,MID],[976,1130],[984,660],[96,1120],[1864,1120],[96,620],[1864,620]];
 function cord(g,pts,col,seed){const {l,r}=g,dark='#141416';for(let i=1;i<pts.length;i++){const [ax,ay]=pts[i-1],[bx,by]=pts[i],n=Math.max(1,Math.ceil(Math.hypot(bx-ax,by-ay)/14));let px=ax,py=ay;
   for(let k=1;k<=n;k++){const t=k/n,wob=k===n?0:(hash(seed*31+i,k)-.5)*3,nx=ax+(bx-ax)*t+(by-ay?wob:0),ny=ay+(by-ay)*t+(bx-ax?wob:0);l(px,py+.5,nx,ny+.5,1.6,dark);l(px,py,nx,ny,1,col);px=nx;py=ny;
    // Tape holds the cord down every so often.
@@ -64,42 +70,66 @@ function groundColor(x,y){
  if(x-we<6||y-wb<6||(ee-x)<6)return DUST;
  if(g>.992)return GRIT;
  const v=n*.7+g*.3;return FLOOR[v>.82?4:v>.62?3:v>.4?2:v>.2?1:0];}
-// The whole chamber floor in one canvas.
-export function groundArt(c){
- const w=TG.w,h=TG.h,img=c.createImageData(w*2,h*2),d=img.data;
- for(let y=0;y<h;y++)for(let x=0;x<w;x++){const col=groundColor(x,y);
-  for(let k=0;k<4;k++){const i=((y*2+(k>>1))*w*2+x*2+(k&1))*4;d[i]=col[0];d[i+1]=col[1];d[i+2]=col[2];d[i+3]=255;}}
- c.putImageData(img,0,0);c.save();c.scale(2,2);const g=painter(c),{r,e,p,l}=g;
- // Stalactites and damp streaks on the back wall, rubble along every edge.
- for(let x=10;x<w-20;x+=14+Math.floor(hash(x,1)*22)){const y=wallTop(x),len=8+hash(x,2)*24,wd=4+hash(x,3)*6;p([[x-wd/2,y-2],[x+wd/2,y-2],[x+1,y+len]],R[0]);p([[x-wd/2+1,y-1],[x,y-1],[x+.5,y+len-3]],R[1]);}
- for(let x=20;x<w-20;x+=34+Math.floor(hash(x,4)*40)){const y=wallTop(x)+12+hash(x,5)*20,len=wallBottom(x)-y-12;r(x,y,1,len,'#2a3335');if(hash(x,6)>.5)r(x,y+len-2,1,1,'#7f9494');}
- for(let i=0;i<150;i++){const x=40+hash(i,21)*(w-80),y=wallBottom(x)+2+hash(i,22)*8,s=1.5+hash(i,23)*3;e(x,y,s+.5,s*.7+.5,R[0]);e(x,y-.5,s,s*.6,R[2]);r(x-s*.5,y-s*.5,s*.6,.5,R[3]);}
- for(let i=0;i<160;i++){const y=180+hash(i,31)*(h-260),west=i%2===0,x=west?westEdge(y)+3+hash(i,32)*6:eastEdge(y)-3-hash(i,32)*6,s=1.5+hash(i,33)*2.5;e(x,y,s+.5,s*.7+.5,R[0]);e(x,y-.5,s,s*.6,R[2]);}
- // The robot hatches: plywood-framed holes in the back wall with a tarp across, a red bulb and BOTS sprayed above.
- for(const hh of HATCHES){const x=hh.x,y=wallBottom(x);p([[x-34,y],[x-30,y-44],[x-18,y-58],[x+18,y-58],[x+30,y-44],[x+34,y]],R[0]);p([[x-28,y],[x-25,y-40],[x-16,y-52],[x+16,y-52],[x+25,y-40],[x+28,y]],'#08090c');
+// Salvaged floors. Lino in the building, cut from a dozen kitchens and laid edge to edge, torn where the rock shows through.
+const LINO=[['#6a6456','#575c52'],['#6e6452','#5c5244'],['#62645e','#4f5458'],['#6a5e50','#58604c']];
+function lino(g,f){const {r}=g,S=16;
+ for(let py=f.y;py<f.y+f.h;py+=96)for(let px=f.x;px<f.x+f.w;px+=128){const [a,b]=LINO[Math.floor(hash(px,py)*LINO.length)],pw=Math.min(128,f.x+f.w-px),ph=Math.min(96,f.y+f.h-py);
+  for(let j=0;j*S<ph;j++)for(let i=0;i*S<pw;i++){const tx=px+i*S,ty=py+j*S,tw=Math.min(S,px+pw-tx),th=Math.min(S,py+ph-ty),h=hash(tx,ty);if(h>.985)continue;r(tx,ty,tw,th,(i+j)%2?a:b);if(h>.93)r(tx+1,ty+1,tw-2,th-2,(i+j)%2?b:a);r(tx,ty,tw,.5,'#00000022');}
+  // A seam where one kitchen's floor meets the next, and scuffs where people walk.
+  r(px,py,pw,1,'#2a2622');r(px,py,1,ph,'#2a2622');for(let k=0;k<5;k++)r(px+hash(k,px)*pw,py+hash(py,k)*ph,6+hash(k,py)*16,.5,'#2e2a2488');}}
+function ply(g,f){const {r}=g;for(let x=f.x;x<f.x+f.w;x+=64)for(let y=f.y;y<f.y+f.h;y+=48){const ww=Math.min(64,f.x+f.w-x),hh=Math.min(48,f.y+f.h-y),tone=hash(x,y);r(x,y,ww,hh,'#1c1915');r(x+.5,y+.5,ww-1,hh-1,tone>.6?'#5d4c38':tone>.3?'#56462f':'#4f402c');
+  for(let k=0;k<4;k++){r(x+2+hash(x+k,y)*(ww-8),y+3+hash(y,x+k)*(hh-6),4+hash(k,x)*10,.5,'#4a3b28');}for(const [cx,cy] of [[x+2,y+2],[x+ww-2.5,y+2],[x+2,y+hh-2.5],[x+ww-2.5,y+hh-2.5]])r(cx,cy,.5,.5,'#8a8c8e');}}
+function rug(g,x,y,w,h,c0,c1,c2){const {r}=g;r(x,y,w,h,'#2a1716');r(x+1,y+1,w-2,h-2,c0);r(x+5,y+5,w-10,h-10,c1);r(x+9,y+9,w-18,h-18,c0);for(let k=0;k*14<w-30;k++){r(x+16+k*14,y+h/2-3,6,6,c2);r(x+18+k*14,y+h/2-1,2,2,'#2e3a52');}for(let k=0;k<w;k+=3){r(x+k,y+h,1,2,'#8a7a5a');r(x+k,y-2,1,2,'#8a7a5a');}}
+// A robot hatch: a hole hacked through the rock, framed in plywood, a tarp across it, a red bulb above and BOTS sprayed beside it.
+function hatch(g,hh){const {p,r,l}=g;
+ if(hh.side==='n'){const x=hh.x,y=wallBottom(x);p([[x-34,y],[x-30,y-44],[x-18,y-58],[x+18,y-58],[x+30,y-44],[x+34,y]],R[0]);p([[x-28,y],[x-25,y-40],[x-16,y-52],[x+16,y-52],[x+25,y-40],[x+28,y]],'#08090c');
   for(const s of [-1,1]){r(x+s*30-2,y-50,4,50,EDGE);r(x+s*30-1.5,y-49.5,3,49,W[2]);r(x+s*30-1.5,y-49.5,1,49,W[3]);}r(x-33,y-52,66,4,EDGE);r(x-32.5,y-51.5,65,3,W[3]);r(x-32.5,y-49,65,.5,W[1]);
-  // Tarp strips, cut so the robots can push through.
   for(let k=0;k<6;k++){const sx=x-26+k*9;r(sx,y-48,8.5,46-hash(k,x)*4,k%2?'#3a4a3f':'#435646');r(sx,y-48,.5,44,'#26302a');r(sx+1,y-48,7,1,'#56705c');}
   r(x-5,y-58,10,4,EDGE);r(x-4,y-57.5,8,3,'#5a1f1a');r(x-2,y-57,4,2,'#9a3a2c');
   const tw=textWidth('BOTS',1.5);text(g,'BOTS',x-tw/2,y-74,1.5,'#d9792f');for(let k=0;k<3;k++)r(x-tw/2+hash(k,x)*tw,y-66+hash(x,k)*2,.5,2+hash(k,9)*3,'#d9792f');
-  // Wheel tracks fan out across the floor from each hatch.
-  for(let k=0;k<5;k++){let px=x+(k-2)*6,py=y+2,a=Math.PI/2+(k-2)*.22;for(let s=0;s<60;s++){a+=(hash(k*13+x,s)-.5)*.12;const nx=px+Math.cos(a)*4,ny=py+Math.sin(a)*4;if(s%2)r(nx,ny,1,.5,'#2c2925');r(nx+3,ny,1,.5,'#2c2925');px=nx;py=ny;}}}
- // Chalk: the arena's gate box, the lane's firing line and a few drill markers.
+  for(let k=0;k<5;k++)tracks(g,x+(k-2)*6,y+2,Math.PI/2+(k-2)*.22,k*13+x);return;}
+ // In a side wall you look along the opening: the frame's edge, the dark hole and the tarp strips hanging in it.
+ const s=hh.side==='w'?1:-1,y0=hh.y-34,y1=hh.y+34,edge=s>0?westEdge(hh.y):eastEdge(hh.y),x0=edge-s*30;
+ p([[x0-s*4,y0-6],[edge+s*4,y0-4],[edge+s*4,y1+4],[x0-s*4,y1+6]],R[0]);p([[x0,y0],[edge,y0+2],[edge,y1-2],[x0,y1]],'#08090c');
+ for(const yy of [y0,y1-3]){r(Math.min(x0,edge)-1,yy-1,Math.abs(edge-x0)+2,5,EDGE);r(Math.min(x0,edge),yy-.5,Math.abs(edge-x0),4,W[2]);r(Math.min(x0,edge),yy-.5,Math.abs(edge-x0),1,W[3]);}
+ r(edge-2,y0-1,4,y1-y0+2,EDGE);r(edge-1.5,y0,3,y1-y0,W[3]);
+ for(let k=0;k<6;k++){const sy=y0+4+k*10;r(Math.min(edge,edge-s*16),sy,16,9,k%2?'#3a4a3f':'#435646');r(Math.min(edge,edge-s*16),sy,16,.5,'#56705c');}
+ r(edge+s*6-3,y0-12,6,6,EDGE);r(edge+s*6-2,y0-11,4,4,'#5a1f1a');
+ const tw=textWidth('BOTS',1.5),tx=s>0?edge+12:edge-12-tw;text(g,'BOTS',tx,y0-14,1.5,'#d9792f');
+ for(let k=0;k<5;k++)tracks(g,edge+s*4,hh.y+(k-2)*7,s>0?(k-2)*.22:Math.PI-(k-2)*.22,k*17+hh.y);}
+function tracks(g,px,py,a,seed){for(let s=0;s<60;s++){a+=(hash(seed,s)-.5)*.12;const nx=px+Math.cos(a)*4,ny=py+Math.sin(a)*4;if(s%2){g.r(nx,ny,1,.5,'#2c2925');g.r(nx-Math.sin(a)*3,ny+Math.cos(a)*3,1,.5,'#2c2925');}px=nx;py=ny;}}
+// One piece of the chamber floor: rock, the floors laid over it, cords and old paint. Big rooms are cut into tiles so no texture is too big for a phone.
+export const GROUND_TILE=1000;
+export function groundTiles(){const out=[];for(let y=0;y<TG.h;y+=GROUND_TILE)for(let x=0;x<TG.w;x+=GROUND_TILE)out.push({x,y,w:Math.min(GROUND_TILE,TG.w-x),h:Math.min(GROUND_TILE,TG.h-y)});return out;}
+export function groundArt(c,t={x:0,y:0,w:TG.w,h:TG.h}){
+ const img=c.createImageData(t.w*2,t.h*2),d=img.data;
+ for(let y=0;y<t.h;y++)for(let x=0;x<t.w;x++){const col=groundColor(x+t.x,y+t.y);
+  for(let k=0;k<4;k++){const i=((y*2+(k>>1))*t.w*2+x*2+(k&1))*4;d[i]=col[0];d[i+1]=col[1];d[i+2]=col[2];d[i+3]=255;}}
+ c.putImageData(img,0,0);c.save();c.scale(2,2);c.translate(-t.x,-t.y);c.beginPath();c.rect(t.x,t.y,t.w,t.h);c.clip();const g=painter(c),{r,e,p,l}=g,w=TG.w,h=TG.h;
+ // Only draw what can reach this tile.
+ const near=(x,y,m=80)=>x>t.x-m&&x<t.x+t.w+m&&y>t.y-m&&y<t.y+t.h+m;
+ // Stalactites and damp streaks on the back wall, rubble along every edge.
+ if(t.y<200){for(let x=10;x<w-20;x+=14+Math.floor(hash(x,1)*22)){const y=wallTop(x),len=8+hash(x,2)*24,wd=4+hash(x,3)*6;p([[x-wd/2,y-2],[x+wd/2,y-2],[x+1,y+len]],R[0]);p([[x-wd/2+1,y-1],[x,y-1],[x+.5,y+len-3]],R[1]);}
+  for(let x=20;x<w-20;x+=34+Math.floor(hash(x,4)*40)){const y=wallTop(x)+12+hash(x,5)*20,len=wallBottom(x)-y-12;r(x,y,1,len,'#2a3335');if(hash(x,6)>.5)r(x,y+len-2,1,1,'#7f9494');}
+  for(let i=0;i<180;i++){const x=40+hash(i,21)*(w-80),y=wallBottom(x)+2+hash(i,22)*8,s=1.5+hash(i,23)*3;e(x,y,s+.5,s*.7+.5,R[0]);e(x,y-.5,s,s*.6,R[2]);r(x-s*.5,y-s*.5,s*.6,.5,R[3]);}
+  // A seep of water at the foot of the back wall, with a puddle.
+  for(const x of [640,1110,1480]){const y=wallBottom(x)+10;e(x,y,16,4,'#262a2c');e(x,y-.5,13,3,'#323a40');r(x-6,y-1.5,6,.5,'#5d7680');r(x+3,y,3,.5,'#4c626b');}}
+ for(let i=0;i<220;i++){const y=180+hash(i,31)*(h-260),west=i%2===0,x=west?westEdge(y)+3+hash(i,32)*6:eastEdge(y)-3-hash(i,32)*6,s=1.5+hash(i,33)*2.5;if(near(x,y))e(x,y,s+.5,s*.7+.5,R[0]),e(x,y-.5,s,s*.6,R[2]);}
+ // Floors laid over the rock, and a mat in front of each counter.
+ for(const f of FLOORS)if(near(f.x,f.y,f.w+f.h))(f.kind==='lino'?lino:ply)(g,f);
+ {const o=PROPS.find(o=>o.kind==='carseat');if(o)rug(g,o.x-24,o.y-14,o.w+48,o.h+34,'#5e2a26','#7a3a30','#a8763e');}
+ rug(g,BUILDING.x+460,BUILDING.y+440,160,84,'#2e3a52','#3d4f63','#a8763e');rug(g,BUILDING.x+40,BUILDING.y+30,100,60,'#3b4a38','#4b5b45','#c9a24a');
+ // Old paint all over the yard, dried and dusty, and drips across the floors inside.
+ for(let i=0;i<620;i++){const x=ARENA.x+30+hash(i,61)*(ARENA.w-60),y=ARENA.y+30+hash(i,62)*(ARENA.h-50);if(!near(x,y,10))continue;const col=fade(PAINTS[i%PAINTS.length],.35+hash(i,63)*.4);splat(g,x,y,1.2+hash(i,64)*3.5,col,i);}
+ // Scuffs and robot tire tracks looping around the building.
+ for(let k=0;k<36;k++){let px=ARENA.x+100+hash(k,71)*(ARENA.w-200),py=ARENA.y+100+hash(k,72)*(ARENA.h-200),a=hash(k,73)*6.28;if(!near(px,py,300))continue;for(let s=0;s<70;s++){a+=(hash(k,s+100)-.5)*.3;px+=Math.cos(a)*4;py+=Math.sin(a)*4;if(s%3)r(px,py,1,.5,'#2a2724');if(s%3)r(px+Math.sin(a)*4,py-Math.cos(a)*4,1,.5,'#2a2724');}}
+ for(const hh of HATCHES)if(near(hh.x,hh.y,120))hatch(g,hh);
+ // Room names stencilled on the floor, so Gadget can call out where the robots are.
+ for(const [name,x,y] of BUILDING.rooms){const tw=textWidth(name,2);text(g,name,x-tw/2,y-5,2,'#c9c3b566');}
+ // Chalk: the gate box, the lane's firing line, and the unit's name in the aisle.
  const gx=GATE.x+GATE.w/2;for(let x=gx-60;x<gx+60;x+=3)r(x,GATE.y-60,2,.5,'#a8a49a88');for(let y=GATE.y-60;y<GATE.y;y+=3){r(gx-60,y,.5,2,'#a8a49a88');r(gx+60,y,.5,2,'#a8a49a88');}
- for(let y=LANE.y0;y<LANE.y1;y+=3)r(LANE.x,y,1,2,'#c9c3b5aa');text(g,'LANE',LANE.x+8,LANE.y0+8,1.5,'#c9c3b588');
- for(let k=0;k<6;k++){const x=ARENA.x+180+hash(k,51)*(ARENA.w-360),y=ARENA.y+160+hash(k,52)*(ARENA.h-360);l(x-5,y-5,x+5,y+5,.8,'#a8a49a77');l(x-5,y+5,x+5,y-5,.8,'#a8a49a77');}
- // Old paint all over the arena floor, dried and dusty; it gets brighter near cover, where people shoot most.
- for(let i=0;i<420;i++){const x=ARENA.x+30+hash(i,61)*(ARENA.w-60),y=ARENA.y+30+hash(i,62)*(ARENA.h-50),col=fade(PAINTS[i%PAINTS.length],.35+hash(i,63)*.4);splat(g,x,y,1.2+hash(i,64)*3.5,col,i);}
- // Scuffs and robot tire tracks looping around the cover.
- for(let k=0;k<26;k++){let px=ARENA.x+100+hash(k,71)*(ARENA.w-200),py=ARENA.y+100+hash(k,72)*(ARENA.h-200),a=hash(k,73)*6.28;for(let s=0;s<70;s++){a+=(hash(k,s+100)-.5)*.3;px+=Math.cos(a)*4;py+=Math.sin(a)*4;if(s%3)r(px,py,1,.5,'#2a2724');if(s%3)r(px+Math.sin(a)*4,py-Math.cos(a)*4,1,.5,'#2a2724');}}
- // A seep of water at the foot of the back wall, with a puddle.
- for(const x of [640,1110]){const y=wallBottom(x)+10;e(x,y,16,4,'#262a2c');e(x,y-.5,13,3,'#323a40');r(x-6,y-1.5,6,.5,'#5d7680');r(x+3,y,3,.5,'#4c626b');}
- // The office floor: plywood sheets laid over the rock, screwed at the corners, worn to bare wood where people walk.
- for(let x=264;x<1220;x+=64)for(let y=1380;y<1528;y+=48){const ww=Math.min(64,1220-x),hh=Math.min(48,1528-y),tone=hash(x,y);r(x,y,ww,hh,'#1c1915');r(x+.5,y+.5,ww-1,hh-1,tone>.6?'#5d4c38':tone>.3?'#56462f':'#4f402c');
-  for(let k=0;k<4;k++){r(x+2+hash(x+k,y)*(ww-8),y+3+hash(y,x+k)*(hh-6),4+hash(k,x)*10,.5,'#4a3b28');}r(x+2,y+2,.5,.5,'#8a8c8e');r(x+ww-2.5,y+2,.5,.5,'#8a8c8e');r(x+2,y+hh-2.5,.5,.5,'#8a8c8e');r(x+ww-2.5,y+hh-2.5,.5,.5,'#8a8c8e');}
- // A rubber mat in front of Aaron's counter, and a rug under the car-seat couch.
- r(940,1466,190,40,'#16171a');r(941,1467,188,38,'#24262b');for(let x=944;x<1126;x+=6)r(x,1468,1,36,'#1d1f23');
- {const x=640,y=1546,ww=146,hh=54;r(x,y,ww,hh,'#2a1716');r(x+1,y+1,ww-2,hh-2,'#5e2a26');r(x+5,y+5,ww-10,hh-10,'#7a3a30');r(x+9,y+9,ww-18,hh-18,'#5e2a26');for(let k=0;k<9;k++){r(x+16+k*14,y+20,6,6,'#a8763e');r(x+18+k*14,y+22,2,2,'#2e3a52');}for(let k=0;k<ww;k+=3)r(x+k,y+hh,1,2,'#8a7a5a');}
+ for(let y=LANE.y0;y<LANE.y1;y+=3)r(LANE.x,y,1,2,'#c9c3b5aa');text(g,'LANE',LANE.x-textWidth('LANE',1.5)-8,LANE.y0+8,1.5,'#c9c3b588');
+ {const s='LEET AF',tw=textWidth(s,3);text(g,s,gx-tw/2,1500,3,'#b33a2a99');}
  // The stairs up to camp: concrete steps rising toward you, a rail, and the light from above.
  {const x=STAIRS.x,y=STAIRS.y;r(x-6,y,6,TG.h-y,'#4b4e52');r(x+STAIRS.w,y,6,TG.h-y,'#3b3d42');r(x-6,y,.5,TG.h-y,'#6a6d71');
   for(let k=0;k<11;k++){const sy=y+k*12,t=k/10,shade=['#3a3b3f','#424448','#4b4d52','#55575c','#5f6166','#6a6c70'][Math.min(5,Math.floor(t*6))];r(x,sy,STAIRS.w,12,shade);r(x,sy,STAIRS.w,1.5,'#7a7c80');r(x,sy+11,STAIRS.w,1,'#2a2b2f');
@@ -107,8 +137,7 @@ export function groundArt(c){
   l(x+STAIRS.w-8,y-6,x+STAIRS.w-8,TG.h,1.5,EDGE);r(x+STAIRS.w-8.5,y-6,1,TG.h-y+6,'#8a8f94');for(let k=0;k<5;k++)r(x+STAIRS.w-10,y+k*26,5,2,'#5c636b');
   r(x+STAIRS.w/2-14,y+6,28,8,'#1b1c20');text(g,'CAMP',x+STAIRS.w/2-textWidth('CAMP',1.5)/2,y+7.5,1.5,'#d9792f');}
  // Extension cords, with power strips where they split.
- CORDS.forEach((cd,i)=>cord(g,cd.pts,cd.col,i+1));
- for(const [x,y] of [[176,1530],[600,1530],[860,1530],[1240,1530],[860,1338],[1300,1336],[556,1424],[96,720],[1624,700]])powerStrip(g,x,y);
+ CORDS.forEach((cd,i)=>cord(g,cd.pts,cd.col,i+1));for(const [x,y] of STRIPS)powerStrip(g,x,y);
  c.restore();}
 // The south lip of the chamber, drawn in front of everyone. The stairs break through it.
 export const FRONT_Y=TG.h-110;
@@ -215,6 +244,7 @@ const TG_ART={
   r(w/2-27,y-1,54,15,EDGE);r(w/2-26.5,y-.5,53,14,PLY[3]);r(w/2-26.5,y-.5,53,1,PLY[4]);const tw=textWidth('ARENA',2);text(g,'ARENA',w/2-tw/2,y+2,2,'#b33a2a');
   for(let k=0;k<3;k++)splat(g,w/2-20+hash(k,4)*40,y+3+hash(4,k)*8,1.4,PAINTS[k+1],k+40,false);},
  pegboard(g,o){const {r,e}=g,w=o.w,h=o.h,z=o.z,F=h-z;r(-.5,-z-.5,w+1,h+z+1,EDGE);r(0,-z,w,h,'#2a2118');r(0,F,w,z,'#6b5236');r(0,F,w,.5,'#8a6c48');
+  if(o.label){const tw=textWidth(o.label,1.5);r(w/2-tw/2-4.5,F-14.5,tw+9,12,EDGE);r(w/2-tw/2-4,F-14,tw+8,11,'#1a1b1e');text(g,o.label,w/2-tw/2,F-11,1.5,'#f2c46a');for(const x of [w/2-tw/2-1,w/2+tw/2+1])r(x-.5,F-3,1,3,'#8a8f94');}
   for(let y=F+3;y<h-2;y+=4)for(let x=3;x<w-2;x+=4)r(x,y,.5,.5,'#3a2c1e');
   // A paintball twin of every gun, each with its hopper of paint.
   Object.entries(PAINT).forEach(([id,col],i)=>{const x=8+i*28,y=F+16,rifle=id.endsWith('ar'),len=rifle?22:15;
@@ -281,7 +311,7 @@ const TG_ART={
  whiteboard(g,o){const {e,r,l}=g,w=o.w,h=o.h,z=o.z,B='#2e4a8a',RED='#b33a2a';e(w/2,h,w/2+3,3,SHADOW);
   for(const x of [6,w-6]){const lean=x<w/2?2:-2;l(x,h,x+lean,-z+30,1.5,EDGE);l(x,h,x+lean,-z+30,.7,M[3]);}
   r(-.5,-z-.5,w+1,36,EDGE);r(.5,-z+.5,w-1,34,'#d8d6ce');r(.5,-z+.5,w-1,.5,'#f2f0e8');r(.5,-z+33,w-1,1.5,'#8a8f94');
-  text(g,'DRILL',4,-z+3,1.5,B);for(let k=0;k<3;k++){const y=-z+13+k*6;text(g,String(k+1),4,y,1,B);r(9,y+2,10+hash(k,3)*14,.6,B);r(33,y+2,6,.6,RED);}
+  text(g,'HOLDOUT',3,-z+3,1,B);for(let k=0;k<3;k++){const y=-z+13+k*6;text(g,String(k+1),4,y,1,B);r(9,y+2,10+hash(k,3)*14,.6,B);r(33,y+2,6,.6,RED);}
   r(w-17,-z+5,12,11,B);r(w-16,-z+6,10,9,'#d8d6ce');for(const x of [w-13,w-8]){l(x-1,-z+8,x+1,-z+10,.5,B);l(x+1,-z+8,x-1,-z+10,.5,B);}r(w-14,-z+13,6,.5,B);r(w-15,-z+16,1,3,B);r(w-8,-z+16,1,3,B);
   r(4,-z+31,6,1.5,RED);r(12,-z+31,6,1.5,B);},
  chair(g,o){const {e,r,l}=g,w=o.w,h=o.h,cx=w/2;e(cx,h-2,11,4,SHADOW);
@@ -323,47 +353,179 @@ const TG_ART={
  charger(g,o){const {e,r}=g,w=o.w,h=o.h;e(w/2,h,w/2+4,4,SHADOW);blk(g,0,2,w,h-2,18,OLIVE[2],OLIVE[1]);
   for(let k=0;k<2;k++){const y=-14+k*5;r(3,y,26,4,EDGE);r(3.5,y+.5,25,3,'#d6d0c2');for(let i=0;i<5;i++)r(5+i*5,y+1.5,2,1,'#3a3a3e');}
   text(g,'CHARGE',w/2-textWidth('CHARGE',1)/2,4,1,'#c9c3a0');},
+ sheetV(g,o){const {e,r}=g,w=o.w,h=o.h,z=o.z;e(w/2+2,h,w/2+6,4,SHADOW);r(-.5,-z-.5,w+1,h+z+1,EDGE);r(0,-z,w,h,M[1]);
+  // The top edges of two sheets on a 2x4 frame, seen from above, and the end of the panel facing you.
+  for(const x of [.5,w-2.5]){r(x,-z,2,h,M[3]);r(x,-z,2,.5,'#c4c9ce');}for(let y=-z+2;y<h-z-1;y+=3)r(3,y,w-6,1,M[2]);for(let y=-z+10;y<h-z;y+=40){r(3,y,w-6,3,W[2]);r(3,y,w-6,.5,W[3]);}
+  r(0,h-z,w,z,EDGE);for(let x=.5;x<w-.5;x+=3){r(x,h-z+.5,1.5,z-1,M[2]);r(x+1.5,h-z+.5,Math.min(1.5,w-.5-x-1.5),z-1,M[1]);}
+  for(let k=0;k<3;k++){const x=2+hash(k,o.y)*(w-4),y=h-z+2+hash(o.x,k)*z*.4;r(x,y,1,z*.3+hash(k,9)*z*.3,RUST);}
+  for(let k=0;k<4;k++){const y=-z+6+hash(k,o.y+1)*(h-14);r(-.5,y,1.5,4+hash(o.x,k)*6,RUST);}splat(g,w/2,h-z+10,1.8,PAINTS[Math.floor(hash(o.y,2)*5)],o.y,false);},
+ // A window: a sill of planks you can shoot over, the wall's uprights either side and a 2x4 header. Robots climb through.
+ window(g,o){const {e,r,l}=g,w=o.w,h=o.h,z=o.z,H=50;e(w/2,h,w/2+3,4,SHADOW);
+  blk(g,0,0,w,h,z,W[2],W[1]);for(let k=0;k<3;k++){r(.5,h-z+1+k*5.5,w-1,4.5,[W[2],W[3],W[2]][k]);r(.5,h-z+1+k*5.5,w-1,.5,W[4]);}r(.5,-z+.5,w-1,1,W[3]);
+  for(let k=0;k<5;k++){const x=4+hash(k,o.x)*(w-10);p3(g,x,-z+3+hash(o.x,k)*(h-6));}
+  for(const x of [0,w-4]){r(x-.5,-H-.5,5,h+H+1,EDGE);r(x,-H,4,h,W[3]);r(x,h-H,4,H,W[2]);r(x,h-H,1,H,W[3]);}
+  r(-.5,-H-.5,w+1,h+6.5,EDGE);r(0,-H,w,h,W[2]);r(0,-H,w,.5,W[4]);r(0,h-H,w,5.5,W[1]);r(0,h-H,w,.5,W[3]);
+  // A torn tarp still nailed to the header on one side.
+  const s=hash(o.x,o.y)>.5,tx=s?4:w-22;r(tx,h-H+5,18,10+hash(o.x,3)*8,'#435646');for(let k=0;k<4;k++)r(tx+k*4.5,h-H+5,.5,10+hash(k,o.x)*10,'#26302a');r(tx,h-H+5,18,1,'#56705c');
+  splat(g,w*.6,h-z+6,1.6,PAINTS[Math.floor(hash(o.x,8)*5)],o.x,false);},
+ windowV(g,o){const {e,r}=g,w=o.w,h=o.h,z=o.z,H=50;e(w/2+2,h,w/2+5,4,SHADOW);
+  blk(g,0,0,w,h,z,W[2],W[1]);for(let y=-z+2;y<h-z-1;y+=6){r(.5,y,w-1,5,W[3]);r(.5,y,w-1,.5,W[4]);}for(let k=0;k<3;k++)r(.5,h-z+1+k*5.5,w-1,4.5,[W[2],W[3],W[2]][k]);
+  for(let k=0;k<4;k++)p3(g,3+hash(k,o.y)*(w-6),-z+4+hash(o.y,k)*(h-8));
+  // The uprights either side of the opening.
+  r(-.5,-H-.5,w+1,H+4.5,EDGE);r(0,-H,w,3,W[3]);r(0,3-H,w,H-.5,W[2]);r(0,3-H,1,H-.5,W[3]);
+  r(-.5,h-3-H-.5,w+1,H+4,EDGE);r(0,h-3-H,w,3,W[3]);r(0,h-H,w,H,W[2]);r(0,h-H,1,H,W[3]);},
+ cot(g,o){const {e,r,l}=g,w=o.w,h=o.h,z=o.z;e(w/2,h,w/2+3,4,SHADOW);
+  // An army cot: X legs, two wooden rails and olive canvas, with a pillow and a folded blanket.
+  for(const x of [4,w-12]){l(x,h-z,x+8,h,1.4,EDGE);l(x+8,h-z,x,h,1.4,EDGE);l(x,h-z,x+8,h,.7,W[2]);l(x+8,h-z,x,h,.7,W[2]);}
+  r(-.5,-z-.5,w+1,h+3,EDGE);r(0,-z,w,h,OLIVE[2]);r(2,-z+3,w-4,h-6,OLIVE[1]);for(const y of [-z,h-z-2]){r(0,y,w,2,W[2]);r(0,y,w,.5,W[3]);}r(0,h-z,w,2,OLIVE[1]);
+  r(3,-z+3,14,h-6,'#b5ad9c');r(3,-z+3,14,1,'#d6cfbf');r(4,h-z-4,12,1,'#8a8270');
+  const c=hash(o.x,o.y)>.5?['#5a2e2a','#7a3a30']:['#33414f','#4f6479'];r(w-26,-z+1.5,22,h-3,c[0]);for(let y=-z+3;y<h-z-2;y+=4)r(w-26,y,22,1,c[1]);r(w-26,h-z-2,22,2,'#1a1714');},
+ shelf(g,o){const {e,r}=g,w=o.w,h=o.h,z=o.z,F=h-z;e(w/2,h,w/2+5,5,SHADOW);
+  // Wire shelving from a supermarket stockroom, loaded with what LEET AF could carry.
+  r(-.5,-z-.5,w+1,h+1,EDGE);r(.5,-z+.5,w-1,h-1,'#1c1d21');for(let x=2;x<w-1;x+=3)r(x,-z+1,.5,h-2,M[2]);
+  r(-.5,F-.5,w+1,z+.5,EDGE);r(0,F,w,z,'#121316');for(const x of [0,w-2.5]){r(x,F,2.5,z,M[3]);r(x+.5,F,.5,z,'#c4c9ce');}
+  const rows=[F+1,F+20,F+40,h-3];for(const y of rows){r(0,y,w,1.5,M[3]);r(0,y+1.5,w,.5,M[1]);}
+  for(let j=0;j<3;j++){let x=4;const y=rows[j+1];while(x<w-10){const kind=Math.floor(hash(x+o.x,j+o.y)*5),k=hash(j,x);
+   if(kind===0){for(let i=0;i<3;i++){r(x+i*5,y-7,4,7,EDGE);r(x+i*5+.5,y-6.5,3,6,['#b33a2a','#c9a23a','#3f6a3a'][(i+j)%3]);r(x+i*5+.5,y-6.5,3,1,'#c4c9ce');}x+=17;}
+   else if(kind===1){const bw=12+k*8,bh=9+k*6;r(x,y-bh,bw,bh,EDGE);r(x+.5,y-bh+.5,bw-1,bh-1,'#8a7258');r(x+.5,y-bh+.5,bw-1,1,'#a88e6c');r(x+bw/2-.5,y-bh+.5,1,bh-1,'#c9b9a0');x+=bw+2;}
+   else if(kind===2){r(x,y-13,9,13,EDGE);r(x+.5,y-12.5,8,12,'#d6d0c2');r(x+2.5,y-15,4,2.5,EDGE);r(x+3,y-14.5,3,2,'#3f8fe0');r(x+.5,y-8,8,3,'#3f8fe0');x+=11;}
+   else if(kind===3){r(x,y-9,14,9,EDGE);r(x+.5,y-8.5,13,8,'#e8e0d1');r(x+5.5,y-7.5,3,6,'#c0392b');r(x+4,y-6,6,3,'#c0392b');x+=16;}
+   else{e(x+7,y-5,7,5,EDGE);e(x+7,y-5.3,6.3,4.4,'#435646');e(x+7,y-6,4,2.4,'#56705c');x+=16;}}}},
+ table(g,o){const {e,r,l}=g,w=o.w,h=o.h,z=o.z,T=z;e(w/2,h,w/2+5,5,SHADOW);
+  // A door on two crates, with whatever was being done when the robots came.
+  for(const x of [4,w-26]){r(x-.5,h-T,23,T,EDGE);r(x,h-T,22,T-.5,OLIVE[1]);r(x,h-T,22,.5,OLIVE[2]);r(x+2,h-T+4,18,.5,OLIVE[3]);}
+  r(-.5,-T-.5,w+1,h+4,EDGE);const [c0,c1,c2]=DOORS[Math.floor(hash(o.x,o.y)*DOORS.length)];r(.5,-T+.5,w-1,h-1,c1);r(4,-T+4,w-8,h-8,c2);r(6,-T+6,w-12,h-12,c1);r(.5,h-T,w-1,3,c0);r(.5,h-T+2.5,w-1,.5,'#1a1714');
+  const kind=Math.floor(hash(o.y,o.x)*3);
+  if(kind===0){// Cards, mugs and a lantern.
+   for(let k=0;k<6;k++){const x=16+hash(k,o.x)*40,y=-T+6+hash(o.x,k)*(h-14);r(x,y,4,5.5,EDGE);r(x+.5,y+.5,3,4.5,'#e8e0d1');r(x+1,y+1.5,1,1,k%2?'#b33a2a':'#1c1d22');}
+   for(const x of [w-20,w-30]){r(x,-T+8,5,6,EDGE);r(x+.5,-T+8.5,4,5,'#d6cfbf');r(x+5,-T+9.5,1,2.5,EDGE);}
+   r(w-14,-T-6,8,12,EDGE);r(w-13.5,-T-5.5,7,11,'#3a3d44');r(w-12.5,-T-3.5,5,6,'#f2c46a');r(w-11.5,-T-2.5,2,3,'#fff0c0');}
+  else if(kind===1){// A map of the county, pinned flat, with red marks.
+   r(10,-T+4,46,h-8,EDGE);r(10.5,-T+4.5,45,h-9,'#c9bfa0');for(let k=0;k<4;k++)l(12,-T+8+k*5,54,-T+6+k*6,.5,'#7a9a7a');l(20,-T+5,30,-T+h-5,.5,'#3a6a9a');for(let k=0;k<5;k++){const x=14+hash(k,3)*38,y=-T+7+hash(3,k)*(h-14);r(x,y,1.5,1.5,'#b33a2a');}
+   r(62,-T+6,12,8,EDGE);r(62.5,-T+6.5,11,7,'#2a2c31');r(64,-T+8,4,1,'#c0392b');}
+  else{// A robot arm half built, with tools.
+   e(30,-T+12,14,6,EDGE);e(30,-T+11.5,13,5.3,'#b5ad9c');l(42,-T+12,62,-T+6,1.6,EDGE);l(42,-T+12,62,-T+6,.8,W[3]);r(60,-T+3,6,6,EDGE);r(60.5,-T+3.5,5,5,'#c9a24a');
+   for(const [x,y] of [[12,-T+18],[20,-T+20]]){e(x,y,3,3,EDGE);e(x,y,2.2,2.2,'#1f2024');}l(66,-T+16,76,-T+20,1,'#c9622a');r(70,-T+8,6,2,'#8a8f94');}},
+ // Gadget's parts counter: a slab across two crates, bins of sorted parts on the shelf, and the chit tin on top.
+ partscounter(g,o){const {e,r,l}=g,w=o.w,h=o.h,top=28;e(w/2,h,w/2+6,6,SHADOW);
+  r(-.5,-top-.5,w+1,h+4,EDGE);r(.5,-top+.5,w-1,h-1,'#8f8b7f');r(.5,-top+.5,w-1,.5,'#b3afa2');for(let k=0;k<5;k++)r(4+hash(k,7)*(w-30),-top+3+hash(7,k)*(h-6),12+hash(k,8)*14,.5,'#7d7a70');
+  r(.5,h-top,w-1,3,'#7d7a70');r(.5,h-top+2.5,w-1,.5,'#3a3630');const F=h-top+3;r(56,F,w-112,top-3.5,'#14120f');r(60,F+10,w-120,1.5,'#3a3630');
+  // Bins: wheels, batteries, sheet scraps, broom heads.
+  for(let k=0;k<4;k++){const x=60+k*16;r(x,F+3,14,7,EDGE);r(x+.5,F+3.5,13,6,['#3a5a8a','#b33a2a','#c9a23a','#3f6a3a'][k]);r(x+.5,F+3.5,13,1,'#ffffff44');}
+  for(let k=0;k<4;k++){const x=62+k*16;if(k===0){e(x+3,F+3,2,2,'#1f2024');e(x+8,F+3,2,2,'#1f2024');}else if(k===1){r(x+1,F+1,4,3,'#2a2c31');r(x+6,F+1,4,3,'#2a2c31');}else if(k===2){r(x,F+1,10,2,'#46607c');}else{r(x+1,F,8,3,'#a0803a');}}
+  for(const x of [6,w-50]){r(x-.5,F,45,top-3.5,EDGE);r(x,F,44,top-4,OLIVE[1]);r(x,F,44,.5,OLIVE[2]);r(x+2,F+3,40,.5,OLIVE[3]);const s=x<w/2?'PARTS':'CHITS';text(g,s,x+22-textWidth(s,1.5)/2,F+9,1.5,'#c9c3a0');r(x+2,F+5,4,1.5,'#1a1b1e');r(x+38,F+5,4,1.5,'#1a1b1e');}
+  // On top: a bathroom scale, the chit tin and a roll of tickets, a bell, a clipboard and a robot head with its eyes crossed out.
+  r(10,-22,22,14,EDGE);r(10.5,-21.5,21,13,'#d6d0c2');r(14,-19,14,5,'#2a2c31');r(16,-18,10,3,'#9fe0d8');r(20,-18,.5,3,'#b33a2a');
+  r(42,-20,26,12,EDGE);r(42.5,-19.5,25,11,'#5c636b');r(42.5,-19.5,25,1,'#8a8f94');for(let k=0;k<6;k++){r(45+k*3.5,-17,3,6,'#e07a2c');r(45+k*3.5,-17,3,.5,'#f2c46a');}e(80,-12,6,3,EDGE);e(80,-12.5,5.3,2.4,'#e07a2c');e(80,-12.5,2,1,'#c4c9ce');
+  e(100,-12,5,2.5,EDGE);e(100,-14,3.5,3,EDGE);e(100,-14.3,3,2.5,'#c9a24a');r(99.5,-18,1,2,EDGE);
+  r(114,-22,14,16,EDGE);r(114.5,-21.5,13,15,'#d6cfbf');r(118,-23,6,2,'#8a8f94');for(let k=0;k<5;k++)r(116,-18+k*2.4,8+hash(k,2)*2,.5,k%2?'#b33a2a':'#6a6f78');
+  e(150,-12,9,7,EDGE);e(150,-12.3,8.3,6.3,'#b5ad9c');e(148,-14,5,3,'#d6cfbf');for(const x of [147,153]){l(x-1.2,-13.7,x+1.2,-11.3,.6,'#1c1d22');l(x-1.2,-11.3,x+1.2,-13.7,.6,'#1c1d22');}r(146,-8,8,.5,'#1c1d22');l(156,-16,160,-26,.6,EDGE);e(160,-26.5,1.2,1.2,'#5a1f1a');},
+ // The gate: a chain-link panel on a pipe frame, padlocked while a Holdout runs.
+ gatedoor(g,o){const {e,r,l}=g,w=o.w,h=o.h,z=o.z,F=h-z;e(w/2,h,w/2+2,3,SHADOW);
+  r(-.5,-z-.5,w+1,3,EDGE);r(0,-z,w,2,M[3]);r(0,-z,w,.5,'#c4c9ce');
+  for(const x of [0,w/2-1.5,w-3]){r(x-.5,F-.5,4,z+1,EDGE);r(x,F,3,z,M[2]);r(x,F,1,z,'#c4c9ce');}for(const y of [F,F+z/2,h-3]){r(0,y-.5,w,3,EDGE);r(0,y,w,2,M[2]);r(0,y,w,.5,'#c4c9ce');}
+  for(let k=-z;k<w;k+=4){l(Math.max(0,k),F+Math.max(0,-k),Math.min(w,k+z),F+Math.min(z,w-k),.5,'#9aa0a688');l(Math.min(w,k+z),F+Math.max(0,k+z-w),Math.max(0,k),F+Math.min(z,z+k),.5,'#7a808688');}
+  r(w/2-4,F+z/2+1,8,7,EDGE);r(w/2-3.5,F+z/2+1.5,7,6,'#c9a24a');r(w/2-2,F+z/2-2,4,3.5,EDGE);r(w/2-.5,F+z/2+3,1,2,'#3a3a3e');
+  r(12,F+6,20,10,'#e8e0d1');r(12,F+6,20,2,'#b33a2a');text(g,'HOT',14,F+9,1.5,'#b33a2a');},
  crate(g,o){const {e,r}=g,w=o.w,h=o.h,z=o.z;e(w/2+3,h,w/2+5,5,SHADOW);blk(g,0,0,w,h,z,OLIVE[2],OLIVE[1]);
   r(.5,-z+.5,w-1,1,OLIVE[3]);for(let x=w/3;x<w-2;x+=w/3)r(x,-z+1,.5,h-2,OLIVE[0]);r(2,h-z+2,w-4,.5,OLIVE[3]);r(2,h-3,w-4,.5,OLIVE[0]);for(const x of [3,w-6])r(x,h-z+3,3,z-6,OLIVE[0]);
   const s=hash(o.x,o.y)>.5?'LEET':'AMMO';if(z>=20)text(g,s,w/2-textWidth(s,1.5)/2,h-z/2-3.5,1.5,'#c9c3a0');splat(g,w*.3,h-z+5,1.8,PAINTS[Math.floor(hash(o.y,o.x)*5)],o.x+1,false);},
  drum(g,o){const {e,r}=g,cols=hash(o.x,o.y)>.5?['#2a3a5a','#34496e','#435b84']:['#5a2a24','#6e342c','#84443a'];e(14,16,16,5,SHADOW);r(1,-27,24,40,EDGE);e(13,13,12,4,EDGE);r(2,-27,22,40,cols[1]);e(13,13,11,3.2,cols[1]);r(2,-27,5,40,cols[2]);r(19,-27,5,40,cols[0]);
   for(const y of [-16,-2])r(1.5,y,23,1.5,cols[0]);e(13,-27,12,4.5,EDGE);e(13,-27,11,3.6,cols[2]);e(16,-27.5,2,1,EDGE);
   for(let k=0;k<4;k++)r(3+hash(k,o.x)*18,-24+hash(o.y,k)*30,1.5,2+hash(k,3)*5,RUST);r(9,-10,8,6,'#c9a23a');r(10,-9,6,4,'#1c1d21');splat(g,6+hash(o.x,2)*14,-12+hash(2,o.y)*16,2,PAINTS[Math.floor(hash(o.x,5)*5)],o.x,false);}};
+// Broken glass left on a sill.
+function p3(g,x,y){g.p([[x,y],[x+2.5,y-.5],[x+1,y+1.5]],'#9fc4cc');g.r(x+.5,y,.5,.5,'#e0f0f4');}
 // A lit laptop also gets a sticker or two.
 function p8(g,x,y,sw,sh){g.r(x+sw-5,y+sh+1,4,2,'#2a2c31');g.r(x-2,y+sh+1.5,sw+4,3,EDGE);g.r(x-1.5,y+sh+2,sw+3,2,'#3a3d44');}
 export function propArt(c,o){if(!TG_ART[o.kind])return campPropArt(c,o);c.save();c.scale(2,2);c.translate(PROP_PAD,o.z+PROP_PAD);TG_ART[o.kind](painter(c),o);c.restore();}
 export {PROP_PAD};
 // Gadget's robots: a bedsheet over a stuffed pillow, broom-handle arms, a car battery and four shopping-cart wheels.
-export const BOT={w:56,h:56,ax:28,ay:52,frames:3,variants:4,led:[9,-48.5]};
+// The newer ones copy what is out there. One sheet holds them all: a row per robot, and four frames a row (rolling, rolling, down, and the tell).
+export const BOT={w:56,h:56,ax:28,ay:52,frames:4,variants:4,rows:7,led:[9,-48.5]};
+export const BOT_ROW={shambler:0,runner:4,husk:5,spitter:6};
+export const BRUTE={w:96,h:88,ax:48,ay:82,frames:4};
 const SHEETS=[{c:['#24303f','#33435a','#46607c','#6582a0'],dot:'#c9b9a0',arms:['broom','broom']},{c:['#3f2430','#5a3345','#7a4a60','#9c6a82'],dot:'#e2cfc6',arms:['broom','plunger']},
  {c:['#24392f','#33524a','#477368','#64968a'],dot:'#c9d6c0',arms:['mop','broom']},{c:['#3f3624','#5a4d33','#7a6a4a','#9c8a64'],dot:'#2e2418',arms:['plunger','mop']}];
-function drawBot(g,cx,gy,v,frame){const {e,r,l,p}=g,S=SHEETS[v%4];if(frame===2)return downBot(g,cx,gy,S);const b=frame===1?-.5:0,up=frame===1?-1:0;
+const KIND_SHEET={runner:{c:['#4a2a14','#6e3e1c','#9a5a28','#c07a3a'],dot:'#f2c46a',arms:['noodle','noodle']},husk:{c:['#2e2e2a','#45443c','#5e5c50','#7a786a'],dot:'#9a968a',arms:['broom','broom']},
+ spitter:{c:['#22341e','#2f4a2a','#41663a','#5a8a50'],dot:'#c9e07a',arms:['mop','plunger']}};
+export const SPIT='#8fd14f';
+function drawBot(g,cx,gy,v,frame,kind='shambler'){const {e,r,l,p}=g,S=KIND_SHEET[kind]||SHEETS[v%4];if(frame===2)return downBot(g,cx,gy,S,kind);
+ const tell=frame===3,b=frame===1?-.5:tell?-1:0,up=frame===1?-1:0;
  e(cx,gy-1,14,4,SHADOW);
- r(cx-12,gy-9,24,4,EDGE);r(cx-11.5,gy-8.5,23,3,W[2]);r(cx-11.5,gy-8.5,23,.5,W[3]);
- for(const s of [-1,1]){const x=cx+s*9;r(x-1.5,gy-6,3,2,'#8a9096');r(x-1.5,gy-5,3,5,EDGE);r(x-1,gy-4.5,2,4,'#1f2024');r(x-.5,frame===1?gy-2.5:gy-4,1,1.5,'#8a9096');}
- const body=[[cx-10,gy-9],[cx-11,gy-16],[cx-10,gy-26+b],[cx-7,gy-31+b],[cx+7,gy-31+b],[cx+10,gy-26+b],[cx+11,gy-16],[cx+10,gy-9],[cx+7,gy-7],[cx+4,gy-9.5],[cx+1,gy-7],[cx-2,gy-9.5],[cx-5,gy-7],[cx-8,gy-9.5]];
+ // The chassis: a cart's bottom rack for most, a toy car for a runner.
+ if(kind==='runner'){r(cx-14,gy-10,28,6,EDGE);r(cx-13.5,gy-9.5,27,5,'#b33a2a');r(cx-13.5,gy-9.5,27,1,'#d9604a');r(cx-6,gy-12,12,2.5,EDGE);r(cx-5.5,gy-11.5,11,1.5,'#2a2c31');
+  for(const s of [-1,1]){const x=cx+s*9;e(x,gy-3,4.5,4.5,EDGE);e(x,gy-3,3.6,3.6,'#1f2024');e(x,gy-3,1.4,1.4,frame===1?'#c4c9ce':'#8a9096');}}
+ else{r(cx-12,gy-9,24,4,EDGE);r(cx-11.5,gy-8.5,23,3,W[2]);r(cx-11.5,gy-8.5,23,.5,W[3]);
+  for(const s of [-1,1]){const x=cx+s*9;r(x-1.5,gy-6,3,2,'#8a9096');r(x-1.5,gy-5,3,5,EDGE);r(x-1,gy-4.5,2,4,'#1f2024');r(x-.5,frame===1?gy-2.5:gy-4,1,1.5,'#8a9096');}}
+ const lean=kind==='runner'?3:0,body=[[cx-10,gy-9],[cx-11,gy-16],[cx-10+lean,gy-26+b],[cx-7+lean,gy-31+b],[cx+7+lean,gy-31+b],[cx+10+lean,gy-26+b],[cx+11,gy-16],[cx+10,gy-9],[cx+7,gy-7],[cx+4,gy-9.5],[cx+1,gy-7],[cx-2,gy-9.5],[cx-5,gy-7],[cx-8,gy-9.5]];
+ // A spitter carries its paint on its back: a jug of green and a hose to the launcher.
+ if(kind==='spitter'){r(cx-16,gy-30+b,9,16,EDGE);r(cx-15.5,gy-29.5+b,8,15,'#d6d0c2');r(cx-15.5,gy-24+b,8,8,SPIT);r(cx-14,gy-32+b,4,2.5,EDGE);l(cx-11,gy-30+b,cx-4,gy-36+b,.8,'#2a2c31');}
  p(body.map(([x,y])=>[x+(x<cx?-.6:.6),y+(y<gy-20?-.6:.6)]),EDGE);p(body,S.c[2]);
- p([[cx-10,gy-26+b],[cx-7,gy-31+b],[cx-3,gy-31+b],[cx-6,gy-9]],S.c[3]);p([[cx+5,gy-31+b],[cx+7,gy-31+b],[cx+10,gy-26+b],[cx+11,gy-16],[cx+10,gy-9],[cx+6,gy-8]],S.c[1]);
- for(const x of [-4,2,7])r(cx+x,gy-24+b,.5,13,S.c[1]);for(let k=0;k<8;k++)r(cx-8+hash(k,v)*15,gy-28+b+hash(v,k)*17,1,1,S.dot);
+ p([[cx-10+lean,gy-26+b],[cx-7+lean,gy-31+b],[cx-3+lean,gy-31+b],[cx-6,gy-9]],S.c[3]);p([[cx+5+lean,gy-31+b],[cx+7+lean,gy-31+b],[cx+10+lean,gy-26+b],[cx+11,gy-16],[cx+10,gy-9],[cx+6,gy-8]],S.c[1]);
+ for(const x of [-4,2,7])r(cx+x+lean*.5,gy-24+b,.5,13,S.c[1]);for(let k=0;k<8;k++)r(cx-8+hash(k,v)*15,gy-28+b+hash(v,k)*17,1,1,S.dot);
  r(cx-11,gy-18,22,2.5,EDGE);r(cx-10.5,gy-17.5,21,1.5,'#8d9196');r(cx-10.5,gy-17.5,21,.5,'#b5b9bd');
- S.arms.forEach((kind,i)=>{const s=i?1:-1,sx=cx+s*9,sy=gy-25+b,hx=cx+s*20,hy=gy-30+up;l(sx,sy,hx,hy,2,EDGE);l(sx,sy,hx,hy,1,W[3]);
-  if(kind==='broom'){r(hx-3,hy-6,6,7,EDGE);r(hx-2.5,hy-5.5,5,3,'#a0803a');r(hx-2.5,hy-2.5,5,3,'#c9a24a');r(hx-3,hy-3,6,.5,'#c0392b');}
-  else if(kind==='plunger'){e(hx+s,hy-1,3.5,3,EDGE);e(hx+s,hy-1.3,2.8,2.3,'#b33a2a');r(hx+s-1.5,hy-3,2,.5,'#d9604a');}
-  else for(let k=0;k<5;k++)l(hx,hy,hx+s*(1+k*.6),hy+5+k%2,.8,k%2?'#8d9196':'#b5b9bd');});
- const hy=gy-37+b;e(cx,hy,8.5,6.5,EDGE);e(cx,hy-.3,7.8,5.8,'#b5ad9c');e(cx-1.5,hy-2,5,3,'#d6cfbf');for(const s of [-1,1])p([[cx+s*7,hy-5],[cx+s*9.5,hy-6.5],[cx+s*8.5,hy-3.5]],'#b5ad9c');
- for(const x of [cx-3,cx+3]){l(x-1.2,hy-1.7,x+1.2,hy+.7,.6,'#1c1d22');l(x-1.2,hy+.7,x+1.2,hy-1.7,.6,'#1c1d22');}
- for(let k=0;k<5;k++)r(cx-3.5+k*1.75,hy+2.5+(k%2?.5:0),1.25,.5,'#1c1d22');r(cx-4,hy+3,8,.5,'#1c1d22');r(cx-6,hy+5,12,1.5,'#8d9196');
- r(cx-5.5,gy-15,11,7,EDGE);r(cx-5,gy-14.5,10,6,'#2a2c31');r(cx-5,gy-14.5,10,.5,'#44464c');r(cx-4,gy-16,2,1.5,'#c0392b');r(cx+2,gy-16,2,1.5,'#141416');r(cx-3,gy-11.5,6,1.5,'#c9a23a');
+ // Arms: up high when a shambler or a husk is about to grab you.
+ const grab=tell&&(kind==='shambler'||kind==='husk');
+ S.arms.forEach((a,i)=>{const s=i?1:-1,sx=cx+s*9+lean,sy=gy-25+b,hx=kind==='runner'?cx+s*8-12:grab?cx+s*15:cx+s*20,hy=kind==='runner'?gy-22+up:grab?gy-46:gy-30+up;l(sx,sy,hx,hy,2,EDGE);l(sx,sy,hx,hy,1,a==='noodle'?'#e0457b':W[3]);
+  if(a==='broom'){r(hx-3,hy-6,6,7,EDGE);r(hx-2.5,hy-5.5,5,3,'#a0803a');r(hx-2.5,hy-2.5,5,3,'#c9a24a');r(hx-3,hy-3,6,.5,'#c0392b');}
+  else if(a==='plunger'){e(hx+s,hy-1,3.5,3,EDGE);e(hx+s,hy-1.3,2.8,2.3,'#b33a2a');r(hx+s-1.5,hy-3,2,.5,'#d9604a');}
+  else if(a==='mop')for(let k=0;k<5;k++)l(hx,hy,hx+s*(1+k*.6),hy+5+k%2,.8,k%2?'#8d9196':'#b5b9bd');});
+ // The head: a pillowcase face, Xs for eyes and a stitched mouth.
+ const jerk=tell&&kind==='spitter'?-3:0,hx=cx+lean+(kind==='runner'?3:0)+jerk,hy=gy-37+b+(tell&&kind==='runner'?-2:0)+(kind==='runner'?3:0);
+ e(hx,hy,8.5,6.5,EDGE);e(hx,hy-.3,7.8,5.8,'#b5ad9c');e(hx-1.5,hy-2,5,3,'#d6cfbf');for(const s of [-1,1])p([[hx+s*7,hy-5],[hx+s*9.5,hy-6.5],[hx+s*8.5,hy-3.5]],'#b5ad9c');
+ for(const x of [hx-3,hx+3]){l(x-1.2,hy-1.7,x+1.2,hy+.7,.6,'#1c1d22');l(x-1.2,hy+.7,x+1.2,hy-1.7,.6,'#1c1d22');}
+ if(tell&&kind==='runner'){e(hx,hy+3,3.5,2.6,EDGE);e(hx,hy+3,2.8,2,'#5a1f1a');r(hx-1.5,hy+2,3,.5,'#d6cfbf');for(const s of [-1,1])for(let k=0;k<3;k++)l(hx+s*(10+k*2.5),hy-6+k*4,hx+s*(13+k*2.5),hy-7+k*4,.6,'#f2c46a');}
+ else{for(let k=0;k<5;k++)r(hx-3.5+k*1.75,hy+2.5+(k%2?.5:0),1.25,.5,'#1c1d22');r(hx-4,hy+3,8,.5,'#1c1d22');}r(hx-6,hy+5,12,1.5,'#8d9196');
+ // A husk wears a stock pot for a helmet and a trash-can lid strapped on as a chest plate.
+ if(kind==='husk'){r(hx-9,hy-10,18,7,EDGE);r(hx-8.5,hy-9.5,17,6,'#8a8f94');r(hx-8.5,hy-9.5,17,1,'#c4c9ce');r(hx-8.5,hy-4.5,17,1,'#5c636b');r(hx-11,hy-8,2.5,2,EDGE);r(hx+8.5,hy-8,2.5,2,EDGE);
+  e(cx+2,gy-19+b,9,8,EDGE);e(cx+2,gy-19.3+b,8.3,7.3,'#7a808a');ring(g,cx+2,gy-19.3+b,6,5.2,'#9aa0a6','#7a808a');ring(g,cx+2,gy-19.3+b,3.5,3,'#9aa0a6','#7a808a');e(cx+2,gy-20+b,1.5,1.2,'#c4c9ce');r(cx-6,gy-26+b,16,1,'#2a2420');}
+ // A spitter's launcher: a length of drain pipe on its shoulder, glowing green just before it fires.
+ if(kind==='spitter'){const tx=cx+6,ty=gy-31+b;l(tx,ty,tx+14,ty-6,3.4,EDGE);l(tx,ty,tx+14,ty-6,2.2,'#c4c9ce');e(tx+14,ty-6,2,2,EDGE);e(tx+14,ty-6,1.3,1.3,tell?'#d8ff9a':'#2a3a22');
+  if(tell){e(tx+15,ty-7,4.5,4.5,'#8fd14f55');e(hx,hy+3,3,2,'#8fd14f');}}
+ if(kind==='runner'){r(cx-5.5,gy-15,11,6,EDGE);r(cx-5,gy-14.5,10,5,'#2a2c31');}
+ else{r(cx-5.5,gy-15,11,7,EDGE);r(cx-5,gy-14.5,10,6,'#2a2c31');r(cx-5,gy-14.5,10,.5,'#44464c');r(cx-4,gy-16,2,1.5,'#c0392b');r(cx+2,gy-16,2,1.5,'#141416');r(cx-3,gy-11.5,6,1.5,'#c9a23a');}
  l(cx+6,gy-30+b,cx+9,gy-48+b,.6,EDGE);e(cx+9,gy-48.5+b,1.2,1.2,'#5a1f1a');}
-function downBot(g,cx,gy,S){const {e,r,l}=g;e(cx,gy-2,20,5,SHADOW);
- r(cx+2,gy-12,20,4,EDGE);r(cx+2.5,gy-11.5,19,3,W[2]);for(const x of [cx+5,cx+17]){r(x-1.5,gy-17,3,5,EDGE);r(x-1,gy-16.5,2,4,'#1f2024');}
+function downBot(g,cx,gy,S,kind){const {e,r,l}=g;e(cx,gy-2,20,5,SHADOW);
+ r(cx+2,gy-12,20,4,EDGE);r(cx+2.5,gy-11.5,19,3,kind==='runner'?'#b33a2a':W[2]);for(const x of [cx+5,cx+17]){r(x-1.5,gy-17,3,5,EDGE);r(x-1,gy-16.5,2,4,'#1f2024');}
  e(cx-2,gy-6,15,6.5,EDGE);e(cx-2,gy-6.5,14,5.8,S.c[2]);e(cx-5,gy-8,8,3,S.c[3]);e(cx+3,gy-5,7,3,S.c[1]);for(let k=0;k<5;k++)r(cx-12+hash(k,4)*20,gy-10+hash(4,k)*6,1,1,S.dot);
  const hx=cx-19,hy=gy-5;e(hx,hy,6.5,5,EDGE);e(hx,hy-.3,5.8,4.4,'#b5ad9c');for(const x of [hx-2,hx+2]){l(x-1,hy-1.5,x+1,hy+.5,.6,'#1c1d22');l(x-1,hy+.5,x+1,hy-1.5,.6,'#1c1d22');}
- l(cx+4,gy-2,cx+24,gy-6,1.6,EDGE);l(cx+4,gy-2,cx+24,gy-6,.8,W[3]);r(cx+22,gy-10,5,6,EDGE);r(cx+22.5,gy-9.5,4,5,'#c9a24a');}
-export function botArt(c){c.save();c.scale(2,2);const g=painter(c);for(let v=0;v<BOT.variants;v++)for(let f=0;f<BOT.frames;f++){c.save();c.translate(f*BOT.w,v*BOT.h);drawBot(g,BOT.ax,BOT.ay,v,f);c.restore();}c.restore();}
+ l(cx+4,gy-2,cx+24,gy-6,1.6,EDGE);l(cx+4,gy-2,cx+24,gy-6,.8,W[3]);r(cx+22,gy-10,5,6,EDGE);r(cx+22.5,gy-9.5,4,5,'#c9a24a');
+ if(kind==='husk'){e(cx-22,gy+1,7,3.5,EDGE);e(cx-22,gy+.7,6.3,2.9,'#8a8f94');e(cx-22,gy,4,1.6,'#5c636b');}
+ if(kind==='spitter'){e(cx+10,gy,9,3,'#5a8a3a');e(cx+10,gy-.4,7,2.2,SPIT);}}
+// The brute: a laundry cart on four big casters, a stuffed mattress for a body, punching bags for arms and a bucket for a head.
+// Its front is a folded mattress strapped on; its back, where the battery sits, is bare. Unflipped, it faces right.
+function drawBrute(g,cx,gy,frame){const {e,r,l,p}=g,b=frame===1?-1:0,wind=frame===3,low=wind?4:0;
+ if(frame===2){e(cx,gy-3,40,8,SHADOW);r(cx-30,gy-20,60,14,EDGE);r(cx-29.5,gy-19.5,59,13,'#5e5c50');r(cx-29.5,gy-19.5,59,2,'#7a786a');for(let k=0;k<5;k++)r(cx-24+k*12,gy-18,1,10,'#45443c');
+  r(cx-34,gy-14,14,10,EDGE);r(cx-33.5,gy-13.5,13,9,'#2a2c31');r(cx+18,gy-26,22,18,EDGE);r(cx+18.5,gy-25.5,21,17,'#b5ad9c');for(let k=0;k<3;k++)e(cx+23+k*6,gy-17,1.2,1.2,'#8a8270');
+  for(const x of [cx-24,cx+24]){e(x,gy-24,5,5,EDGE);e(x,gy-24,4,4,'#1f2024');}e(cx-42,gy-4,8,5,EDGE);e(cx-42,gy-4.5,7,4.2,'#c9622a');return;}
+ e(cx,gy-2,34,7,SHADOW);
+ // Casters and the cart's frame.
+ for(const x of [cx-24,cx-8,cx+8,cx+24]){r(x-2,gy-12,4,4,'#8a9096');e(x,gy-4,4.5,4.5,EDGE);e(x,gy-4,3.5,3.5,'#1f2024');e(x,frame===1?gy-5:gy-3,1.2,1.2,'#8a9096');}
+ r(cx-30,gy-16,60,6,EDGE);r(cx-29.5,gy-15.5,59,5,M[2]);r(cx-29.5,gy-15.5,59,1,'#c4c9ce');for(let x=cx-28;x<cx+28;x+=4)r(x,gy-14,.5,3,M[1]);
+ // The mattress body, stitched and buttoned.
+ const top=gy-58+b+low;r(cx-26,top,52,44-low,EDGE);r(cx-25.5,top+.5,51,43-low,'#5e5c50');r(cx-25.5,top+.5,51,2,'#7a786a');r(cx-25.5,top+.5,8,43-low,'#6e6c5e');
+ for(let j=0;j<3;j++)for(let i=0;i<4;i++)e(cx-18+i*11,top+9+j*11,1.3,1,'#3a3930');for(let k=0;k<4;k++)r(cx-24+k*14,top+2,.5,40-low,'#45443c');
+ // The bare back: the battery and its leads, the place to shoot.
+ r(cx-34,top+16,12,16,EDGE);r(cx-33.5,top+16.5,11,15,'#2a2c31');r(cx-33.5,top+16.5,11,1,'#44464c');r(cx-32,top+14.5,3,2,'#c0392b');r(cx-26,top+14.5,3,2,'#141416');r(cx-32,top+24,8,2,'#c9a23a');l(cx-30,top+15,cx-22,top+8,.8,'#c0392b');
+ // The padded front: a folded mattress strapped over the face it pushes with.
+ r(cx+20,top-4,16,50-low,EDGE);r(cx+20.5,top-3.5,15,49-low,'#b5ad9c');r(cx+20.5,top-3.5,15,2,'#d6cfbf');r(cx+33,top-3.5,2.5,49-low,'#8a8270');for(let k=0;k<4;k++)e(cx+28,top+5+k*10,1.2,1.2,'#8a8270');
+ for(const y of [top+8,top+30-low]){r(cx+18,y,20,3,EDGE);r(cx+18.5,y+.5,19,2,'#3a3d44');r(cx+26,y,3,3,'#c4c9ce');}
+ // Punching-bag arms, low and swinging when it rolls, braced back when it paws the floor before a charge.
+ for(const [sx,sy,ax,ay] of wind?[[cx-16,top+16,cx-30,top+40],[cx+12,top+16,cx+30,top+44]]:[[cx-16,top+14,cx-26,top+38+b],[cx+12,top+14,cx+38,top+30-b]]){l(sx,sy,ax,ay-8,2.4,EDGE);l(sx,sy,ax,ay-8,1.2,'#8a8f94');r(ax-5,ay-10,10,14,EDGE);r(ax-4.5,ay-9.5,9,13,'#b33a2a');r(ax-4.5,ay-9.5,9,2,'#d9604a');r(ax-4.5,ay-3,9,1,'#5a1f1a');}
+ // A bucket for a head, eyes painted on; they go red when it is about to charge.
+ const hx=cx+6,hy=top-6;p([[hx-11,hy-10],[hx+11,hy-10],[hx+9,hy+6],[hx-9,hy+6]],EDGE);p([[hx-10.5,hy-9.5],[hx+10.5,hy-9.5],[hx+8.5,hy+5.5],[hx-8.5,hy+5.5]],'#c9622a');r(hx-10.5,hy-9.5,21,2,'#e07a3a');r(hx-9,hy+3,18,1,'#a54e22');
+ l(hx-11,hy-6,hx-14,hy+2,.8,'#8a8f94');l(hx+11,hy-6,hx+14,hy+2,.8,'#8a8f94');
+ for(const x of [hx-4,hx+5]){r(x-2,hy-4,4,3,EDGE);r(x-1.5,hy-3.5,3,2,wind?'#ff4a3a':'#1c1d22');}r(hx-5,hy+1,12,1,'#1c1d22');
+ if(wind)for(let k=0;k<4;k++){const x=cx-30+k*20;r(x,gy-1+(k%2),6,.8,'#8a7a5a');r(x+2,gy+1,3,.6,'#8a7a5a');}
+ l(cx-12,top,cx-16,top-18,.8,EDGE);e(cx-16,top-18.5,1.5,1.5,'#5a1f1a');}
+const ROW_KIND=['shambler','shambler','shambler','shambler','runner','husk','spitter'];
+export function botArt(c){c.save();c.scale(2,2);const g=painter(c);for(let v=0;v<BOT.rows;v++)for(let f=0;f<BOT.frames;f++){c.save();c.translate(f*BOT.w,v*BOT.h);
+  // Runners are smaller: a toy car under a cut-down sheet.
+  if(ROW_KIND[v]==='runner'){c.translate(BOT.ax,BOT.ay);c.scale(.85,.85);c.translate(-BOT.ax,-BOT.ay);}drawBot(g,BOT.ax,BOT.ay,v,f,ROW_KIND[v]);c.restore();}c.restore();}
+export function bruteArt(c){c.save();c.scale(2,2);const g=painter(c);for(let f=0;f<BRUTE.frames;f++){c.save();c.translate(f*BRUTE.w,0);drawBrute(g,BRUTE.ax,BRUTE.ay,f);c.restore();}c.restore();}
 // World positions of every blinking light: server LEDs, the hatch bulbs and the parked robots' antennas.
 export function ledSpots(){const s=prop('server'),out=SERVER_LEDS.map(([x,y],i)=>({x:s.x+x,y:s.y+y,kind:i>=5&&i<19?'port':'srv'}));
- for(const hh of HATCHES)out.push({x:hh.x,y:wallBottom(hh.x)-56,kind:'hatch'});
+ for(const hh of HATCHES)out.push(hh.side==='n'?{x:hh.x,y:wallBottom(hh.x)-56,kind:'hatch'}:{x:(hh.side==='w'?westEdge(hh.y)+6:eastEdge(hh.y)-6),y:hh.y-43,kind:'hatch'});
  for(const o of PROPS.filter(o=>o.kind==='botparked'))out.push({x:o.x+o.w/2+BOT.led[0],y:o.y+o.h-2+BOT.led[1],kind:'park'});
  const ch=prop('charger');for(let i=0;i<5;i++)out.push({x:ch.x+6+i*5,y:ch.y-12,kind:'charge'});return out;}
 export function screenRects(){const d=prop('desk');return Object.entries(DESK).filter(([k])=>k!=='T').map(([k,[x,y,w,h]])=>({x:d.x+x,y:d.y+y,w,h,kind:k}));}
