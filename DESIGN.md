@@ -438,3 +438,15 @@ On a phone held upright everything that used to sit over the game lives in the c
 - **The tutorial opening (next focus):** after the TV dies, the starter survivor (a man, not the custom character) gets up from the couch and pets his dog and cat, then the player takes over. First goal: find protection in the apartment. He owns a **Light Pistol** and a **pump-action shotgun** with an 8-shell tube; the player starts with 8/16 shells (8 in the tube, 16 in the inventory).
 - **Inventory on backpacks:** the inventory belongs to the backpack, so its size and carry limit change with the bag. Needs an inventory screen and several bag types. Decided: **grid + weight**. Items take shapes on the bag's grid (a shotgun is long, shells are small), bigger bags have bigger grids, and each bag also sets a weight limit.
 - **A Master Creator:** one place that houses every reusable asset (characters, animations, sounds, objects) so they can be browsed and reused. Today the character creator covers survivors, zombies and pets; everything else lives in code across `study/`, `companion/`, `camp/`, `grounds/` and `intro/`.
+
+## Where we are and what's next (2026-10-10)
+Bookmark set by Jaykobi before starting the Master Creator.
+
+**Done so far:** v0.30.0 phone controller with deck grime (main game). Intro "The Fall" steps 1 and 2 on the test link (`intro.html`): the VESPERA set, the channel flips, the Marrow ad, the MRN live trial, the LZ-6 queues, the BREAKING sting and tonight's anchor with the Alex Park feed. The script is the "Intro Script: The Fall" Claude Doc.
+
+**Work queue, in order:**
+1. **Master Creator (now):** a separate pixel-art asset project, kept independently of Deadlight Hollow and reusable across future games in this style. It houses characters, animations, sounds and objects; Deadlight Hollow is built from it.
+2. **Tutorial opening:** the starter survivor gets up from the couch and pets his dog and cat, then the player takes over and finds protection: the Light Pistol (bedroom nightstand, proposed) and a new pump-action shotgun (8-shell tube, start at 8/16, hall closet lockbox, proposed).
+3. **Inventory and backpacks:** grid + weight, the inventory screen, several bag types.
+4. **Intro revisions:** rename MRN to MTNN (My Time News Network) in code, slow every segment down, then steps 3 (the field crew attack and the emergency alert) and 4 (Dr. Varga and Myrphol, the power cut, the reflection, the title, skip), then put the intro in the game.
+5. **Later:** Mop the camp dog and his quest, Macy's pet makeovers, the landscape controller redesign, a trademark search on every in-world name before release.
