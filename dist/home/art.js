@@ -12,7 +12,9 @@ export function groundArt(c){c.save();c.scale(2,2);const g=painter(c),{r}=g;
  // The house's footprint is a dark slab under the walls, so nothing shows between pieces.
  r(HOUSE.x-1,HOUSE.y-1,HOUSE.w+2,HOUSE.h+2,'#141210');
  for(const rm of ROOMS)floorArt(g,{kind:rm.floor,x:rm.x,y:rm.y,w:rm.w,h:rm.h});
- for(const d of DOORS){const room=ROOMS.find(rm=>rm.id===d.a);if(d.axis==='h')floorArt(g,{kind:room.floor==='tile'?'tile':'wood',x:d.from,y:d.y-IT/2,w:d.to-d.from,h:IT});else floorArt(g,{kind:'wood',x:d.x-IT/2,y:d.from,w:IT,h:d.to-d.from});}
+ for(const d of DOORS){const room=ROOMS.find(rm=>rm.id===d.a);if(d.axis==='h')floorArt(g,{kind:room.floor==='tile'?'tile':'wood',x:d.from,y:d.y-IT/2,w:d.to-d.from,h:IT});else{// Through a wall that runs away from you the gap is mostly hidden, so a threshold board runs out into both rooms and a little
+  // of each room's light falls through it.
+  const x=d.x-IT/2-14,w=IT+28,y=d.from+4,h=d.to-d.from-8;r(x-.5,y-.5,w+1,h+1,'#1a1410');floorArt(g,{kind:'wood',x,y,w,h});r(x,y,w,.5,'#8a6a4a');r(x,y+h-.5,w,.5,'#2a1e14');for(const e of [x,x+w-.5])r(e,y,.5,h,'#2a1e14');}}
  // A soft shadow where the floor meets the back wall of each room, and down the west side.
  for(const rm of ROOMS){for(let k=0;k<4;k++)r(rm.x,rm.y+k,rm.w,1,`rgba(10,8,6,${.32-k*.07})`);for(let k=0;k<3;k++)r(rm.x+k,rm.y,1,rm.h,`rgba(10,8,6,${.2-k*.06})`);}
  // The house throws a shadow on the lawn behind it, and the step is worn where feet land.

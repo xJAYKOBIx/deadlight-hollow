@@ -44,7 +44,7 @@ function homeBlock(o){
   Q('cruiser','policecar',1300,206,140,52,46,{crashed:true,lit:0}),Q('pole','pole',1442,218,12,12,150,{lean:14}),Q('pole-2','pole',600,236,12,12,150),
   Q('lamp-1','streetlamp',230,238,10,10,110),Q('lamp-2','streetlamp',1180,238,10,10,110),Q('lamp-3','streetlamp',860,384,10,10,110),Q('hydrant','hydrant',1004,240,12,10,18),
   // Your back yard and the neighbours': the fences you would have climbed as a kid, a shed, two old trees.
-  Q('rear-y','woodfence',300,BACK+4,560,4,30),Q('rear-e1','chainlink',930,BACK+4,320,4,30,{see:true}),Q('side-y','woodfenceV',300,BACK+8,4,FRONT+WALL_T-150-BACK-14,30),
+  Q('rear-y','woodfence',300,BACK+4,560,4,30),Q('rear-e1','chainlink',930,BACK+4,320,4,30,{see:true}),Q('side-y','woodfenceV',298,BACK+8,6,FRONT+WALL_T-150-BACK-14,30),
   Q('shed-y','shed',760,BACK+40,64,44,46,{fade:true}),Q('tree-y','tree',420,BACK+60,72,10,108,{seed:5,box:[32,0,8,10],fade:true}),Q('tree-w','tree',90,BACK+44,64,10,100,{seed:9,box:[28,0,8,10],fade:true})];
  return {houses,props,paths:houses.map(h=>h.door0+2),drives:[],home:true};}
 // Any other block: four or five lots of different widths, each with a house, its yard and its back yard, from the block's seed.
@@ -63,7 +63,7 @@ function block(i,j,o){const R=rng(i*7919+j*104729+17),chance=p=>R()<p,id=s=>`b${
   if(chance(.3)){Q('bin'+k,'bin',door+56,224,12,10,22,{paint:Math.floor(R()*3)});Q('bin'+k+'b','bin',door+70,224,12,10,22,{paint:Math.floor(R()*3)});}
   // The back yard: a fence along the back and between the lots, a shed, trees.
   const back=chance(.5)?'woodfence':chance(.5)?'chainlink':null;if(back)Q('rear'+k,back,x,BACK+4,lot,4,30,back==='chainlink'?{see:true}:{});
-  if(k>0&&chance(.6))Q('side'+k,'woodfenceV',x,BACK+8,4,FRONT+WALL_T-150-BACK-14,30);
+  if(k>0&&chance(.6))Q('side'+k,'woodfenceV',x-1,BACK+8,6,FRONT+WALL_T-150-BACK-14,30);
   if(chance(.35))Q('shed'+k,'shed',Math.round(x+20+R()*(lot-110)),BACK+40,64,44,46,{fade:true});
   for(let t=0,nt=Math.floor(R()*3);t<nt;t++){const px=Math.round(x+10+R()*(lot-60)),py=Math.round(BACK+30+R()*60),pine=chance(.4);Q('bt'+k+t,pine?'pine':'tree',px,py,pine?40:64,10,pine?92:100,{seed:i*13+j*29+k*5+t,box:pine?[16,0,8,10]:[28,0,8,10],fade:true});}
   x+=lot;}

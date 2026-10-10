@@ -32,6 +32,14 @@ const meets=(a,b)=>a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h,grow=(v,n)
 // Each chunk's ground is painted a strip at a time, so no one frame does much of it.
 export const AHEAD=224,KEEP=480,BUDGET=4,STRIPS=8;
 const CRUISER_I=PROPS.findIndex(o=>o.id==='cruiser');
+// The flashlight: a cone of warm white light from the gun, len long and half wide either side, and a small pool round you. Painted
+// in the light map's own pixels (LIGHT_SCALE world units each), in six steps like the rest of the night's light.
+export const BEAM={len:240,half:24*Math.PI/180,pool:36,col:[255,244,220]};
+const step6=f=>Math.min(1,Math.round(f*6)/6);
+function beamArt(c){const w=c.canvas.width,h=c.canvas.height,img=c.createImageData(w,h),d=img.data,L=BEAM.len/LIGHT_SCALE,[R,G,B]=BEAM.col;
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++){const dx=x+.5,dy=y+.5-h/2,r=Math.hypot(dx,dy),a=Math.abs(Math.atan2(dy,dx)),i=(y*w+x)*4;if(r>=L||a>=BEAM.half)continue;
+  const f=step6(Math.pow(1-r/L,.45)*Math.pow(1-(a/BEAM.half)**2,.6)*1.25);d[i]=R*f;d[i+1]=G*f;d[i+2]=B*f;d[i+3]=255;}c.putImageData(img,0,0);}
+function poolArt(c){const n=c.canvas.width,img=c.createImageData(n,n),d=img.data,[R,G,B]=BEAM.col;for(let y=0;y<n;y++)for(let x=0;x<n;x++){const r=Math.hypot(x+.5-n/2,y+.5-n/2)/(n/2),i=(y*n+x)*4;if(r>=1)continue;const f=step6((1-r)*.55);d[i]=R*f;d[i+1]=G*f;d[i+2]=B*f;d[i+3]=255;}c.putImageData(img,0,0);}
 const glow=(c,[r,g,b])=>{const gr=c.createRadialGradient(64,64,0,64,64,64);gr.addColorStop(0,`rgba(${r},${g},${b},.8)`);gr.addColorStop(.45,`rgba(${r},${g},${b},.22)`);gr.addColorStop(1,`rgba(${r},${g},${b},0)`);c.fillStyle=gr;c.fillRect(0,0,128,128);};
 export function makeStreetScene(model,bridge){return class Street extends Phaser.Scene{
  constructor(){super('Street');}
@@ -51,7 +59,11 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
    for(let f=0;f<ZF.rows;f++)for(let d=0;d<8;d++)if(!t.has(f*8+d))t.add(f*8+d,0,d*ZF.w,f*ZF.h,ZF.w,ZF.h);}
   this.zs=new Map();this.pool=[];
   this.fight=new Fight(model,{kit:bridge.kit,setKit:bridge.setKit,grid:bridge.grid});model.zombies=this.fight.zombies;
-  // Night: each chunk's light map multiplies everything under it; the light bar, muzzle flashes and tracers sit above it.
+  // Night: the light maps of the chunks on screen, and your flashlight added on top, go into one picture each frame that multiplies
+  // everything under it; the light bar, muzzle flashes and tracers sit above it.
+  this.lit=this.add.renderTexture(0,0,16,16).setOrigin(0).setScale(LIGHT_SCALE).setDepth(6000).setBlendMode(Phaser.BlendModes.MULTIPLY);
+  this.texture('nb-beam',BEAM.len/LIGHT_SCALE+2,Math.ceil(BEAM.len*Math.tan(BEAM.half)/LIGHT_SCALE)*2+2,beamArt);this.texture('nb-pool',BEAM.pool,BEAM.pool,poolArt);
+  for(const k of ['nb-beam','nb-pool'])this.textures.get(k).setFilter(Phaser.Textures.FilterMode.LINEAR);
   this.texture('street-glow-w',128,128,c=>glow(c,[255,255,255]));this.texture('tg-glow',128,128,c=>glow(c,[235,240,255]));this.texture('tg-glow-warm',128,128,c=>glow(c,[255,214,150]));
   for(const k of ['street-glow-w','tg-glow','tg-glow-warm'])this.textures.get(k).setFilter(Phaser.Textures.FilterMode.LINEAR);
   this.bar=[0xff3a3a,0x3a6aff].map(col=>this.add.image(LIGHT_BAR.x,LIGHT_BAR.y+70,'street-glow-w').setDepth(6001).setBlendMode(Phaser.BlendModes.ADD).setTint(col).setScale(3.2,2));
@@ -81,13 +93,21 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   if(c.s<STRIPS){const h=Math.ceil(R.h/STRIPS/8)*8,y=R.y+c.s*h;if(y<R.y+R.h)groundArt(c.t.context,R,{x:R.x,y,w:R.w,h:Math.min(h,R.y+R.h-y)});c.s++;return false;}
   if(c.s===STRIPS){c.t.refresh();if(worthBaking(R.w*2,R.h*2))bake(this,c.t,ctx=>groundArt(ctx,R));c.s++;return false;}
   c.t=null;c.g=this.add.image(R.x,R.y,key).setOrigin(0).setScale(.5).setDepth(-10);
-  this.texture('nb-l-'+k,Math.ceil(R.w/LIGHT_SCALE),Math.ceil(R.h/LIGHT_SCALE),ctx=>lightArt(ctx,R));c.l=this.add.image(R.x,R.y,'nb-l-'+k).setOrigin(0).setScale(LIGHT_SCALE).setDepth(6000).setBlendMode(Phaser.BlendModes.MULTIPLY);return true;}
+  this.texture('nb-l-'+k,Math.ceil(R.w/LIGHT_SCALE),Math.ceil(R.h/LIGHT_SCALE),ctx=>lightArt(ctx,R));c.l=true;return true;}
  paintProp(i){const o=PROPS[i],p=this.held.get(i),key=i===CRUISER_I?`street-cruiser-1-${this.trunk?1:0}`:'nb-p-'+o.id;
   if(i!==CRUISER_I)this.texture(key,(o.w+PROP_PAD*2)*2,(o.h+o.z+PROP_PAD*2)*2,c=>propArt(c,o));
   p.img=this.add.image(o.x-PROP_PAD,o.y-o.z-PROP_PAD,key).setOrigin(0).setScale(.5).setDepth(o.flat?0:o.y+o.h+i*1e-5);if(o.fade)this.fades.add(i);}
  forget(key){unbake(key);if(this.textures.exists(key))this.textures.remove(key);}
- drop(k){const c=this.chunks.get(k);this.chunks.delete(k);this.todo.delete(k);c.g?.destroy();c.l?.destroy();this.forget('nb-g-'+k);this.forget('nb-l-'+k);
+ drop(k){const c=this.chunks.get(k);this.chunks.delete(k);this.todo.delete(k);c.g?.destroy();this.forget('nb-g-'+k);this.forget('nb-l-'+k);
   for(const i of BY_CHUNK[k]){const p=this.held.get(i);if(!p||--p.n>0)continue;this.held.delete(i);this.todo.delete(-1-i);this.fades.delete(i);if(p.img){p.img.destroy();if(i!==CRUISER_I)this.forget('nb-p-'+PROPS[i].id);}}}
+ // The light over the screen: each chunk's light map, then the flashlight added where the gun points.
+ light(){const V=grow(this.view(),24),L=LIGHT_SCALE,ox=Math.floor(V.x/L)*L,oy=Math.floor(V.y/L)*L,w=Math.ceil(V.w/L)+2,h=Math.ceil(V.h/L)+2,rt=this.lit;
+  if(rt.width!==w||rt.height!==h)rt.resize(w,h);rt.setPosition(ox,oy);rt.clear();
+  for(const [k,c] of this.chunks)if(c.l&&meets(c.R,V))rt.stamp('nb-l-'+k,undefined,(c.R.x-ox)/L,(c.R.y-oy)/L,{originX:0,originY:0});
+  const b=this.fight.beam=bridge.flash?.()&&!this.fight.down&&armed(this.look)?{x:model.x,y:model.y,a:model.aim??model.direction*Math.PI/4}:null;
+  if(b){const mz=muzzle(b.a,this.look.gun),add=Phaser.BlendModes.ADD;rt.stamp('nb-pool',undefined,(model.x-ox)/L,(model.y-14-oy)/L,{blendMode:add});
+   rt.stamp('nb-beam',undefined,(model.x+mz.x-ox)/L,(model.y+mz.y-oy)/L,{originX:0,originY:.5,rotation:b.a,blendMode:add});}
+  rt.render();}
  // A prop's picture for the talk box, painted fresh, since the one on screen may only live on the graphics card.
  face(id){const o=PROPS.find(p=>p.id===id);if(!o)return null;const c=document.createElement('canvas');c.width=(o.w+PROP_PAD*2)*2;c.height=(o.h+o.z+PROP_PAD*2)*2;propArt(c.getContext('2d'),o.id==='cruiser'?{...o,lit:1,trunk:this.trunk}:o);return c;}
  setTrunk(open){this.trunk=open;}
@@ -119,7 +139,7 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
  update(now,delta){const dt=Math.min(.05,delta/1000),paused=bridge.paused(),held=this.juice.stopped(now),f=this.fight;
   if(!paused&&!held){const input=f.down?{}:bridge.input();model.update(dt,input);f.update(dt,input);}
   for(const e of f.drain())this.react(now,e);
-  this.placeActor();this.stream();
+  this.placeActor();this.stream();this.light();
   // The dead near the screen: walking, winding up, or lying where they fell.
   const V=grow(this.view(),120);for(const z of this.zs.keys())if(!f.zombies.includes(z))this.free(z);
   for(const z of f.zombies){if(z.delay>0&&!z.idle||z.x<V.x||z.x>V.x+V.w||z.y<V.y||z.y>V.y+V.h+100){this.free(z);continue;}const s=this.sprite(z);

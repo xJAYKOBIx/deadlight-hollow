@@ -45,6 +45,8 @@ const WALL_DECOR=[P('pic-family','frame',212,H.y,20,T,Z,{pic:0}),P('clock','cloc
  P('pic-dog','frame',160,MID,20,IT,Z,{pic:2,top:4,fh:9}),P('pic-beach','frame',212,MID,22,IT,Z,{pic:3,fw:16,fh:10,top:4,gold:true}),
  P('mirror-bath','mirror',374,MID,20,IT,Z,{fw:14}),P('mirror-hall','mirror',510,MID,24,IT,Z),P('hooks','hooks',600,MID,30,IT,Z)];
 const FURNITURE=[
+ // The two doors in walls that run away from you stand half open, so you can see where they are. You walk past them.
+ P('leaf-lk','doorleaf',LK+IT,176,26,24,44),P('leaf-bh','doorleaf',BH+IT,436,20,20,44),
  // Living room: the couch facing the TV, the coffee table with the candle, an armchair, books and the pets' corner.
  P('rug-living','rug',204,128,120,80,1,{style:0,flat:true}),P('tv','tv',240,82,56,18,48),P('coffeetable','coffeetable',242,148,52,24,14),P('sofa','sofa',224,188,88,34,30),
  P('endtable','endtable',316,200,20,16,20),P('armchair','armchair',118,84,34,30,30),P('floorlamp','floorlamp',154,84,12,10,62),P('bookshelf','bookshelf',398,82,42,12,64),
@@ -65,7 +67,7 @@ const OUTSIDE=[P('porch','porch',487,490,60,24,1,{flat:true}),P('bush-w','bush',
 export const WALLS=[...VERTICAL,...HORIZONTAL];
 export const PROPS=[...WALLS,...WALL_DECOR.map(o=>({...o,deco:true})),...FURNITURE,...OUTSIDE];
 // What stops feet: walls (not doorways), and everything standing on the floor.
-export const SOLIDS=PROPS.filter(o=>!o.flat&&!o.deco&&o.kind!=='doorway'&&o.kind!=='doorwayV');
+export const SOLIDS=PROPS.filter(o=>!o.flat&&!o.deco&&o.kind!=='doorway'&&o.kind!=='doorwayV'&&o.kind!=='doorleaf');
 // The path out front and the floors, for the ground art.
 export const PATH={x:502,y:514,w:30,h:86};
 export const START={x:206,y:226,direction:1};

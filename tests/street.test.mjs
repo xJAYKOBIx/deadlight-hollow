@@ -55,3 +55,13 @@ test('wanderers drift round their yards, come for you when they see you or hear 
  const q=f.zombies.find(z=>z.roam!==undefined&&z!==r&&z.hp>0);Object.assign(m,{x:q.x+HEAR-40,y:q.y});f.aimAngle=Math.PI;f.fire();assert.equal(q.hunt,true,'it heard the shot');});
 test('a wanderer you put down stays down for the night, and the rest go back where they were when you start again',()=>{const {m,f}=setup(),[a,b]=f.zombies.filter(z=>z.roam!==undefined);
  f.hit(a,999,1,0);b.x+=30;f.start();const now=f.zombies.filter(z=>z.roam!==undefined);assert.ok(now.includes(a)&&a.hp<=0);assert.equal(b.x,b.sx);assert.equal(now.length,ROAMERS.length);});
+test('the dead find a way round: the flow leads round a fence to you, and a clear line goes straight',async()=>{const {Flow,open,clearLine,PATH}=await import('../dist/street/paths.js');
+ // A back yard: you on one side of a side fence, the flow spread from you; a square just across the fence is reached the long way round.
+ const fence=PROPS.find(o=>o.kind==='woodfenceV'),y=fence.y+fence.h/2,me={x:fence.x+30,y},f=new Flow();f.update(1,[me]);
+ const c=v=>Math.floor(v/PATH.cell),near=f.at(c(me.x+16),c(y)),across=f.at(c(fence.x-24),c(y));assert.ok(near<10);assert.ok(across>near+8,'across the fence is further than straight-line');
+ assert.equal(clearLine(fence.x-24,y,me.x,y),false,'the fence is in the way');assert.ok(clearLine(me.x,y,me.x+40,y));
+ const w=f.way(fence.x-24,y);if(across<0xffff)assert.ok(w&&Math.abs(w.y)>.3,'it heads along the fence, not into it');});
+test('your flashlight: a wanderer it falls on sees you from further off, one behind you does not',async()=>{const {clearLine}=await import('../dist/street/paths.js');const {m,f}=setup();
+ const r=f.zombies.find(z=>z.roam!==undefined&&clearLine(z.x-260,z.y,z.x,z.y)&&!solidAt(z.x-260,z.y,12));assert.ok(r,'a wanderer in the open');
+ Object.assign(m,{x:r.x-260,y:r.y});f.beam={x:m.x,y:m.y,a:Math.PI};run(f,m,.2);assert.equal(r.hunt,false,'the light points away and it is out of sight');
+ f.beam={x:m.x,y:m.y,a:0};f.update(1/60,{});assert.equal(r.hunt,true,'in the beam, it sees you');});

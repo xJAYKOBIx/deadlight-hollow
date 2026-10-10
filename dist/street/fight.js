@@ -9,10 +9,13 @@ import {GUNS,muzzle} from '../study/equipment.js';
 import {count,remove} from '../home/bag.js';
 import {ammoOf,advance,loot} from '../home/kit.js';
 import {MAP,WAVES,ROAMERS,NOTICE,HEAR,WALK,solidAt,coverAt} from './data.js';
+import {Flow,clearLine} from './paths.js';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),facing=(dx,dy)=>(Math.round(Math.atan2(dy,dx)/(Math.PI/4))+8)%8;
 // Wanderers: how far they stroll from where they started and how slowly, when they give up on you, and how far off they stop
 // being thought about every frame. Groans only carry so far.
 export const ROAM={stroll:{x:140,y:80},walk:16,lose:900,far:800,every:.5,hear:600};
+// Your flashlight shows you more, and shows you to them: a wanderer the beam falls on sees you from this far.
+export const BEAM_SEEN={range:300,half:26*Math.PI/180};
 export const BULLET_SPEED=1600,PLAYER_HP=100;
 // The dead: how much they take, how fast they shamble and lurch, and their bite.
 export const ZOMBIE={hp:{cop:80,neighbour:60,jogger:55,robe:60,worker:70,neighbour2:60},walk:40,lurch:64,lurchAt:80,reach:24,bite:{windup:.45,damage:14,range:32,cooldown:1.1,shove:70}};
@@ -20,7 +23,7 @@ export const ZOMBIE={hp:{cop:80,neighbour:60,jogger:55,robe:60,worker:70,neighbo
 const SHOVE={'light-pistol':{push:55,stagger:.16},'pump-shotgun':{push:42,stagger:.32}};
 export class Fight{
  constructor(model,{kit,setKit,grid}){Object.assign(this,{model,kit,setKit,grid,traces:[],fields:[],events:[],zombies:[],hp:PLAYER_HP,maxHp:PLAYER_HP,down:0,cooldown:0,reloadTime:0,throwCooldown:0,sinceShot:9,sinceHurt:9,alert:false,wave:-1,seed:1,held:null});
-  this.drill={bots:this.zombies,holdout:false,downed:false};}
+  this.drill={bots:this.zombies,holdout:false,downed:false};this.flow=new Flow();}
  // Sets the street up for where the kit says you are: the cop waiting at the cruiser, the second wave coming, or nothing.
  start(){const k=this.kit();this.snapshot=k;this.hp=PLAYER_HP;this.down=0;this.alert=false;this.traces=[];this.reloadTime=0;this.cooldown=0;this.held=k.held;this.zombies.length=0;
   if(k.street==='start')this.spawn(0);else if(k.street==='looted'){this.spawn(1);this.alert=true;}else{this.wave=-1;this.zombies.length=0;this.zombies.push(...this.roamers());}}
@@ -78,6 +81,8 @@ export class Fight{
  // A shot: the cop wakes if it is near enough to hear, and so does every wanderer in earshot.
  heard(x,y){if(!this.alert&&this.zombies.some(z=>z.idle&&Math.hypot(z.x-x,z.y-y)<HEAR*2))this.wake();
   for(const z of this.zombies)if(z.roam!==undefined&&z.hp>0&&!z.hunt&&Math.hypot(z.x-x,z.y-y)<HEAR)this.notice(z);}
+ // In the beam (set by the scene each frame while your light is on), near enough, and nothing in the way.
+ lit(z,d){const b=this.beam;if(!b||d>BEAM_SEEN.range)return false;let off=Math.atan2(z.y-b.y,z.x-b.x)-b.a;off=Math.atan2(Math.sin(off),Math.cos(off));return Math.abs(off)<BEAM_SEEN.half&&clearLine(b.x,b.y,z.x,z.y);}
  notice(z){z.hunt=true;z.state='chase';z.acc=0;if(Math.hypot(z.x-this.model.x,z.y-this.model.y)<ROAM.hear)this.emit('groan',{z,loud:true});}
  check(){if(this.live.length)return;const k=this.kit();if(this.wave===0){this.setKit(advance(k,'cleared'));this.emit('stage',{stage:'cleared'});}else if(this.wave===1){this.setKit(advance(k,'done'));this.emit('stage',{stage:'done'});}this.wave=-1;}
  // Opening the trunk: its boxes go in your bag and the noise brings the second wave.
@@ -101,6 +106,8 @@ export class Fight{
   this.aimAngle=!this.down&&Number.isFinite(input.aimX)&&Number.isFinite(input.aimY)&&Math.hypot(input.aimX,input.aimY)>.1?Math.atan2(input.aimY,input.aimX):null;
   if(input.fire&&!this.down)this.fire();
   if(!this.alert&&this.zombies.some(z=>z.idle&&Math.hypot(z.x-m.x,z.y-m.y)<NOTICE))this.wake();
+  // The way to you, spread again while anything is coming.
+  if(this.zombies.some(z=>this.out(z)&&(z.roam!==undefined?z.hunt:this.alert)))this.flow.update(dt,[m]);
   // Near ones every frame; far wanderers that have not seen you, twice a second.
   for(const z of this.zombies){if(z.roam!==undefined&&!z.hunt&&z.hp>0&&Math.abs(z.x-m.x)+Math.abs(z.y-m.y)>ROAM.far){z.acc+=dt;if(z.acc<ROAM.every)continue;this.think(z,z.acc);z.acc=0;}else this.think(z,dt);}
   // They keep a little apart, so a crowd spreads into a line you can see.
@@ -114,7 +121,7 @@ export class Fight{
   if(z.idle){z.frame=0;return;}
   const dx=m.x-z.x,dy=m.y-z.y,d=Math.hypot(dx,dy)||1;
   z.groan-=dt;if(z.groan<=0){z.groan=2.5+this.rand()*3;if(d<ROAM.hear)this.emit('groan',{z});}
-  if(z.roam!==undefined&&!z.hunt){if(d<NOTICE&&!this.down)this.notice(z);else{this.wander(z,dt);return;}}
+  if(z.roam!==undefined&&!z.hunt){if(!this.down&&(d<NOTICE||this.lit(z,d)))this.notice(z);else{this.wander(z,dt);return;}}
   if(z.roam!==undefined&&d>ROAM.lose){z.hunt=false;z.state='wander';z.sx=z.x;z.sy=z.y;z.wt=0;return;}
   z.direction=facing(dx,dy);
   if(this.down){z.frame=0;return;}
@@ -123,6 +130,8 @@ export class Fight{
   // Shamble toward you; close in, they lurch.
   // Stuck on a fence or a car, it picks a side and walks along it for a moment.
   const speed=(d<ZOMBIE.lurchAt?ZOMBIE.lurch:ZOMBIE.walk)*(z.look==='jogger'?1.25:1),go=Math.min(Math.max(0,d-ZOMBIE.reach+4),speed*dt);let ax=dx/d,ay=dy/d;
+  // A clear line: straight at you. Otherwise round whatever is between, by the flow (checked a few times a second).
+  if(d>28){z.seeT=(z.seeT||0)-dt;if(z.seeT<=0){z.seeT=.2;z.clear=clearLine(z.x,z.y,m.x,m.y);}if(!z.clear){const w=this.flow.way(z.x,z.y);if(w){ax=w.x;ay=w.y;}}}
   if(z.detour>0){z.detour-=dt;const s=z.side;[ax,ay]=[-ay*s*.9+ax*.1,ax*s*.9+ay*.1];}
   const moved=go?this.step(z,ax,ay,go):0;if(go&&!moved){z.stuck=(z.stuck||0)+dt;if(z.stuck>.35){z.stuck=0;z.side=z.side===1?-1:1;z.detour=.9;}}else z.stuck=0;
   if(moved){z.phase=(z.phase+moved/40)%1;z.frame=1+Math.floor(z.phase*8);}else{z.frame=0;z.phase=0;}}

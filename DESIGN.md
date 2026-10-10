@@ -44,6 +44,39 @@ Jaykobi, 2026-10-10: "this will be the plan moving forward." The goals are Helld
 - Zombies far from every player move on a cheap, slow update with no sprite; they become full sprites near a player, from a reused pool, so sprites are not made and thrown away.
 - No leaks: a scene that is left stops its timers and listeners, and everything a chunk or a fight makes is freed with it. A long session's memory is checked as part of testing a new place.
 
+## The Helldivers loop: the combat plan (proposed 2026-10-10, waiting on Jaykobi's approval)
+
+What Jaykobi asked for (2026-10-10): shooting is constant, as in Helldivers, but running through your ammo is not a punishment; staying supplied is a real thing to balance; different kinds of monsters keep every fight changing; and you are always on the move round the map, kiting crowds while you complete missions. The numbers below are starting points to tune by feel.
+
+**1. Ammo you can spend.** The aim: an ordinary fight uses about half of what you carry, and you can refill before the next one if you go looking. Running dry happens when you stay too long in one place, not because you fired.
+- *Bigger loads.* Primary guns carry more spare ammo in the bag than today (shotgun about 32 shells, rifle about 120 rounds), so holding the trigger is normal.
+- *The pistol is the floor.* It never runs out (decided earlier), so you are never helpless, only weaker.
+- *Scavenging everywhere.* Every house, car, bin and shed in the neighbourhood can be searched with a short hold (about one second, interrupted if you are hit): a little ammo, scrap and supplies, each spot once a night. This makes kiting through yards pay off.
+- *Caches.* A few places on each map are marked as worth the trip (the police cruiser, a gun shop, a hunting cabin, an army checkpoint): a big refill, but usually guarded.
+- *Supply drop.* The Helldivers call-in: a flare or a radio code that brings a crate after a few seconds. It refills everyone nearby (co-op), it can be used again after a few minutes, and it is loud, so it pulls the crowd toward you.
+- *From the dead.* Now and then a zombie drops what it carried in life (a cop's magazine, a hunter's shells), so a long fight partly feeds itself.
+
+**2. Noise brings hordes.** This is what keeps you moving, like Helldivers' patrols and bug breaches.
+- *Heat.* A hidden meter that every shot raises (pistol a little, shotgun more, explosions and car alarms a lot) and that falls back while you are quiet.
+- *As heat rises:* wanderers in earshot drift toward the noise; then patrols of three to six start sweeping the nearby streets; at the top a horde of ten to twenty comes in from off screen and follows the flow map to you. A horde has a cooldown, so you get room to breathe if you keep moving.
+- *Stand and fight* and the heat keeps climbing; *move* and it falls behind you. Kiting is the safe way to play, as in Helldivers.
+
+**3. New kinds of dead.** Each one changes how you move, not just how many bullets it takes.
+- *Runner.* Fast and fragile, often in twos and threes. It makes you stop and shoot rather than walk away.
+- *Brute.* Big and tough from the front, slow to turn. It charges in a straight line, so you sidestep; the shotgun staggers it, and shots from the side or back hurt more.
+- *Screamer.* Weak, but if you let it scream it calls the heat straight to the top. A priority target.
+- *Bloater.* Bursts when it dies and leaves a patch you should not stand in; kill it before it reaches the crowd you are holding.
+- *Crawler.* Low in the long grass and under cars; it grabs your ankles and slows you for a moment.
+- Suggested order: runner and brute first (the most change for the least art), then the screamer, then the bloater and crawler.
+
+**4. Missions across the map.** Each outing has two or three objectives spread over the neighbourhood (find something in a house, start a generator, reach a survivor, carry supplies out) and an extraction point to finish at. Side objectives and caches are optional and marked. A compass or small map shows where to go.
+
+**5. Moving well.** A dive or roll that costs stamina and gets you out of a bite or a charge; climbing over low fences (picket, chain-link) slowly, while tall fences still block; the flashlight's trade-off (you see further, and so do they, since v0.39.0).
+
+**6. Built for co-op from the start.** Heat, hordes, drops and objectives are all data the host runs (see the plan above), so four players share one heat meter, one horde and one supply drop.
+
+**Proposed build order:** v0.40 ammo, scavenging and pickups; v0.41 heat, patrols and hordes; v0.42 runner and brute; v0.43 the dive and climbing fences; v0.44 the first mission set with extraction; v0.45 screamer and bloater.
+
 ## v0.3 implementation choices
 
 Phaser 4.2.1, original procedural sprite/scenery art, separate simulation. Established village with eight service NPCs and ambient residents. Services are outdoor interactions; buildings do not yet have enterable interiors. Hub is safe; weapons work only in the training yard.
@@ -486,6 +519,16 @@ In the house, once you are awake, the Bag button (top right, Tab, or D-pad up on
 Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack), rifle rounds (60), gun oil, scrap metal, cloth and leather, powder, electronics, oil and solvent, each one cell with its weight; spare guns are items too (pistol 2 × 1, shotgun 6 × 1, rifle 6 × 2). The shotgun's spare shells are now the shells in your bag: the closet gives 16 shells and a bottle of gun oil with the gun, and older saves move their spare shells into the bag. Three new places to search in the house, none of them needed to leave: the kitchen drawers (3 scrap metal, 1 electronics), under the sink (oil and solvent) and the laundry basket (2 cloth).
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
+
+## v0.39.0 — Smarter dead, readable walls, and a flashlight
+
+From Jaykobi's first walk of the neighbourhood (2026-10-10): the zombies get stuck, fences and gaps along walls that run away from you are hard to read, the door between the kitchen and living room is hard to see, and the dark might be fine with a flashlight to try.
+
+**Pathing** (`dist/street/paths.js`). A 16-unit grid knows where a zombie fits (each square checked against the props the first time it is asked). Four times a second, while anything is coming for you, a flow map spreads out from every player, up to 960 units, and each square learns the next step toward the nearest one. A zombie with a clear line walks straight at you; one with a fence or a house in between follows the flow round it and through the gap. Players are a list, so this already works for co-op. In a test of 60 random back-yard chases, zombies reached you within 30 seconds 50 times, against 25 before; most of the rest were still on their way round a long block.
+
+**Walls and gaps.** Doorways in walls that run away from you no longer draw a header across the gap, so the end of the wall shows, and each now has a half-open door standing in it (new Master Creator art, `doorleaf`; Master Creator 09ca061) and a threshold board running out into both rooms. Wooden fences have a post at each end and every so often, and every fence throws a shadow along its foot, so you can see where it stops; side fences are a little thicker.
+
+**The flashlight.** A gun light, on by default, that throws a warm cone about 240 units long from the muzzle, plus a small pool round you. On the street the grenade button becomes the Light button; F on a keyboard, D-pad down on a controller. It is added into the night's light map, so it lights what it falls on rather than glowing over it (the chunks' light maps and the beam are drawn into one screen-sized picture each frame). The trade-off: a wanderer the beam falls on, within 300 and with nothing in the way, sees you from that far instead of 190.
 
 ## v0.38.0 — The first map: the neighbourhood
 
