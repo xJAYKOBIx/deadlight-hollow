@@ -448,6 +448,14 @@ The Pump Shotgun is now a gun everywhere (Master Creator 1ab1d3e): seven pellets
 
 Fix: on phones the first few seconds of walking were slow. Phaser's frame smoothing holds each step to a 60 fps frame for about 120 frames after the page gains focus or wakes, so a phone drawing fewer frames walked slowly until that ran out. The game now steps with the real time between frames (`fps.smoothStep` off; every scene still caps a long frame at 50 ms).
 
+## v0.33.0 — Pistols never run dry, and three backpacks
+
+Pistols are secondaries: they still reload, but their spare rounds are unlimited, and the gun chip in the house shows them as ∞ ("15 / ∞"). Shotguns and rifles are primaries and only have the ammo you carry; the Pump Shotgun still starts at 8 and 16. The rule lives in the Master Creator (`slotOf`, `unlimited` in `weapons/equipment.js`); the house kit saves a pistol's spares as null and restores them as unlimited.
+
+Three backpacks (Master Creator f912048), chosen in the creator's Pack tab: Canvas daypack (small, 5 × 4 grid, 12 kg), the Leather pack (medium, 6 × 6, 20 kg) and a Frame pack (large, 8 × 7, 32 kg) with its frame showing above the shoulders and a red wool bedroll strapped under. Their grid and weight data is in `dist/mc/assets/gear/bags.js`; the inventory screen that uses it comes next. Pack choices only appended (2 and 3), so saved looks keep their pack.
+
+The crafting and upgrades plan (tiers, armor pieces, materials, wear and repair, ammo) is the Claude Doc "Deadlight Hollow: Crafting and Upgrades".
+
 ## Ideas queued (from Jaykobi, 2026-10-10)
 - **Mop, the camp dog:** a little terrier with knotted, matted hair who wanders the camp and is looked after by everyone there. Later, Mop gives the player a quest that leads them out into the world to find and rescue their own companion (dog or cat).
 - **Macy, pet makeovers:** Macy was a zookeeper, so she can help the player change their animal (cat or dog) and its looks.
@@ -456,8 +464,8 @@ Fix: on phones the first few seconds of walking were slow. Phaser's frame smooth
 - **The tutorial opening (next focus):** after the TV dies, the starter survivor (a man, not the custom character) gets up from the couch and pets the dog and cat, then the player takes over. First goal: find protection in the apartment. He owns a **Light Pistol** and a **pump-action shotgun** with an 8-shell tube; the player starts with 8/16 shells (8 in the tube, 16 in the inventory).
 - **Inventory on backpacks:** the inventory belongs to the backpack, so its size and carry limit change with the bag. Needs an inventory screen and several bag types. Decided: **grid + weight**. Items take shapes on the bag's grid (a shotgun is long, shells are small), bigger bags have bigger grids, and each bag also sets a weight limit.
 - **Weapons and ammo (decided 2026-10-10):** pistols are the secondary weapon and have unlimited ammo. They still reload, and each pistol is unique in damage, fire rate, reload speed and magazine size. Primary weapons (shotguns and rifles) use ammo the player has to carry.
-- **Backpacks (decided 2026-10-10):** three bags, Small, Medium and Large. Today there is one (the leather pack, plus "no pack").
-- **Crafting and upgrades:** to be discussed before continuing; it shapes armor and weapons.
+- **Backpacks (decided 2026-10-10):** three bags, Small, Medium and Large. Drawn and in the data since v0.33.0.
+- **Crafting and upgrades (decided 2026-10-10):** weapon tiers; armor as head, body and leg pieces shown on the survivor; common scrap from anywhere plus rare parts from special infected; armor wears as it is hit and guns foul with use (gun oil in the field, a full clean at camp); shotgun and rifle ammo found and crafted at camp. The full plan is the Claude Doc "Deadlight Hollow: Crafting and Upgrades".
 - **A Master Creator:** one place that houses every reusable asset (characters, animations, sounds, objects) so they can be browsed and reused. Today the character creator covers survivors, zombies and pets; everything else lives in code across `study/`, `companion/`, `camp/`, `grounds/` and `intro/`.
 
 ## Where we are and what's next (2026-10-10)
@@ -468,6 +476,6 @@ Bookmark set by Jaykobi before starting the Master Creator.
 **Work queue, in order:**
 1. **Master Creator (now):** a separate pixel-art asset project, kept independently of Deadlight Hollow and reusable across future games in this style. It houses characters, animations, sounds and objects; Deadlight Hollow is built from it. Lives in its own repo, `xJAYKOBIx/master-creator` (a copy is in the shared folder under Master Creator). Version 0.1 (2026-10-10) holds the survivor and zombie, dogs and cats, the guns and grenades, the grime brushes, the TV and broadcast effects, the pixel font and 25 sounds, all checked pixel for pixel against this game. Version 0.2 adds 79 props (camp and workshop sets), the training robots and the brute, fish, campfire flames, map markers and spray-paint lettering, again checked pixel for pixel (241 placed props). Since 2026-10-10 this game loads that art from it: `dist/mc` is a copy of the Master Creator's `assets/` folder, made by `tools/sync-master-creator.sh /path/to/master-creator` (it writes the version to `dist/mc/VERSION`), and the game's old art files (`study/`, `companion/`, `intro/font.js`, `kit.js`, `tv.js`, `overlay.js`, the sound kit, and the props, icons, fish, flames and robots in `camp/art.js` and `grounds/art.js`) now only re-export from it, so every import in the game still works. Change shared art in the Master Creator, then run the script again; never edit `dist/mc` by hand. The ground and lighting of each map are still drawn here. Its next step: ground and scenery tiles.
 2. **Tutorial opening:** the house, the wake-up scene and the two guns are in (v0.31.0, v0.32.0). Next: outside, the street and the first encounter.
-3. **Inventory and backpacks:** grid + weight, the inventory screen, several bag types.
+3. **Inventory:** the three bags and their data are in (v0.33.0). Next: the inventory screen (the grid, moving items, the weight bar), then wear, materials and Hollis's workbench, as the crafting plan orders them.
 4. **Intro revisions:** rename MRN to MTNN (My Time News Network) in code, slow every segment down, then steps 3 (the field crew attack and the emergency alert) and 4 (Dr. Varga and Myrphol, the power cut, the reflection, the title, skip), then put the intro in the game.
 5. **Later:** Mop the camp dog and his quest, Macy's pet makeovers, the landscape controller redesign, a trademark search on every in-world name before release.

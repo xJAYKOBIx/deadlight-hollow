@@ -55,10 +55,10 @@ test('the first night: you wake, find the pistol and the shotgun with their roun
  const {readHome,saveHome,normalizeHome,take,swap,goal,useLines,rounds,verbFor,FINDS}=await import('../dist/home/kit.js');
  let k=normalizeHome();assert.deepEqual(k,{woke:false,guns:{},held:null});assert.equal(goal(k),'');k={...k,woke:true};assert.match(goal(k),/protect yourself/);
  assert.equal(useLines(k,'frontdoor').act,undefined);assert.equal(useLines(k,'nightstand').act,'take:light-pistol');
- k=take(k,'light-pistol');assert.equal(k.held,'light-pistol');assert.equal(rounds(k),'15 / 15');assert.match(goal(k),/shotgun/);assert.equal(verbFor(k,'nightstand'),'Look');assert.equal(useLines(k,'nightstand').act,undefined);
+ k=take(k,'light-pistol');assert.equal(k.held,'light-pistol');assert.equal(rounds(k),'15 / ∞','a pistol never runs out of spare rounds');assert.equal(k.guns['light-pistol'].reserve,Infinity);assert.match(goal(k),/shotgun/);assert.equal(verbFor(k,'nightstand'),'Look');assert.equal(useLines(k,'nightstand').act,undefined);
  k=take(k,'pump-shotgun');assert.equal(k.held,'pump-shotgun');assert.equal(rounds(k),'8 / 16','the shotgun starts at 8 and 16');assert.match(goal(k),/front door/);
  assert.equal(take(k,'pump-shotgun'),k,'taking twice changes nothing');assert.equal(swap(k).held,'light-pistol');assert.equal(swap(swap(k)).held,'pump-shotgun');
- assert.equal(FINDS['pump-shotgun'].ammo,8);assert.equal(FINDS['pump-shotgun'].reserve,16);
+ assert.equal(FINDS['pump-shotgun'].ammo,8);assert.equal(FINDS['light-pistol'].reserve,Infinity);assert.equal(FINDS['pump-shotgun'].reserve,16);
  const store=new Map(),mem={getItem:x=>store.get(x)??null,setItem:(x,v)=>store.set(x,v)};assert.ok(saveHome(mem,k));assert.deepEqual(readHome(mem),k);
  store.set('deadlight-home-v1','{"woke":true,"guns":{"pump-shotgun":{"ammo":99,"reserve":-3},"bazooka":{}},"held":"bazooka"}');assert.deepEqual(readHome(mem),{woke:true,guns:{'pump-shotgun':{ammo:8,reserve:0}},held:'pump-shotgun'});
  assert.deepEqual(readHome({getItem(){throw new Error('blocked');}}),normalizeHome());});
