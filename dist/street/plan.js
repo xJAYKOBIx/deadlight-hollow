@@ -168,6 +168,8 @@ function school(i,r){const K=kit(i,r,'school'),{Q,G}=K,f=FW(1);
  Q('bus-1','schoolbus',200,1330,230,56,66);Q('bus-2','schoolbus',200,1460,230,56,66);Q('bus-3','schoolbus',620,1400,230,56,66,{crashed:true});
  for(const x of [60,800,1560])Q('lot-lamp'+x,'streetlamp',x,1214,10,10,110);
  Q('lot-fence-1','chainlink',20,1760,380,4,30,{see:true});Q('lot-fence-2','chainlink',460,1760,640,4,30,{see:true});Q('lot-fence-3','chainlink',1160,1760,460,4,30,{see:true});
+ // A storm drain in the gutter on the lot's side of the road (in the hold-out, something comes up out of it).
+ Q('drain','stormdrain',712,1126,26,12,2,{flat:true});
  return K.bands;}
 // The park and the creek, south-west: the creek runs the height of the district under two footbridges and the road; west of it the
 // park (a pond with a path round it, the gazebo, the play set, benches), east of it Linda Hargrove's house with her back yard and

@@ -50,7 +50,7 @@ export const SCRIPT={
   note:[['marcus','A note, taped inside the glass.'],['marcus','"Biscuit got out. Gone to the park to find him. Shed key\'s on me. Back soon. L.H."'],['marcus','That was hours ago.']],
   body:[['marcus','I\'m sorry, Mrs. Hargrove.'],['marcus','The shed key. On a ribbon round her wrist.']],pry:[['marcus','Hasp\'s off. Half the street heard that.']],unlock:[['marcus','Key fits.']]},
  // Over the radio during play: nothing waits for these.
- air:{jobs:'We see your light, east side. Get to the end of your street and pop a flare when you\'re ready.',called:'Copy your flare. We\'re a minute out.',minute:'Fifty seconds. Keep that corner clear.',overrun:'Hold on, we\'re seeing a lot of movement on your...',
+ air:{jobs:'We see your light, east side. Get to the school bus lot at the end of your street and pop a flare when you\'re ready.',called:'Copy your flare. We\'re a minute out.',minute:'Fifty seconds. Keep that corner clear.',overrun:'Hold on, we\'re seeing a lot of movement on your...',
   leaving:'Anyone still out there, the truck leaves the east end in sixty seconds.'},
  // Scene 7. Through the window: t is seconds from when he went down; the picture holds on each line until you tap.
  window:[[1.2,'watcher','No. No, no, no...'],[3.8,'watcher','Don\'t look away. Don\'t you dare look away.'],[6.9,'watcher','They\'re just... leaving him there.'],[9,'watcher','He moved. Did he just move?'],

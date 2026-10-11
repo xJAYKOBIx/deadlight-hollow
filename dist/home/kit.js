@@ -110,7 +110,7 @@ export function goal(k,outside=false){if(!k.woke)return '';const p=found(k,'ligh
  if(k.phase==='own'){if(k.mission?.out)return 'You made it out';return k.corpse&&!k.corpse.taken?'Put him down, and take back what he carried':'Get to the truck at the east end of the street';}
  if(!k.light&&!outside)return 'Find the flashlight in the kitchen';
  if(!p&&!s)return 'Find something to protect yourself with';
- if(k.street==='done'&&k.mission){const m=k.mission;if(m.out)return 'You made it out';if(jobsDone(k))return 'Call the truck at the east end of your street';
+ if(k.street==='done'&&k.mission){const m=k.mission;if(m.out)return 'You made it out';if(jobsDone(k))return 'Call the truck from the school bus lot, at the east end of your street';
   if(m.carry)return STEP_GOALS[m.carry==='battery'?'radio':'power'].carry[0].toUpperCase()+STEP_GOALS[m.carry==='battery'?'radio':'power'].carry.slice(1);
   return 'Get ready to leave: '+JOBS.filter(id=>!m.done.includes(id)).map(id=>STEP_GOALS[id][stepOf(k,id)]).join(', ');}
  if(outside||k.street!=='start')return {start:'See what crashed down the street',cleared:'Search the police cruiser',looted:'Hold them off',done:'The street is quiet, for now'}[k.street];

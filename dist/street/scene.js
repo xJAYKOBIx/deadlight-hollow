@@ -8,7 +8,7 @@ import {LAYERS,ORDER,origin,sheetSize,paintLayers,paintRacked,paintDive,DIVE as 
 import {DEFAULT_APPEARANCE,UNIFORMS} from '../study/appearance.js';
 import {Juice} from '../study/juice.js';
 import {iconArt,ICON,ICONS} from '../camp/art.js';
-import {MAP,CHUNK,PROPS,LIGHT_BAR,HOME,EVAC,TRUCK,coverAt} from './data.js';
+import {MAP,CHUNK,PROPS,LIGHT_BAR,HOME,EVAC,TRUCK,BREACHES,coverAt} from './data.js';
 import {groundArt,lightArt,LIGHT_SCALE,propArt,PROP_PAD} from './art.js';
 import {Fight,DIVE,CRAWLER,SEARCH,BRUTE,JOB,SCREAMER,BLOATER,SPITTER} from './fight.js';
 import {stepOf} from '../home/kit.js';
@@ -142,7 +142,7 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   this.cameras.main.setBackgroundColor('#07080b').setBounds(0,0,MAP.w,MAP.h).setZoom(this.zoom());
   this.events.on('wake',()=>this.enter());this.enter();bridge.ready(this);}
  // Each time you step out of the door: the street as the kit says it is, you on your step.
- enter(){model.reset();this.fight.start();for(const i of this.dropImgs.values())i.destroy();this.dropImgs.clear();for(const v of this.hz.values())for(const i of v)i.destroy();this.hz.clear();for(const i of [...this.stains,...this.bits.map(b=>b.img),...this.lain])i.destroy();this.stains.length=0;this.bits.length=0;this.lain.length=0;this.brass.length=0;this.lying.length=0;this.pumps.length=0;this.floorG.clear();this.kick=null;this.jolt={x:0,y:0};for(const z of [...this.zs.keys()])this.free(z);this.setPlayerLook(bridge.look());this.setTrunk(bridge.kit().street!=='start'&&bridge.kit().street!=='cleared');this.setPower(['hold','done'].includes(stepOf(bridge.kit(),'power')));this.cameras.main.centerOn(model.x,model.y-20);this.stream(true);}
+ enter(){model.reset();this.fight.start();for(const i of this.dropImgs.values())i.destroy();this.dropImgs.clear();for(const v of this.hz.values())for(const i of v)i.destroy();this.hz.clear();for(const i of [...this.stains,...this.bits.map(b=>b.img),...this.lain])i.destroy();this.stains.length=0;this.bits.length=0;this.lain.length=0;this.brass.length=0;this.lying.length=0;this.pumps.length=0;this.floorG.clear();this.kick=null;this.jolt={x:0,y:0};for(const z of [...this.zs.keys()])this.free(z);this.setPlayerLook(bridge.look());this.setTrunk(bridge.kit().street!=='start'&&bridge.kit().street!=='cleared');this.setPower(['hold','done'].includes(stepOf(bridge.kit(),'power')));for(const b of BREACHES)if(b.prop)this.repaint(b.prop);this.cameras.main.centerOn(model.x,model.y-20);this.stream(true);}
  // What the camera shows, in world units.
  view(){const s=this.scale,z=this.zoom(),w=s.width/z,h=s.height/z,x=Math.max(0,Math.min(MAP.w-w,model.x-w/2)),y=Math.max(0,Math.min(MAP.h-h,model.y-20-h/2));return {x,y,w,h};}
  // Takes hold of the chunks near the screen and lets go of the ones well past it, then paints: everything on screen now, the rest
@@ -161,14 +161,16 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   if(c.s===STRIPS){c.t.refresh();if(worthBaking(R.w*2,R.h*2))bake(this,c.t,ctx=>groundArt(ctx,R));c.s++;return false;}
   c.t=null;c.g=this.add.image(R.x,R.y,key).setOrigin(0).setScale(.5).setDepth(-10);
   this.texture('nb-l-'+k,Math.ceil(R.w/LIGHT_SCALE),Math.ceil(R.h/LIGHT_SCALE),ctx=>lightArt(ctx,R));c.l=true;return true;}
- paintProp(i){const o=PROPS[i],p=this.held.get(i),on=o.job==='power'&&this.power,key=i===CRUISER_I?`street-cruiser-1-${this.trunk?1:0}`:'nb-p-'+o.id+(on?'-on':'');
-  if(i!==CRUISER_I)this.texture(key,(o.w+PROP_PAD*2)*2,(o.h+o.z+PROP_PAD*2)*2,c=>propArt(c,on?{...o,on:true}:o));
+ paintProp(i){const o=PROPS[i],p=this.held.get(i),on=o.job==='power'&&this.power,open=!!this.fight?.opened?.has(o.id),key=i===CRUISER_I?`street-cruiser-1-${this.trunk?1:0}`:'nb-p-'+o.id+(on?'-on':'')+(open?'-open':'');
+  if(i!==CRUISER_I)this.texture(key,(o.w+PROP_PAD*2)*2,(o.h+o.z+PROP_PAD*2)*2,c=>propArt(c,{...o,...(on?{on:true}:{}),...(open?{open:true}:{})}));
   p.img=this.add.image(o.x-PROP_PAD,o.y-o.z-PROP_PAD,key).setOrigin(0).setScale(.5).setDepth(o.flat?0:o.y+o.h-(o.sink||0)+i*1e-5);if(o.fade)this.fades.add(i);}
  forget(key){unbake(key);if(this.textures.exists(key))this.textures.remove(key);}
  drop(k){const c=this.chunks.get(k);this.chunks.delete(k);this.todo.delete(k);c.g?.destroy();this.forget('nb-g-'+k);this.forget('nb-l-'+k);
   for(const i of BY_CHUNK[k]){const p=this.held.get(i);if(!p||--p.n>0)continue;this.held.delete(i);this.todo.delete(-1-i);this.fades.delete(i);if(p.img){p.img.destroy();if(i!==CRUISER_I)this.forget(p.img.texture.key);}}}
  // The generator and work light, painted again once the generator is running.
- setPower(on){if(this.power===on)return;this.power=on;for(const o of [GEN,FLOOD]){const i=PROPS.indexOf(o),p=this.held.get(i);if(!p?.img)continue;const old=p.img.texture.key;p.img.destroy();this.forget(old);this.paintProp(i);}}
+ setPower(on){if(this.power===on)return;this.power=on;for(const o of [GEN,FLOOD])this.repaint(o.id);}
+ // A prop painted again as it is now (the generator running, a breach given way), if it is on screen.
+ repaint(id){const i=PROPS.findIndex(o=>o.id===id),p=this.held.get(i);if(!p?.img)return;const old=p.img.texture.key;p.img.destroy();this.forget(old);this.paintProp(i);}
  // The light over the screen: each chunk's light map, then the flashlight added where the gun points.
  light(){const V=grow(this.view(),24),L=LIGHT_SCALE,ox=Math.floor(V.x/L)*L,oy=Math.floor(V.y/L)*L,w=Math.ceil(V.w/L)+2,h=Math.ceil(V.h/L)+2,rt=this.lit;
   if(rt.width!==w||rt.height!==h)rt.resize(w,h);rt.setPosition(ox,oy);rt.clear();
@@ -297,6 +299,11 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   else if(e.type==='spit')j.bits(4,z.x,z.y,{dir:Math.atan2(e.g.y1-z.y,e.g.x1-z.x),spread:.6,speed:60,lift:20,z:44,col:0x9ad13a,life:.3,kind:'drop'});
   else if(e.type==='screamed'){for(let k=0;k<3;k++)j.ring(z.x,z.y-50,40+k*30,0xe0c8ff,.6+k*.2,2);if(Math.hypot(z.x-model.x,z.y-model.y)<500)j.shake('hurt');}
   else if(e.type==='started'){this.setPower(true);j.puff(GEN.x+4,GEN.y-12,1,0x6a6a66,.7,-12);j.puff(GEN.x+10,GEN.y-14,.8,0x5a5a58,.6,-16);}
+  // A breach gives: the gym's doors burst in dust and glass and the street shakes; the drain's grate is shoved off.
+  else if(e.type==='breach'){const b=e.b,near=Math.hypot(b.x-model.x,b.y-model.y)<600;if(b.prop)this.repaint(b.prop);
+   if(b.id==='gym'){for(let k=0;k<4;k++)j.puff(b.x+(Math.random()-.5)*40,b.y-20,1.2,0x6a6458,.6,-8);j.bits(14,b.x,b.y-150,{dir:Math.PI/2,spread:2.4,speed:60,lift:20,z:150,col:0xb8c8d8,life:.7,kind:'spark',len:2});if(near){j.shake('brute');j.hold(now,.05);}}
+   else if(b.id==='drain')j.puff(b.x,b.y-2,.8,0x4a4a48,.6,-6);}
+  else if(e.type==='overrun'){for(const b of BREACHES)if(b.prop)this.repaint(b.prop);}
   else if(e.type==='sputter')j.puff(GEN.x+4,GEN.y-10,.6,0x6a6a66,.5,-10);
   else if(e.type==='fixmiss'&&e.kind==='wire')j.bits(5,model.x,model.y,{dir:-Math.PI/2,spread:2.6,speed:70,lift:40,z:20,col:0xfff1a8,life:.25,kind:'spark',len:2});
   bridge.event?.(e);}

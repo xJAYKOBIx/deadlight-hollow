@@ -8,7 +8,7 @@
 import {GUNS,muzzle} from '../study/equipment.js';
 import {count,remove,add} from '../home/bag.js';
 import {ammoOf,advance,loot,scavenge,alarmed,DROPS,jobsDone,board,reclaim,reclaimed} from '../home/kit.js';
-import {MAP,WAVES,ROAMERS,NOTICE,HEAR,WALK,roadNear,EVAC,TRUCK,MOVING,OBJECTS,solidAt,coverAt} from './data.js';
+import {MAP,WAVES,ROAMERS,NOTICE,HEAR,WALK,roadNear,EVAC,TRUCK,MOVING,OBJECTS,BREACHES,solidAt,coverAt} from './data.js';
 import {Flow,clearLine} from './paths.js';
 import {Jobs,CARRY} from './jobs.js';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),facing=(dx,dy)=>(Math.round(Math.atan2(dy,dx)/(Math.PI/4))+8)%8;
@@ -58,6 +58,10 @@ export const VAULT={kinds:['picket','woodfence','woodfenceV','chainlink'],push:.
 // truck starts the hold-out: hordes from every side until it comes; then it pulls up at the east end with the tailgate down and
 // waits for you to get in.
 export const JOB={power:{noise:45,horde:5},evac:{hold:60,every:13,heat:85,drive:4.5}};
+// The hold-out in the bus lot: the dead come in through its breaches (street/data.js BREACHES) one after another, at these seconds
+// into it and then every so often, each called out this long before it gives. What comes through each: runners and shamblers
+// through the fence, crawlers up out of the drain, a crowd out of the gym.
+export const BREACH={at:[3,13,24,33],every:11,warn:3,packs:{'gap-e':[['runner',2],['shambler',3]],drain:[['crawler',5]],gym:[['shambler',6],['runner',1]],'gap-w':[['shambler',4],['runner',2]]}};
 // Screamers: frail, and they keep their distance. One that sees you with a clear line stops, throws its head back and screams (the
 // tell): if it finishes, the heat jumps and a horde comes, already hunting. Any hit breaks the scream for a moment; kill it first.
 export const SCREAMER={hp:45,speed:34,keep:230,scream:{tell:1.5,heat:30,cool:16,range:520,again:4}};
@@ -72,7 +76,7 @@ export const SPITTER={hp:55,speed:36,keep:[150,280],spit:{tell:.55,flight:.95,co
 // them gets him. Going down in the hold-out is the end of him, with no checkpoint. Then, as seen from a window across the street
 // (the game draws that): the dead close in and feed, then drift off; he twitches, gets up, and turns toward the window; then the
 // picture goes and you make the survivor who was watching. Times are seconds from when he went down. lines are what the watcher says are in story/night1.js (SCRIPT.window).
-export const DEATH={overrun:20,ring:[170,300],shamblers:14,runners:4,hurt:1.5,doom:26,feeders:6,
+export const DEATH={overrun:38,ring:[170,300],shamblers:14,runners:4,hurt:1.5,doom:26,feeders:6,
  cine:{leave:6.5,twitch:8.6,rise:10,up:11.4,walk:12.6,end:15.6}};
 // Him, after: tougher than most, standing where he got up until you come close or shoot him. Taking your gear back off him is a search.
 export const RISEN={hp:150,notice:230,search:2};
@@ -82,7 +86,7 @@ export class Fight{
   this.drill={bots:this.zombies,holdout:false,downed:false};this.flow=new Flow();this.jobs=new Jobs(this);}
  // Sets the street up for where the kit says you are: the cop waiting at the cruiser, the second wave coming, or nothing.
  start(){const k=this.kit();this.snapshot=k;this.hp=PLAYER_HP;this.down=0;this.dive=null;this.grab=0;this.searching=null;this.drops=[];this.heat=0;this.quiet=99;this.level=0;this.patrolT=30;this.hordeT=0;this.vault=null;this.push=0;this.evac=null;this.powerT=0;this.globs=[];this.pools=[];this.clouds=[];this.burnT=0;MOVING.length=0;this.diveCool=0;this.alert=false;this.traces=[];this.reloadTime=0;this.cooldown=0;this.held=k.held;this.zombies.length=0;
-  this.overrun=null;this.dead=null;this.remains=null;this.torch=k.phase==='own'&&k.corpse&&!k.corpse.taken?this.torch:null;this.model.spawn=k.phase==='own'?this.model.spawn:null;
+  this.overrun=null;this.dead=null;this.remains=null;this.warn=null;this.opened=new Set(k.phase==='own'?BREACHES.map(b=>b.prop).filter(Boolean):[]);this.torch=k.phase==='own'&&k.corpse&&!k.corpse.taken?this.torch:null;this.model.spawn=k.phase==='own'?this.model.spawn:null;
   this.jobs.start();if(k.phase==='own'){this.own(k);return;}
   if(k.street==='start')this.spawn(0);else if(k.street==='looted'){this.spawn(1);this.alert=true;}else{this.wave=-1;this.zombies.length=0;this.zombies.push(...this.roamers());}}
  // Your own survivor's street: the wanderers, him standing where he got up (until you have your gear back off him), and the truck,
@@ -171,15 +175,23 @@ export class Fight{
   // The tutorial's hold-out: a while in, the overrun; from then the truck is held up, and the end comes for him.
   if(this.kit().phase!=='own'&&v.state==='hold'){v.el=(v.el||0)+dt;if(!this.overrun&&v.el>=DEATH.overrun)this.overrunStart();}
   if(this.overrun){const o=this.overrun;o.t+=dt;if(o.t>=DEATH.doom&&!o.doomed){o.doomed=true;const m=this.model,z=this.zombies.filter(z=>this.out(z)).sort((a,b)=>Math.hypot(a.x-m.x,a.y-m.y)-Math.hypot(b.x-m.x,b.y-m.y))[0];this.hurt(this.hp/DEATH.hurt+1,z||{x:m.x+10,y:m.y});}}
-  if(v.state==='hold'){if(!this.overrun)v.t-=dt;if((v.h-=dt)<=0){v.h=E.every;this.patrol(true);}if(v.t<=0){v.state='drive';v.t=E.drive;this.emit('truck');}}
+  if(v.state==='hold'){if(!this.overrun){v.t-=dt;this.breaches(v,dt);}if(v.t<=0){v.state='drive';v.t=E.drive;this.emit('truck');}}
   else if(v.state==='drive'){v.t-=dt;if(v.t<=0){v.state='wait';this.park();this.emit('truckin');}}
   v.x=v.state==='drive'?TRUCK.x+(TRUCK.from-TRUCK.x)*Math.pow(Math.max(0,v.t/E.drive),1.6):v.state==='wait'?TRUCK.x:TRUCK.from;}
+ // The breaches, in turn: each is called out a moment before it gives, then the dead come through it.
+ breaches(v,dt){const B=BREACH,n=B.at.length,i=v.bi||0,at=i<n?B.at[i]:B.at[n-1]+(i-n+1)*B.every,b=BREACHES[i%BREACHES.length];v.bt=(v.bt||0)+dt;
+  if(v.bt>=at-B.warn&&this.warn?.b!==b){this.warn={b,at,t:0};this.emit('breaching',{b});}if(this.warn)this.warn.t+=dt;if(v.bt>=at){v.bi=i+1;this.breach(b);}}
+ // One gives way: it is painted open, and what was behind it comes for you, already hunting (out of the drain, crawling up first).
+ breach(b){if(b.prop)this.opened.add(b.prop);const m=this.model;let k=0;
+  for(const [kind,n] of BREACH.packs[b.id]||[])for(let j=0;j<n;j++,k++){const x=b.x+(this.rand()-.5)*(kind==='crawler'?10:50),y=b.y+(this.rand()-.5)*(kind==='crawler'?6:24),look=kind==='shambler'||kind==='crawler'?LOOKS[Math.floor(this.rand()*LOOKS.length)]:kind,hp=this.hpOf(kind,look);
+   this.zombies.push({kind,extra:true,roam:-1,look,x,y,sx:x,sy:y,direction:facing(m.x-x,m.y-y),frame:0,phase:0,hp,max:hp,idle:false,delay:k*.45,...(kind==='crawler'?{hatch:CRAWLER.rise}:{}),state:'chase',hunt:true,t:0,vx:0,vy:0,stagger:0,tell:0,cool:0,flash:0,groan:.5+this.rand()*2,wt:0,wx:x,wy:y,acc:0});}
+  this.emit('breach',{b,n:k});}
  // The overrun: the dead out of the dark on every side at once, already coming for you, a few of them running.
  overrunStart(){const m=this.model,D=DEATH,n=D.shamblers+D.runners;this.overrun={t:0};
   for(let i=0;i<n;i++){let x=m.x,y=m.y;for(let k=0;k<20;k++){const a=(i/n)*Math.PI*2+(this.rand()-.5)*.5,r=D.ring[0]+this.rand()*(D.ring[1]-D.ring[0]);x=m.x+Math.cos(a)*r;y=m.y+Math.sin(a)*r*.75;if(x>WALK.left+20&&x<WALK.right-20&&y>WALK.top+20&&y<WALK.bottom-20&&!solidAt(x,y,10))break;}
    const kind=i<D.runners?'runner':'shambler',look=kind==='runner'?'runner':LOOKS[Math.floor(this.rand()*LOOKS.length)],hp=this.hpOf(kind,look);
    this.zombies.push({kind,extra:true,roam:-1,look,x,y,sx:x,sy:y,direction:facing(m.x-x,m.y-y),frame:0,phase:0,hp,max:hp,idle:false,delay:i*.12,state:'chase',hunt:true,t:0,vx:0,vy:0,stagger:0,tell:0,cool:0,flash:0,groan:.5+this.rand()*2,wt:0,wx:x,wy:y,acc:0});}
-  this.emit('overrun',{n});}
+  for(const b of BREACHES)if(b.prop)this.opened.add(b.prop);this.warn=null;this.emit('overrun',{n});}
  // He goes down for the last time. His body stays where he fell; the nearest of the dead come to it, the rest wander off.
  die(){const m=this.model;this.down=1e9;this.reloadTime=0;this.dive=null;this.vault=null;this.grab=0;this.shove=null;if(this.searching){this.searching=null;this.emit('searchstop');}
   const b=this.risenAt(m.x,m.y);b.fall=this.rand()<.5?1:-1;b._pool=true;this.zombies.push(b);
@@ -295,7 +307,7 @@ export class Fight{
   this.hazards(dt);
   // The job: the clock, the generator's horde, the hold-out and the truck.
   const K=this.kit();if(K.street==='done'&&!K.mission?.out){this.stats.time+=dt;if(this.powerT>0&&(this.powerT-=dt)<=0&&!this.down)this.patrol(true);if(this.evac&&!this.down)this.holding(dt);}
-  if(this.kit().street==='done'&&!this.down&&!this.kit().mission?.out){if((this.patrolT-=dt)<=0){this.patrolT=HEAT.patrol[this.level]*(.8+this.rand()*.4);this.patrol(false);}if(this.level===3&&!sw&&(this.hordeT-=dt)<=0){this.hordeT=HEAT.horde.every;this.patrol(true);}}
+  if(this.kit().street==='done'&&!this.down&&!this.kit().mission?.out&&!(this.evac?.state==='hold'&&!this.evac.paused)){if((this.patrolT-=dt)<=0){this.patrolT=HEAT.patrol[this.level]*(.8+this.rand()*.4);this.patrol(false);}if(this.level===3&&!sw&&(this.hordeT-=dt)<=0){this.hordeT=HEAT.horde.every;this.patrol(true);}}
   // Extra dead well away from you that are not after you are let go, and so are their bodies.
   if(this.zombies.some(z=>z.extra&&(z.hp<=0||!z.hunt)&&Math.hypot(z.x-m.x,z.y-m.y)>HEAT.gone)){const keep=this.zombies.filter(z=>!(z.extra&&(z.hp<=0||!z.hunt)&&Math.hypot(z.x-m.x,z.y-m.y)>HEAT.gone));this.zombies.length=0;this.zombies.push(...keep);}
   // Walking over something the dead dropped picks it up.

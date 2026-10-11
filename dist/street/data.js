@@ -77,9 +77,9 @@ const SEARCHABLE={car:{verb:'Search',name:'Parked car',role:'The doors are unloc
 // You stand in front of it if you can, otherwise beside it or behind it.
 const standAt=o=>{const cx=o.x+o.w/2,below=o.y+o.h+(o.kind==='car'?14:10);for(const [x,y] of [[cx,below],[cx,below+10],[o.x-12,o.y+o.h/2],[o.x+o.w+12,o.y+o.h/2],[cx,o.y-12],[o.x-12,below],[o.x+o.w+12,below]])if(!solidAt(x,y,9))return {x,y};return {x:cx,y:below};};
 const SPOTS=PROPS.filter(o=>SEARCHABLE[o.kind]&&!o.job).map(o=>({id:'search-'+o.id,prop:o.id,loot:SEARCHABLE[o.kind].loot||o.kind,...SEARCHABLE[o.kind],...standAt(o),mx:o.x+o.w/2,my:o.y-Math.min(o.z,90)-6})).filter(t=>!solidAt(t.x,t.y,8));
-// The first job's spots, the place by the school's bus lot at the east end of your street to call the truck from, and the truck's
+// The first job's spots, the place in the school's bus lot at the east end of your street to call the truck from, and the truck's
 // tailgate once it is there. Where the truck pulls up: on your street in the far lane, nose west, just short of the last side street.
-export const EVAC={x:CROSSES[COLS].x-150,y:HOME_ROAD.y+26};
+export const EVAC={x:5300,y:3360};
 export const TRUCK={x:EVAC.x-120,y:HOME_ROAD.y+56,w:200,h:60,z:64,from:STREET.w+60};
 const RH=RADIO_HOUSE,RD=RH.door0+17,RB=BLOCKS.find(b=>b.houses.includes(RH)),RADIO={x:RD,y:RB.y+FRONT+WALL_T+20,mx:RD,my:RB.y+FRONT-Z-6,range:34};
 // The job, a step at a time (street/jobs.js USES says what each use does). The radio: the battery out of the Castillos' car (their
@@ -148,6 +148,11 @@ export const ROAMERS=[];{const R=rng(9091),LOOKS=['neighbour','jogger','robe','w
  const near=(id,dx,dy)=>{const o=OBJECTS.find(q=>q.id===id);return [o.x+dx,o.y+dy];};
  put('screamer',...near('job-radio',-160,40));put('bloater',...near('job-power',140,70));put('spitter',...near('job-supplies',120,-60));
  for(const b of BLOCKS){if(b.home||R()>.4)continue;const kind=['screamer','bloater','spitter'][Math.floor(R()*3)];put(kind,b.x+100+R()*(BLOCK-200),b.y+(R()<.6?180+R()*180:BACK+40+R()*100));}}
+// The hold-out's breaches: where the dead get into the lit bus lot while you wait for the truck, in the order they give way. The
+// holes in the lot's back fence, the storm drain in the gutter (what comes up out of it crawls), and the gym's doors over the road,
+// which burst. prop is what is painted open once it has given way.
+export const BREACHES=[{id:'gap-e',name:'The fence gap',short:'Fence gap',x:5130,y:3860},{id:'drain',name:'The storm drain',short:'Storm drain',x:4725,y:3172,prop:'d21-drain'},
+ {id:'gym',name:'The gym doors',short:'Gym doors',x:5250,y:2996,prop:'d21-gym'},{id:'gap-w',name:'The fence gap',short:'Fence gap',x:4430,y:3860}];
 // Mrs. Hargrove, who went to the park after her dog and did not come back, and two who were there with her. Last, so every other
 // wanderer keeps its place in the list.
 {const R=rng(2718),put=(look,x,y,who)=>{for(let t=0;t<40;t++){const px=Math.round(x+(R()-.5)*t*10),py=Math.round(y+(R()-.5)*t*8);if(!solidAt(px,py,10)){ROAMERS.push({look,x:px,y:py,...(who?{who}:{})});return;}}};
