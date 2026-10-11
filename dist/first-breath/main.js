@@ -1,17 +1,18 @@
-import {Playback,DURATION,LINE,frameAt} from './model.js';
+import {Playback,DURATION,frameAt} from './model.js';
 import {makeFirstBreathScene} from './scene.js';
 import {Sound} from './sound.js';
 const $=id=>document.getElementById(id), player=new Playback(),sound=new Sound();
 let scene=null,scrubbing=false,wasPlaying=false,backgroundResume=false;
 const motion=matchMedia('(prefers-reduced-motion: reduce)');
-$('subtitle').textContent=LINE;
+$('seek').max=DURATION;
 function render(){
  const f=frameAt(player.t,motion.matches);scene?.draw(player.t);
- $('subtitle').classList.toggle('visible',f.subtitle);
+ $('subtitle').textContent=f.subtitle;
+ $('subtitle').classList.toggle('visible',Boolean(f.subtitle));
  $('play').textContent=player.state==='playing'?'Pause':player.state==='ended'?'Replay':'Play';
  $('play').setAttribute('aria-label',player.state==='playing'?'Pause cinematic':player.state==='ended'?'Replay cinematic':'Play cinematic');
  if(!scrubbing)$('seek').value=player.t;
- $('clock').textContent=`0:${Math.floor(player.t).toString().padStart(2,'0')} / 0:10`;
+ $('clock').textContent=`0:${Math.floor(player.t).toString().padStart(2,'0')} / 0:${DURATION}`;
  $('start').hidden=player.state!=='ready';$('finished').hidden=player.state!=='ended';
 }
 async function playPause(){

@@ -1,15 +1,29 @@
 // Shot 01: deterministic seconds, independent of Phaser and wall-clock time.
-export const DURATION = 10;
+export const DURATION = 14;
 export const LINE = 'The first time Marrow brought someone back, a family got another morning together.';
-export const BEATS = [3.05, 4.05, 5.05, 6.05, 7.05, 8.05, 9.05];
+export const SUBTITLES = [
+ {from:2,to:6.5,text:'The first time Marrow brought someone back,'},
+ {from:7.6,to:12.4,text:'a family got another morning together.'}
+];
+export const BEATS = Array.from({length:11}, (_,i) => 3.05+i);
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 const ease = v => { v = clamp(v); return v * v * (3 - 2 * v); };
 export function frameAt(seconds, reduced = false) {
-  const t = clamp(Number.isFinite(seconds) ? seconds : 0, 0, DURATION);
-  return { t, fade: 1 - ease((t - 1) / 1.3), zoom: reduced ? 1 : 1.23 - .23 * ease((t - 1) / 8),
-    focusX: 460 + 20 * ease((t - 1) / 8), focusY: 322 - 52 * ease((t - 1) / 8),
-    clasp: ease((t - 4.2) / 1.9), breath: t > 3 ? Math.sin((t - 3) * 1.8) * .6 : 0,
-    relief: ease((t - 5.3) / 1.8), subtitle: t >= 2 && t < 8, alive: t >= 3.05, done: t >= DURATION };
+ const t=clamp(Number.isFinite(seconds)?seconds:0,0,DURATION);
+ // Deliberate edit: monitor -> hand insert -> the family. No random camera shake.
+ const shot=t<3.65?'monitor':t<7.6?'hands':'family';
+ const pull=ease((t-7.6)/3.6);
+ let zoom,focusX,focusY;
+ if(shot==='monitor'){zoom=2.14;focusX=246;focusY=238;}
+ else if(shot==='hands'){zoom=3.3;focusX=552;focusY=347;}
+ else{zoom=3.3-(3.3-1.13)*pull;focusX=552-52*pull;focusY=347-53*pull;}
+ if(reduced&&shot==='family'){zoom=1.13;focusX=500;focusY=294;}
+ const clasp=ease((t-5.0)/1.85);
+ return {t,shot,zoom,focusX,focusY,fade:1-ease((t-.8)/1.2),
+  clasp, fingerFrame:Math.round(clasp*16), breath:t>3?Math.sin((t-3)*1.65)*.7:0,
+  relief:ease((t-10.7)/1.4), warm:ease((t-6.4)/5),
+  subtitle:SUBTITLES.find(c=>t>=c.from&&t<c.to)?.text||'',
+  alive:t>=3.05,done:t>=DURATION};
 }
 export function crossedBeats(from, to) { return to > from ? BEATS.filter(t => t > from && t <= to) : []; }
 export class Playback {
