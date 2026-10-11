@@ -42,7 +42,7 @@ export const SCRIPT={
   ['marcus','And Mrs. Hargrove keeps a go-bag in her shed, south-west. "For when it happens."'],['marcus','Well. It happened.']],
  job:{radio:[['guard','...station on the east side, you\'re weak but readable. Go ahead.'],['marcus','This is the east side. There are still people here.'],['guard','Copy, east side. Light us a way in and we\'ll come.']],
   power:[['marcus','That\'ll burn all night. Anyone up there can see it.']],powerOn:[['marcus','Everything for a mile heard that.']],supplies:[['marcus','Mrs. Hargrove, you beautiful, paranoid woman.']]},
- // Draft (v0.60): the steps of each job. One line from Marcus goes by over his head; more than one opens the box.
+ // The steps of each job (approved for v0.60). One line from Marcus goes by over his head; more than one opens the box.
  chain:{keys:[['marcus','Spare\'s on the hook by the door. They never locked anything.']],smash:[['marcus','Sorry, Castillos.']],open:[['marcus','Heavier than it looks.']],
   set:[['marcus','Okay, Curtis. Let\'s see if this thing still works.']],wire:[['marcus','Red to red. Don\'t touch both.']],tune:[['marcus','Come on. Somebody be out there.']],
   check:[['marcus','Bone dry. And his can\'s empty.'],['marcus','Any car\'s tank will do. Or the gas station, if the hand pump works.']],siphon:[['marcus','Ugh. Never doing that again.']],store:[['marcus','Hand pump still works.']],

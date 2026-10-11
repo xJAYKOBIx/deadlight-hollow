@@ -544,6 +544,27 @@ Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack),
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
 
+## v0.60.0 — Jobs as chains, the bus-lot hold-out, and the aim and HUD pass
+
+Each job is now a chain of steps (`street/jobs.js`; the step is saved per job in `mission.step`): find, carry, get in, fix, hold, hunt.
+- The radio: the Castillos' car key (or smash the window), lift the battery, carry it to Curtis Webb's (one-handed: only the pistol, slower), wire it (tap as the spark crosses each post), tune it (tap as the needle finds the voice). The Guard answers.
+- The generator: the tank is dry, so siphon any of 36 cars or work the gas-station hand pump, carry the can, prime the bulb three times, pull at the top of the stroke, then hold by the light for 30 seconds while it warms up.
+- The go-bag: Mrs. Hargrove's note sends you to the park, where she has turned. Put her down and take the shed key from her wrist, or pry the shed (loud).
+- Carried parts can be set down (Swap) and picked up again; a two-handed shot drops them where you stand.
+
+The hold-out at the school bus lot: once the flare is up, four breach points give way in turn (3 s warning banner and a mark): the east fence gap, the storm drain (crawlers), the gym doors (they burst open), the west fence gap. Normal patrols stand down during the hold. Master Creator gained open states for the gym doors and the storm drain.
+
+The new night one lines (each job's steps, the Guard answering the radio, the breach banners) were approved by Jaykobi on 2026-10-11; the Night One Script has them under Scene 5.
+
+Jaykobi's aim and HUD list (2026-10-11):
+- Crawlers: a crawler is hit where the laser lies across its body (its "ghost", the gun's height down, square to the line) as well as where the ground line runs under it. Before, bullets passed a gun's height over it.
+- Aim assist: the touch pull's cone is 22° and locks fully within the middle 55%; nearer zombies count as nearer the line, and the one it is on is held (no flicking). Controllers: 14°. Every shot also bends onto a zombie it misses by under 5° (`MAGNET`).
+- The laser: a bright core in a soft glow that stops on what the shot would hit, with a ring when that is a zombie. `LASER.col` tints it.
+- Health and stamina: one plate low in the middle of the street screen (above the console on the portrait deck). Health green, amber below 60, red and pulsing below 30, with a pale trail showing the last hit; stamina blue. A small health sliver shows under you while hurt (Jaykobi chose "Both").
+- A thin ring round your feet (teal; `RING.cols` holds the co-op colours), drawn above the night, with a gap behind the legs.
+- The weapon panel reads loaded / carried (8 / 43, ∞ for pistols); how many a gun holds is in its tooltip.
+- The bag: tooltips on items and gun slots (hover, keys, controller; a tap's tip fades after 2.6 s so it never covers the grid).
+
 ## v0.59.0 — The suburbs map
 
 The seeded 5 × 5 grid is gone. `street/plan.js` lays out the suburbs by hand: three columns by three rows of districts (3 × 9 bands of the old 600-unit band, so houses, yards, fences and the intro aerial keep working), 6,040 × 5,880 units. Back-yard maze (Curtis Webb's radio) | water tower and woods | building site (Ray Dunham's generator); church and cemetery | your street | the school (the bus lot, the truck); park and creek (Mrs. Hargrove's go-bag) | shops and gas station | ball fields. Three streets cross the whole map (your street is the middle one); side streets run the whole height; the two house districts keep their own streets. Ground shapes (polys, painted lines, ovals, stalls, water) are entries in each block's ground list, offset by the district.
@@ -554,7 +575,6 @@ The seeded 5 × 5 grid is gone. `street/plan.js` lays out the suburbs by hand: t
 - The pump canopy sorts as if it stood 70 further back (`sink`), so the pumps and you at them draw over its shaded ground.
 - The corner title names the district you are in (short names to fit a phone): Back yards, Water tower, Building site, St. Brendan's, Your street, The school, Creek Park, The shops, Ball fields.
 - New door lines (to approve): St. Brendan's "Barred from the inside." / "Somebody in there is praying. Out loud. Over and over."; the school "Chained shut. A sign taped to the glass: "SHELTER FULL.""; the gym "Locked. Something heavy is leaning on them from inside." / "I hear breathing."
-- Still to come in this build: each job as a chain of steps, the bus-lot hold-out with breach points, and the new night one lines.
 
 ## v0.57.0 — Smooth drawing
 
