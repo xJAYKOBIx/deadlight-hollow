@@ -20,7 +20,7 @@ test('the left-handed deck is the right-handed one mirrored',()=>{
  for(const W of WIDTHS)for(const mode of Object.keys(SLOTS)){const R=layout(W,{mode}),Lh=layout(W,{mode,set:{...DEFAULT_CONSOLE,hand:'left'}});
   for(const [id,o] of Object.entries(R.items)){assert.ok(Math.abs(Lh.items[id].x-(W-o.x))<1e-6,`${id} ${W} ${mode}`);assert.equal(Lh.items[id].y,o.y);}
   // The move stick is always on the side the left-hand setting says, and fight buttons are on the other.
-  assert.ok(R.items.move.x<W/2&&Lh.items.move.x>W/2);if(R.items.dive)assert.ok(R.items.dive.x>R.split&&Lh.items.dive.x<Lh.split);}});
+  assert.ok(R.items.move.x<W/2&&Lh.items.move.x>W/2);if(R.items.shove)assert.ok(R.items.shove.x>R.split&&Lh.items.shove.x<Lh.split);}});
 test('Use sits in the game view above the fire stick in a fight and in its place when calm',()=>{
  const F=layout(390,{mode:'fight'}),C=layout(390,{mode:'calm'});
  assert.ok(F.items.act.pill&&F.items.act.y<0&&F.items.act.x+F.items.act.w/2<=390-F.sr+1);
@@ -28,9 +28,10 @@ test('Use sits in the game view above the fire stick in a fight and in its place
 test('console settings are clamped and moved controls stay on the deck',()=>{
  assert.deepEqual(normalizeConsole(null),DEFAULT_CONSOLE);
  const s=normalizeConsole({scale:9,opacity:0,accent:'pink',hand:'up',moved:{dive:{dx:9999,dy:-2},bad:{dx:'x'}}});
- assert.equal(s.scale,1.3);assert.equal(s.opacity,1);assert.equal(s.accent,'ember');assert.equal(s.hand,'right');assert.deepEqual(s.moved,{dive:{dx:500,dy:-2}});
+ // A Dive button moved before v0.62 keeps its place as the Shove button.
+ assert.equal(s.scale,1.3);assert.equal(s.opacity,1);assert.equal(s.accent,'ember');assert.equal(s.hand,'right');assert.deepEqual(s.moved,{shove:{dx:500,dy:-2}});
  assert.equal(normalizeConsole({opacity:.1}).opacity,.35);
- const L=layout(390,{mode:'fight',set:{...DEFAULT_CONSOLE,moved:{dive:{dx:500,dy:500}}}}),d=L.items.dive;
+ const L=layout(390,{mode:'fight',set:{...DEFAULT_CONSOLE,moved:{shove:{dx:500,dy:500}}}}),d=L.items.shove;
  assert.ok(d.x+d.w/2<=390+1e-6&&d.y+d.h/2<=L.dk+1e-6);});
 test('the plate has a well per stick, a socket per button and names inside the band',()=>{
  for(const mode of Object.keys(SLOTS)){const L=layout(390,{mode}),P=plateFor(L,20),it=L.items;

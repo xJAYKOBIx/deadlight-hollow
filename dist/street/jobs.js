@@ -42,7 +42,7 @@ export class Jobs{
   if(t.use==='drop')return !this.carry&&k.mission.drops.some(d=>d.item===t.item);
   if(stepOf(k,U.job)!==U.step||this.carry&&t.use!=='set'&&t.use!=='fill')return false;return !U.need||U.need(this);}
  // Using a spot: a fix opens, anything else is a moment standing still that the fight finishes (finish, below).
- use(t){const f=this.f;if(f.down||f.dive||f.vault||f.searching||this.fix||!this.can(t))return false;const U=USES[t.use];
+ use(t){const f=this.f;if(f.down||f.vault||f.searching||this.fix||!this.can(t))return false;const U=USES[t.use];
   if(U.fix){const first=!this.prog[U.fix];this.fix={t,kind:U.fix,g:this.prog[U.fix]??=this.fresh(U.fix),st:0};f.emit('fix',{t,kind:U.fix,first});return true;}
   if(t.use==='smash')f.alarm(t.x,t.y);if(t.use==='pry')this.loud(NOISE.pry,t);
   f.searching={t,time:0,need:U.time};f.emit('search',{t,job:U.job});return true;}
@@ -62,7 +62,7 @@ export class Jobs{
  next(id,to){const f=this.f,k=to?stepTo(this.kit,id,to):stepOn(this.kit,id,f.grid());f.setKit(k);
   if(k.mission.done.includes(id)){f.done(id);return;}f.snapshot=this.safe(k);f.emit('step',{job:id,step:stepOf(k,id)});}
  safe(k){return k.mission?.carry&&this.liftAt?setDown(k,this.liftAt.x,this.liftAt.y):k;}
- // Setting the part in your hands down where you stand (the swap button, a dive, firing the shotgun).
+ // Setting the part in your hands down where you stand (the swap button, a shove, firing the shotgun).
  putDown(){const f=this.f,m=f.model,item=this.carry;if(!item)return false;f.setKit(setDown(this.kit,Math.round(m.x),Math.round(m.y)));this.place();f.emit('setdown',{item});return true;}
  // The Use button during a fix.
  tap(){const x=this.fix,f=this.f,m=f.model;if(!x)return false;const g=x.g,F=FIX[x.kind];
@@ -77,7 +77,7 @@ export class Jobs{
  // Each step of the fight's clock: the moving spots, a fix under way (walking off, shooting, diving or going down stops it), and the
  // hold under the light.
  update(dt,input={}){const f=this.f,m=f.model;this.place();if(!this.on())return;
-  const x=this.fix;if(x){if(Math.hypot(Number(input.x)||0,Number(input.y)||0)>.25||input.fire||f.dive||f.down||f.vault||!this.can(x.t))this.stop();else this.run(x,dt);}
+  const x=this.fix;if(x){if(Math.hypot(Number(input.x)||0,Number(input.y)||0)>.25||input.fire||input.shove||f.down||f.vault||!this.can(x.t))this.stop();else this.run(x,dt);}
   if(stepOf(this.kit,'power')==='hold'&&!f.down){this.near=Math.hypot(m.x-HOLD_AT.x,(m.y-HOLD_AT.y)*1.2)<HOLD.r;this.hold=this.near?this.hold+dt:Math.max(0,this.hold-dt*HOLD.decay);if(this.hold>=HOLD.time){this.hold=0;this.next('power');}}}
  // A fix's cursor: the spark and the needle bounce end to end; the cord's pull runs bottom to top, over and over, once it is primed.
  run(x,dt){const g=x.g,F=FIX[x.kind];if(x.kind==='pull'){if(g.prime>=F.prime)g.c=(g.c+dt/F.time)%1;return;}

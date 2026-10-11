@@ -11,16 +11,17 @@ export const ACCENTS={ember:['#dd6f2c','#ff9a52'],bone:['#a8a090','#efe8da'],tox
 export const ACCENT_NAMES={ember:'Ember',bone:'Bone',toxic:'Toxic',siren:'Siren',blood:'Blood'};
 export const DEFAULT_CONSOLE={scale:1,opacity:1,accent:'ember',hand:'right',moved:{}};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+// A layout saved before v0.62 has the Dive button's place under dive; the Shove button took that place.
 export function normalizeConsole(v){const o=v&&typeof v==='object'?v:{},moved={};
- for(const [id,m] of Object.entries(o.moved&&typeof o.moved==='object'?o.moved:{}))if(m&&Number.isFinite(m.dx)&&Number.isFinite(m.dy))moved[id]={dx:clamp(Math.round(m.dx),-500,500),dy:clamp(Math.round(m.dy),-500,500)};
+ for(const [k,m] of Object.entries(o.moved&&typeof o.moved==='object'?o.moved:{}))if(m&&Number.isFinite(m.dx)&&Number.isFinite(m.dy))moved[k==='dive'?'shove':k]={dx:clamp(Math.round(m.dx),-500,500),dy:clamp(Math.round(m.dy),-500,500)};
  return {scale:clamp(Number(o.scale)||1,.8,1.3),opacity:clamp(Number(o.opacity)||1,.35,1),accent:ACCENTS[o.accent]?o.accent:'ember',hand:o.hand==='left'?'left':'right',moved};}
 export function readConsole(storage){try{return normalizeConsole(JSON.parse(storage?.getItem(CONSOLE_KEY)||'null'));}catch{return normalizeConsole(null);}}
 export function saveConsole(storage,s){try{storage?.setItem(CONSOLE_KEY,JSON.stringify(s));return true;}catch{return false;}}
 // Which controls each kind of place has. fight: the street. range: the Training Grounds (no diving there). calm: camp and the house (Use takes the fire
 // stick's place). zombie: the room as a zombie (moving, and Use for the stairs).
-export const SLOTS={fight:['move','aim','dive','reload','run','grenade','weapon','act','inspect','bag','menu'],range:['move','aim','reload','run','grenade','weapon','act','inspect','bag','menu'],calm:['move','act','run','inspect','bag','menu'],zombie:['move','act','run','inspect','menu']};
+export const SLOTS={fight:['move','aim','shove','reload','run','grenade','weapon','act','inspect','bag','menu'],range:['move','aim','reload','run','grenade','weapon','act','inspect','bag','menu'],calm:['move','act','run','inspect','bag','menu'],zombie:['move','act','run','inspect','menu']};
 // The controls a player can drag in the editor, and what they are called there.
-export const NAMES={aim:'Fire stick',dive:'Dive',reload:'Reload',run:'Run',grenade:'Light / grenade',weapon:'Weapon · swap',act:'Use',inspect:'Character',bag:'Bag',menu:'Menu',move:'Move stick'};
+export const NAMES={aim:'Fire stick',shove:'Shove',reload:'Reload',run:'Run',grenade:'Light / grenade',weapon:'Weapon · swap',act:'Use',inspect:'Character',bag:'Bag',menu:'Menu',move:'Move stick'};
 // W: deck width. sl, sr: the safe insets. mode: fight, calm or zombie. set: the player's settings.
 export function layout(W,{sl=14,sr=14,mode='fight',set=DEFAULT_CONSOLE}={}){
  // Bigger controls are capped so the move stick and the fire ring (313 units from edge to edge) still fit side by side.
@@ -28,8 +29,8 @@ export function layout(W,{sl=14,sr=14,mode='fight',set=DEFAULT_CONSOLE}={}){
  const F={x:W-sr-64*k,y:122*k},M={x:sl+68*k,y:110*k},items={},at=(a,s)=>({x:F.x+Math.cos(a*deg)*ARC,y:F.y+Math.sin(a*deg)*ARC,w:s,h:s,round:true});
  items.move={x:M.x,y:M.y,w:112*k,h:112*k,round:true};
  if(mode==='fight'||mode==='range'){items.aim={x:F.x,y:F.y,w:140*k,h:140*k,round:true,ring:116*k};
-  // The ring round the fire stick, nearest first for the things you press most: Dive, Reload, then Run below and Light above.
-  items.dive=at(172,52*k);items.reload=at(203,52*k);items.run=at(141,46*k);items.grenade=at(234,46*k);
+  // The ring round the fire stick, nearest first for the things you press most: Shove, Reload, then Run below and Light above.
+  items.shove=at(172,52*k);items.reload=at(203,52*k);items.run=at(141,46*k);items.grenade=at(234,46*k);
   // The weapon readout, top right: tap it to swap guns.
   const x0=F.x-30*k;items.weapon={x:(x0+W-sr)/2,y:6+22*k,w:W-sr-x0,h:44*k};
   // Use, in the game view just above the right stick, only while something is in reach.
@@ -44,7 +45,7 @@ export function layout(W,{sl=14,sr=14,mode='fight',set=DEFAULT_CONSOLE}={}){
  // Left-handed: the whole deck mirrored.
  if(set.hand==='left'){for(const o of Object.values(items))o.x=W-o.x;status.x=W-status.x-status.w;if(right!==items.weapon)right.x=W-right.x;}
  for(const [id,m] of Object.entries(set.moved||{}))if(items[id]){items[id].x=clamp(items[id].x+m.dx,items[id].w/2,W-items[id].w/2);items[id].y=clamp(items[id].y+m.dy,id==='act'?-400:items[id].h/2,dk-items[id].h/2);}
- const mv=items.move,split=Math.round(set.hand==='left'?(mv.x-mv.w/2+(items.dive?items.dive.x+items.dive.w/2:W*.55))/2:(mv.x+mv.w/2+(items.dive?items.dive.x-items.dive.w/2:W*.45))/2);
+ const mv=items.move,split=Math.round(set.hand==='left'?(mv.x-mv.w/2+(items.shove?items.shove.x+items.shove.w/2:W*.55))/2:(mv.x+mv.w/2+(items.shove?items.shove.x-items.shove.w/2:W*.45))/2);
  return {W,k,U,band,dk,split,mode,items,status,right,sl,sr};}
 // The plate for a layout, in art pixels (half the deck's size): wells under the sticks, sockets under the buttons, glass behind the
 // readouts, and the two names along the bottom.
@@ -58,7 +59,7 @@ export function plateFor(L,sb){const h=Math.ceil((L.dk+sb)/2),w=Math.ceil(L.W/2)
  else if(L.right.w)insets[1]={x:half(L.right.x-L.right.w/2),y:half(L.right.y-L.right.h/2),w:half(L.right.w),h:half(L.right.h)};
  return {w,h,split:half(L.split),band:Math.ceil((L.band+sb)/2),wells,sockets,insets,names:{left:half(L.sl)+1,right:half(L.W-L.sr)-1,y:half(L.U)+Math.max(1,Math.floor((Math.ceil((L.band+sb)/2)-7)/2))}};}
 // The element each control is.
-export const ELEMENTS={move:'moveZone',aim:'aimZone',dive:'diveBtn',reload:'reload',run:'runToggle',grenade:'throwGrenade',weapon:'weaponHud',act:'act',inspect:'inspect',bag:'bagBtn',menu:'menu'};
+export const ELEMENTS={move:'moveZone',aim:'aimZone',shove:'shoveBtn',reload:'reload',run:'runToggle',grenade:'throwGrenade',weapon:'weaponHud',act:'act',inspect:'inspect',bag:'bagBtn',menu:'menu'};
 // Puts a layout on the page: each control's centre and size as CSS variables (study/style.css places them), the deck's height and
 // the readouts' boxes on the root, and the plate repainted when anything about it changed.
 export function mountConsole(doc,{deck}){let plateKey='',cv=null,shown=false;

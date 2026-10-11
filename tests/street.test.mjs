@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-const {Fight,ZOMBIE,PLAYER_HP,ROAM,SLOW,DIVE,SHOVE,GORE_KILL,CRAWLER}=await import('../dist/street/fight.js');const {StreetModel}=await import('../dist/street/model.js');
+const {Fight,ZOMBIE,PLAYER_HP,ROAM,SLOW,BASH,GRAB,SHOVE,GORE_KILL,CRAWLER}=await import('../dist/street/fight.js');const {StreetModel}=await import('../dist/street/model.js');
 const {normalizeHome,take,goal,useLines,loot,TRUNK}=await import('../dist/home/kit.js');const {count}=await import('../dist/home/bag.js');const {carrying}=await import('../dist/mc/assets/gear/bags.js');
 const {STREET,START,WAVES,COP,NOTICE,HEAR,PROPS,BLOCKS,HOUSES,OBJECTS,ROAMERS,SOLIDS,DISTRICTS,roadNear,solidAt,coverAt,COLS,ROWS,AREA_NAMES,areaAt}=await import('../dist/street/data.js');
 const grid=carrying({}),armed=(guns=['light-pistol','pump-shotgun'])=>guns.reduce((k,g)=>take(k,g,grid),{...normalizeHome(null),woke:true,light:true});
@@ -76,21 +76,30 @@ test('your flashlight: a wanderer it falls on sees you from further off, one beh
  const r=f.zombies.find(z=>z.roam!==undefined&&clearLine(z.x-260,z.y,z.x,z.y)&&!solidAt(z.x-260,z.y,12));assert.ok(r,'a wanderer in the open');
  Object.assign(m,{x:r.x-260,y:r.y});f.beam={x:m.x,y:m.y,a:Math.PI};run(f,m,.2);assert.equal(r.hunt,false,'the light points away and it is out of sight');
  f.beam={x:m.x,y:m.y,a:0};f.update(1/60,{});assert.equal(r.hunt,true,'in the beam, it sees you');});
-test('the dive: a burst along the way you move that costs stamina, dodges a bite in the air and stops you shooting till you are up',async()=>{const {Stamina}=await import('../dist/camp/fishing.js');
- const {m,f}=setup(),z=f.zombies[0];m.stamina=new Stamina();Object.assign(m,{x:z.x-ZOMBIE.reach+2,y:z.y});f.wake();run(f,m,.05);assert.equal(z.state,'windup');
- const x0=m.x,s0=m.stamina.value;let first=true;run(f,m,ZOMBIE.bite.windup,()=>{const i={x:-1,y:0,dive:first};first=false;return i;});
- assert.equal(f.hp,PLAYER_HP,'the bite missed');assert.ok(x0-m.x>50,'you went a good way: '+(x0-m.x));assert.ok(m.stamina.value<=s0-DIVE.cost+1,'it cost stamina');
- assert.ok(f.dive,'still getting up');assert.equal(f.fire(),false,'no shooting on the ground');run(f,m,DIVE.rise+.1);assert.equal(f.dive,null,'back up');
- // Winded, you cannot.
- m.stamina.value=2;run(f,m,DIVE.cool+.05);run(f,m,1/60,()=>({x:1,y:0,dive:true}));assert.equal(f.dive,null);});
+test('the shove: both hands out the way you aim, costing stamina; what is in front is thrown back and staggered and its bite is broken',async()=>{const {Stamina}=await import('../dist/camp/fishing.js');
+ const {m,f}=setup(),z=f.zombies[0];m.stamina=new Stamina();Object.assign(m,{x:z.x-ZOMBIE.reach+2,y:z.y});f.wake();f.zombies.slice(1).forEach(q=>q.delay=99);run(f,m,.05);assert.equal(z.state,'windup');
+ const x0=z.x,s0=m.stamina.value;f.update(1/60,{aimX:1,aimY:0,shove:true});
+ assert.equal(z.state,'chase','the bite is broken');assert.ok(z.stagger>0,'staggered');assert.ok(m.stamina.value<=s0-BASH.cost+1,'it cost stamina');assert.ok(f.bash,'hands out');assert.equal(f.fire(),false,'no shooting mid-shove');
+ run(f,m,.4);assert.equal(f.hp,PLAYER_HP,'it never bit');assert.ok(z.x-x0>25,'thrown back: '+(z.x-x0));assert.equal(f.bash,null,'hands back');
+ // Behind you, nothing happens; winded, you cannot.
+ const g=setup(),q=g.f.zombies[0];Object.assign(g.m,{x:q.x+30,y:q.y});g.f.wake();g.f.update(1/60,{aimX:1,aimY:0,shove:true});assert.ok(Math.abs(q.vx)<1e-9&&!(q.stagger>0),'nothing behind you is touched');
+ run(f,m,BASH.cool+.05);m.stamina.value=2;f.update(1/60,{aimX:1,aimY:0,shove:true});assert.equal(f.bash,null);});
+test('a bite that lands takes hold: you are held nearly still and bitten again until you shove it off, shoot it or pull free',()=>{const {m,f}=setup(),z=f.zombies[0];
+ Object.assign(m,{x:z.x-ZOMBIE.reach+2,y:z.y});f.wake();f.zombies.slice(1).forEach(q=>q.delay=99);run(f,m,ZOMBIE.bite.windup+.1);
+ assert.equal(f.hp,PLAYER_HP-ZOMBIE.bite.damage);assert.equal(f.grabber,z,'it has you');assert.equal(m.slow,GRAB.slow,'held nearly still');
+ run(f,m,GRAB.chew+ZOMBIE.bite.windup);assert.equal(f.hp,PLAYER_HP-2*ZOMBIE.bite.damage,'and bites again');assert.equal(f.grabber,z);
+ m.stamina&&(m.stamina.value=100);f.update(1/60,{aimX:1,aimY:0,shove:true});assert.equal(f.grabber,null,'a shove breaks it');assert.equal(f.grab,0);
+ // A round that staggers it lets go too.
+ const g=setup(),q=g.f.zombies[0];Object.assign(g.m,{x:q.x-ZOMBIE.reach+2,y:q.y});g.f.wake();g.f.zombies.slice(1).forEach(o=>o.delay=99);run(g.f,g.m,ZOMBIE.bite.windup+.1);assert.equal(g.f.grabber,q);
+ g.f.hit(q,5,1,0);run(g.f,g.m,1/60);assert.equal(g.f.grabber,null,'shot off');});
 test('a killing shot throws the body back, and it slides to a stop',()=>{const {m,f}=setup(),z=f.zombies[0];Object.assign(m,{x:z.x-60,y:z.y});f.wake();z.hp=1;f.aimAngle=0;
  const x0=z.x;assert.ok(f.fire());run(f,m,1,()=>({}));assert.equal(z.hp,0);assert.ok(z.x>x0+20,'slid back: '+(z.x-x0));assert.equal(z.vx,0,'and stopped');});
-test('gore: a close shotgun kill cuts one in two and the top half crawls on, grabs your ankle and holds you until you dive free',()=>{const {box,m,f}=setup(),z=f.zombies[0];f.rand=()=>0;
- Object.assign(m,{x:z.x-GORE_KILL.near+20,y:z.y});f.wake();f.hit(z,999,1,0);const e=f.drain().find(e=>e.type==='kill');assert.equal(e.gore,'half');const c=e.crawler;assert.ok(c&&c.kind==='crawler');
+test('gore: a close shotgun kill cuts one in two and the top half crawls on, grabs your ankle and holds you until you shove it off',()=>{const {box,m,f}=setup(),z=f.zombies[0];f.rand=()=>0;
+ Object.assign(m,{x:z.x-GORE_KILL.near+20,y:z.y});f.wake();f.zombies.slice(1).forEach(q=>q.delay=99);f.hit(z,999,1,0);const e=f.drain().find(e=>e.type==='kill');assert.equal(e.gore,'half');const c=e.crawler;assert.ok(c&&c.kind==='crawler');
  assert.equal(f.out(c),false,'the top half is still landing');assert.ok(f.live.includes(c),'it counts as one of the wave');run(f,m,CRAWLER.rise+.05);assert.ok(f.out(c));
  const hp=f.hp;run(f,m,6);assert.ok(f.hp<=hp-CRAWLER.damage,'it grabbed you');assert.ok(f.grab>0||f.hp<hp);
  Object.assign(c,{x:m.x+CRAWLER.reach,y:m.y,state:'windup',t:.01,cool:0});run(f,m,.05);assert.ok(f.grab>0);assert.equal(m.slow,CRAWLER.slow,'held nearly still');
- m.stamina&&(m.stamina.value=100);f.update(1/60,{dive:true,x:-1,y:0});assert.equal(f.grab,0,'a dive tears you free');});
+ m.stamina&&(m.stamina.value=100);f.update(1/60,{shove:true,x:1,y:0});assert.equal(f.grab,0,'a shove kicks it off');});
 test('gore: a pistol kill sometimes takes the head, and with gore reduced nothing comes apart',()=>{const k=armed();const {box,m,f}=setup({...k,held:'light-pistol'}),z=f.zombies[0];f.rand=()=>0;f.hit(z,999,1,0);
  assert.equal(f.drain().find(e=>e.type==='kill').gore,'head');const g=setup(),z2=g.f.zombies[0];g.f.gore=false;g.f.rand=()=>0;Object.assign(g.m,{x:z2.x-30,y:z2.y});g.f.hit(z2,999,1,0);
  const e=g.f.drain().find(e=>e.type==='kill');assert.equal(e.gore,null);assert.equal(e.crawler,null);});
@@ -124,15 +133,15 @@ test('heat: shots and alarms raise it and quiet lets it fall; on a quiet street 
  for(const z of f.zombies)if(z.extra){z.hunt=false;z.x=m.x+HEAT.gone+100;}run(f,m,.05);assert.equal(f.zombies.filter(z=>z.extra).length,0);
  // During the tutorial's own fight, no patrols.
  const g=setup();g.f.patrolT=0;run(g.f,g.m,.1);assert.equal(g.f.zombies.filter(z=>z.extra).length,0);});
-test('runners sprint, crouch and leap: the leap lands if you stand there, and one that misses is left sprawled',async()=>{const {RUNNER}=await import('../dist/street/fight.js');const {box,m,f}=setup();
+test('runners sprint, crouch and leap: the leap lands and pins you if you stand there, and one that misses is left sprawled',async()=>{const {RUNNER}=await import('../dist/street/fight.js');const {box,m,f}=setup();
  const z=f.zombies[0];Object.assign(z,{kind:'runner',hp:RUNNER.hp,max:RUNNER.hp,idle:false});f.wake();Object.assign(m,{x:z.x-RUNNER.lunge.at+10,y:z.y});run(f,m,.05);assert.equal(z.state,'crouch');assert.ok(z.tell>0,'it shows a tell');
- const hp=f.hp;run(f,m,RUNNER.lunge.tell+RUNNER.lunge.time);assert.equal(f.hp,hp-RUNNER.lunge.damage,'the leap lands');
+ const hp=f.hp;run(f,m,RUNNER.lunge.tell+RUNNER.lunge.time);assert.equal(f.hp,hp-RUNNER.lunge.damage,'the leap lands');assert.equal(f.grabber,z,'and pins you');
  const g=setup(),r=g.f.zombies[0];Object.assign(r,{kind:'runner',hp:RUNNER.hp,max:RUNNER.hp,idle:false});g.f.wake();Object.assign(g.m,{x:r.x-RUNNER.lunge.at+10,y:r.y});run(g.f,g.m,.05);assert.equal(r.state,'crouch');
  g.m.y+=70;run(g.f,g.m,RUNNER.lunge.tell+RUNNER.lunge.time+.02);assert.equal(g.f.hp,PLAYER_HP,'stepped aside');assert.ok(r.stagger>0,'sprawled');});
 test('brutes: a shotgun barely moves one; it charges in a straight line, and one that hits a wall is stunned and takes more',async()=>{const {BRUTE}=await import('../dist/street/fight.js');const {box,m,f}=setup();
  const z=f.zombies[0];Object.assign(z,{kind:'brute',hp:BRUTE.hp,max:BRUTE.hp,idle:false,x:5600,y:1990});Object.assign(m,{x:5400,y:1990});f.wake();f.zombies.slice(1).forEach(q=>q.delay=99);
  run(f,m,.05);assert.equal(z.state,'set');assert.ok(z.tell>0);run(f,m,BRUTE.charge.tell+.05);assert.equal(z.state,'charge');
- // You dive out of the way; it carries on past where you were.
+ // You step out of its line; it carries on past where you were.
  m.y-=80;run(f,m,BRUTE.charge.time);assert.equal(f.hp,PLAYER_HP);assert.ok(z.x<5600-150,"it kept going");
  // A shotgun blast barely shoves it, and a stunned brute takes half as much again.
  const b=setup(),q=b.f.zombies[0];Object.assign(q,{kind:'brute',hp:BRUTE.hp,max:BRUTE.hp,idle:false});b.f.hit(q,100,1,0);assert.ok(Math.abs(q.vx)<SHOVE['pump-shotgun'].push*.5);assert.equal(q.stagger,0);
@@ -161,9 +170,9 @@ test('the radio: the battery out of the car (keys are quiet, a window is not), c
  calm();Object.assign(m,{x:T('chain-smash').x,y:T('chain-smash').y});assert.ok(f.work(T('chain-smash')));assert.ok(f.drain().some(e=>e.type==='alarm'),'a smashed window is an alarm');
  const q=await jobKit();q.use('chain-keys');assert.ok(q.box.k.mission.have.includes('keys'));assert.equal(q.f.can(q.T('chain-smash')),false,'no need to smash it now');q.f.drain();q.use('chain-open');
  assert.ok(!q.f.drain().some(e=>e.type==='alarm'),'the keys are quiet');assert.equal(q.box.k.mission.carry,'battery');assert.equal(q.step('radio'),'carry');
- // In your hands: slower, the pistol out, no searching, no climbing; a dive sets it down and you pick it up again.
+ // In your hands: slower, the pistol out, no searching, no climbing; a shove sets it down and you pick it up again.
  assert.equal(q.box.k.held,'light-pistol');run(q.f,q.m,.1);assert.equal(q.m.slow,J.CARRY.slow);assert.equal(q.f.scavenge(OBJECTS.find(o=>o.loot)),false);
- q.f.diveFrom({x:1,y:0});run(q.f,q.m,.8);assert.equal(q.box.k.mission.carry,null);assert.equal(q.box.k.mission.drops[0].item,'battery');assert.ok(q.f.can(q.T('drop-battery')));q.use('drop-battery');assert.equal(q.box.k.mission.carry,'battery');
+ q.f.shoveOut({x:1,y:0});run(q.f,q.m,.8);assert.equal(q.box.k.mission.carry,null);assert.equal(q.box.k.mission.drops[0].item,'battery');assert.ok(q.f.can(q.T('drop-battery')));q.use('drop-battery');assert.equal(q.box.k.mission.carry,'battery');
  // Going down puts it back where you lifted it.
  q.f.hurt(999,{x:q.m.x+10,y:q.m.y});run(q.f,q.m,3.2);assert.equal(q.box.k.mission.carry,null);assert.deepEqual(q.box.k.mission.drops.map(d=>[d.item,d.x,d.y]),[['battery',q.T('chain-open').x,q.T('chain-open').y]]);
  q.use('drop-battery');q.use('chain-set');assert.equal(q.step('radio'),'wire');assert.equal(q.box.k.mission.carry,null);

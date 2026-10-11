@@ -8,6 +8,10 @@ export {FRONT,WALL_T,Z,BLOCK,BAND,CROSS,BACK,SIDEWALK_N,ROAD,SIDEWALK_S,CENTER,C
 // The map is drawn and kept in chunks this big; only the ones near you are held.
 export const CHUNK=512;
 export const WALK={left:60,right:STREET.w-60,top:60,bottom:STREET.h-60};
+// The special dead come in three looks each (the Master Creator's VARIANT_LOOKS), so a street of them is not one body over and over.
+// A look only changes clothes, hair, skin and rot: it is the kind's name, then 2 or 3 for the other two. r is a number from 0 to 1.
+export const VARIANTS=Object.fromEntries(['runner','brute','screamer','bloater','spitter'].map(k=>[k,[k,k+'2',k+'3']]));
+export const vary=(kind,r)=>VARIANTS[kind]?VARIANTS[kind][Math.min(2,Math.floor(r*3))]:kind;
 // What the corner of the screen calls each district while you are in it (short, to fit a phone); on the streets between them it
 // keeps the last one.
 export const AREA_NAMES={maze:'Back yards',tower:'Water tower',site:'Building site',church:'St. Brendan\'s',yours:'Your street',school:'The school',park:'Creek Park',shops:'The shops',fields:'Ball fields'};
@@ -144,7 +148,7 @@ export const ROAMERS=[];{const R=rng(9091),LOOKS=['neighbour','jogger','robe','w
  for(const b of BLOCKS){if(b.home)continue;for(let k=0,n=2+Math.floor(R()*3);k<n;k++)for(let tries=0;tries<20;tries++){const x=Math.round(b.x+40+R()*(BLOCK-80)),y=Math.round(b.y+(R()<.6?150+R()*230:BACK+30+R()*120));if(!solidAt(x,y,10)&&Math.hypot(x-START.x,y-START.y)>560){ROAMERS.push({look:LOOKS[Math.floor(R()*LOOKS.length)],x,y});break;}}}}
 // The special dead about town: one near each job (a screamer by the radio house, a bloater on Ray's street, a spitter in the yards
 // round the go-bag) and a few more scattered through the other blocks.
-{const R=rng(3131),put=(kind,x,y)=>{for(let t=0;t<30;t++){const px=Math.round(x+(R()-.5)*t*12),py=Math.round(y+(R()-.5)*t*8);if(!solidAt(px,py,10)&&px>WALK.left+40&&px<WALK.right-40&&py>WALK.top+40&&py<WALK.bottom-40){ROAMERS.push({look:kind,kind,x:px,y:py});return;}}};
+{const R=rng(3131),put=(kind,x,y)=>{for(let t=0;t<30;t++){const px=Math.round(x+(R()-.5)*t*12),py=Math.round(y+(R()-.5)*t*8);if(!solidAt(px,py,10)&&px>WALK.left+40&&px<WALK.right-40&&py>WALK.top+40&&py<WALK.bottom-40){ROAMERS.push({look:vary(kind,(Math.imul(ROAMERS.length+1,2654435761)>>>0)/4294967296),kind,x:px,y:py});return;}}};
  const near=(id,dx,dy)=>{const o=OBJECTS.find(q=>q.id===id);return [o.x+dx,o.y+dy];};
  put('screamer',...near('job-radio',-160,40));put('bloater',...near('job-power',140,70));put('spitter',...near('job-supplies',120,-60));
  for(const b of BLOCKS){if(b.home||R()>.4)continue;const kind=['screamer','bloater','spitter'][Math.floor(R()*3)];put(kind,b.x+100+R()*(BLOCK-200),b.y+(R()<.6?180+R()*180:BACK+40+R()*100));}}

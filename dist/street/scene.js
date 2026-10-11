@@ -4,15 +4,15 @@
 // are well past, and each prop is painted while any chunk its picture touches is held. The fight is street/fight.js; this draws it.
 import {CineCam} from '../study/camera.js';import {bake,unbake,worthBaking} from '../study/memory.js';import {drawLaser,LASER} from '../study/aimstick.js';import {muzzle,lightAt} from '../study/equipment.js';
 import {survivor,FRAME} from '../study/character.js';
-import {LAYERS,ORDER,origin,sheetSize,paintLayers,paintRacked,paintDive,DIVE as DIVE_ART,pose,armed} from '../study/layers.js';
+import {LAYERS,ORDER,origin,sheetSize,paintLayers,paintRacked,pose,armed} from '../study/layers.js';
 import {DEFAULT_APPEARANCE,UNIFORMS} from '../study/appearance.js';
 import {Juice} from '../study/juice.js';
 import {iconArt,ICON,ICONS} from '../camp/art.js';
-import {MAP,CHUNK,PROPS,LIGHT_BAR,HOME,EVAC,TRUCK,BREACHES,coverAt} from './data.js';
+import {MAP,CHUNK,PROPS,LIGHT_BAR,HOME,EVAC,TRUCK,BREACHES,coverAt,VARIANTS} from './data.js';
 import {groundArt,lightArt,LIGHT_SCALE,propArt,PROP_PAD} from './art.js';
-import {Fight,DIVE,CRAWLER,SEARCH,BRUTE,JOB,SCREAMER,BLOATER,SPITTER} from './fight.js';
+import {Fight,BASH,CRAWLER,SEARCH,BRUTE,JOB,SCREAMER,BLOATER,SPITTER} from './fight.js';
 import {stepOf} from '../home/kit.js';
-import {special,SPECIAL_LOOKS} from '../mc/assets/characters/specials.js';
+import {special,SPECIAL_LOOKS,VARIANT_LOOKS} from '../mc/assets/characters/specials.js';
 import {ACID_BOX,acidArt,GLOB,globArt,GAS_BOX,gasArt} from '../mc/assets/effects/hazards.js';
 import {ITEM_IDS,itemArt} from '../mc/assets/gear/items.js';
 import {painter} from '../mc/assets/core/paint.js';
@@ -25,19 +25,21 @@ export const ZOMBIE_LOOKS={cop:{...DEFAULT_APPEARANCE,...POLICE,...Z,hair:1,skin
  robe:{...DEFAULT_APPEARANCE,...Z,top:2,shirt:1,bottom:3,pants:2,shoes:2,hair:3,beard:6,color:3,skin:0,decay:2,wounds:3},
  worker:{...DEFAULT_APPEARANCE,...Z,top:0,coat:4,hat:1,bottom:2,pants:3,shoes:0,beard:3,skin:4,eyes:2,wounds:2},
  // A runner: out for a run when it happened, lean, with eyes that catch the light. A brute: a big man gone bad, drawn half as big again.
- runner:{...DEFAULT_APPEARANCE,...Z,body:1,top:6,shirt:5,bottom:4,shoes:1,hair:2,color:2,skin:1,decay:1,eyes:1,wounds:2,rot:3},
- brute:{...DEFAULT_APPEARANCE,...Z,top:3,coat:2,bottom:5,pants:3,shoes:0,hair:4,beard:3,color:0,skin:5,decay:1,eyes:2,wounds:3,rot:1},
+ runner:{...DEFAULT_APPEARANCE,...Z,...VARIANT_LOOKS.runner[0]},brute:{...DEFAULT_APPEARANCE,...Z,...VARIANT_LOOKS.brute[0]},
  // The special dead, in the Master Creator's looks for them: a screamer in a nightgown, a bloater in a tank top, a spitter.
  // Mrs. Hargrove: silver hair up in a bun, a sage cardigan and grey slacks, out in her good shoes after her dog.
  hargrove:{...DEFAULT_APPEARANCE,...Z,body:1,top:2,shirt:5,bottom:3,pants:4,shoes:2,hair:9,color:3,skin:1,decay:1,eyes:0,wounds:1},
  screamer:{...DEFAULT_APPEARANCE,...Z,...SPECIAL_LOOKS.screamer},bloater:{...DEFAULT_APPEARANCE,...Z,...SPECIAL_LOOKS.bloater},spitter:{...DEFAULT_APPEARANCE,...Z,...SPECIAL_LOOKS.spitter},
+ // Their other two looks each (runner2, runner3 and so on), painted a few frames after the street opens (see buildLooks).
+ ...Object.fromEntries(Object.entries(VARIANTS).flatMap(([k,ids])=>ids.slice(1).map((id,i)=>[id,{...DEFAULT_APPEARANCE,...Z,...VARIANT_LOOKS[k][i+1]}]))),
  // The man you started as, after: his own clothes and pack, freshly dead (TUTORIAL_LOOK is how he looked alive).
  you:{...DEFAULT_APPEARANCE,zombie:1,rot:1,decay:0,eyes:0,wounds:2}};
 export const TUTORIAL_LOOK=DEFAULT_APPEARANCE;
 // Runners' sheets hold the lurching run in place of the walk; brutes never come apart, so they have no pieces.
-const RUN_LOOKS=new Set(['runner']),WHOLE=new Set(['brute','bloater','you']);
+const KIND_OF=Object.fromEntries(Object.entries(VARIANTS).flatMap(([k,ids])=>ids.map(id=>[id,k]))),kindOf=id=>KIND_OF[id]||id;
+const RUN_LOOKS=new Set(VARIANTS.runner),WHOLE=new Set([...VARIANTS.brute,...VARIANTS.bloater,'you']);
 // The special dead's sheets have one more row: the act (the scream, the swell, the spit), frame 9.
-const SPECIAL=new Set(['screamer','bloater','spitter']),SCALE={brute:BRUTE.scale,bloater:BLOATER.scale};
+const SPECIAL=new Set([...VARIANTS.screamer,...VARIANTS.bloater,...VARIANTS.spitter]),SCALE={brute:BRUTE.scale,bloater:BLOATER.scale};
 const SHEET_OF={neighbour2:'neighbour'};
 // Zombie sheets hold the standing frame and the eight walking frames, cropped to the part of the frame a body uses.
 const ZF={x:16,y:8,w:128,h:176,rows:9};
@@ -96,16 +98,8 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   this.stains=[];this.bits=[];this.lain=[];
   // You.
   this.parts={};this.gunSheets={};this.setPlayerLook(bridge.look());
-  // The dead: one sheet per look.
-  for(const [id,look] of Object.entries(ZOMBIE_LOOKS)){const sp=SPECIAL.has(id),rows=ZF.rows+(sp?1:0),t=this.texture('street-z-'+id,ZF.w*8,ZF.h*rows,c=>{c.imageSmoothingEnabled=false;for(let f=0;f<rows;f++)for(let d=0;d<8;d++){c.save();c.beginPath();c.rect(d*ZF.w,f*ZF.h,ZF.w,ZF.h);c.clip();c.translate(d*ZF.w-ZF.x,f*ZF.h-ZF.y);c.scale(2,2);
-    if(sp)special(c,id,d,f<ZF.rows?f:0,look,f<ZF.rows?0:1);else survivor(c,d,RUN_LOOKS.has(id)&&f>0?f+8:f,false,look);c.restore();}});
-   for(let f=0;f<rows;f++)for(let d=0;d<8;d++)if(!t.has(f*8+d))t.add(f*8+d,0,d*ZF.w,f*ZF.h,ZF.w,ZF.h);
-   // Its pieces, a row each in the same crop, and its crawl: five facings (the rest are mirrored) by four frames.
-   if(WHOLE.has(id))continue;
-   const P=this.texture('street-zp-'+id,ZF.w*8,ZF.h*4,c=>{c.imageSmoothingEnabled=false;GORE_PARTS.forEach((part,r)=>{for(let d=0;d<8;d++){c.save();c.beginPath();c.rect(d*ZF.w,r*ZF.h,ZF.w,ZF.h);c.clip();c.translate(d*ZF.w-ZF.x,r*ZF.h-ZF.y);zombiePiece(c,look,d,part,0,d+r*8+1);c.restore();}});});
-   for(let i=0;i<32;i++)if(!P.has(i))P.add(i,0,(i%8)*ZF.w,Math.floor(i/8)*ZF.h,ZF.w,ZF.h);
-   const C=this.texture('street-zc-'+id,CRAWL.w*5,CRAWL.h*4,c=>{c.imageSmoothingEnabled=false;for(const [d,col] of Object.entries(CRAWL_COL))for(let f=0;f<4;f++){c.save();c.beginPath();c.rect(col*CRAWL.w,f*CRAWL.h,CRAWL.w,CRAWL.h);c.clip();c.translate(col*CRAWL.w,f*CRAWL.h);crawlArt(c,look,+d,f,3);c.restore();}});
-   for(let i=0;i<20;i++)if(!C.has(i))C.add(i,0,(i%5)*CRAWL.w,Math.floor(i/5)*CRAWL.h,CRAWL.w,CRAWL.h);}
+  // The dead: one sheet per look. The special dead's other looks wait for buildLooks, so the street opens no slower.
+  this.lookQueue=[];for(const id of Object.keys(ZOMBIE_LOOKS))if(kindOf(id)!==id)this.lookQueue.push(id);else this.paintLook(id);
   const GB=this.texture('gore-gibs',20*GIBS.length,60,c=>{GIBS.forEach((k,i)=>{for(let v=0;v<3;v++){c.save();c.translate(i*20,v*20);gibArt(c,k,i*3+v,['#3a3f4a','#4a3b2e','#5a4a3a'][v]);c.restore();}});});
   for(let i=0;i<GIBS.length*3;i++)if(!GB.has(i))GB.add(i,0,Math.floor(i/3)*20,(i%3)*20,20,20);
   // What the dead drop, from the bag's own icons.
@@ -204,32 +198,51 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
  setPlayerLook(look){const gun=bridge.held?.()||'none',light=!!bridge.kit?.()?.light,key=JSON.stringify(look)+gun+light;this.look={...look,zombie:0,gun,grenade:null,light};
   if(!this.gunSheets[key]){const sheets={};for(const k of ORDER){const L=LAYERS[k],t=this.textures.createCanvas(`st-${Object.keys(this.gunSheets).length}-${k}`,...sheetSize(L));for(let i=0;i<L.count;i++)t.add(i,0,(i%L.cols)*L.w,Math.floor(i/L.cols)*L.h,L.w,L.h);sheets[k]=t;}
    const ctx={};for(const k of ORDER)ctx[k]=sheets[k].context;sheets.turned=paintLayers(ctx,this.look);for(const k of ORDER)sheets[k].refresh();
-   // The gun mid-action (the arms layer with the slide or pump back) and the dive, both from the same layers.
+   // The gun mid-action: the arms layer with the slide or pump back.
    const n=Object.keys(this.gunSheets).length,A=LAYERS.arms,rk=this.textures.createCanvas(`st-${n}-racked`,...sheetSize(A));for(let i=0;i<A.count;i++)rk.add(i,0,(i%A.cols)*A.w,Math.floor(i/A.cols)*A.h,A.w,A.h);paintRacked(rk.context,this.look);rk.refresh();sheets.racked=rk;
-   const D=DIVE_ART,dv=this.textures.createCanvas(`st-${n}-dive`,...sheetSize(D));for(let i=0;i<D.count;i++)dv.add(i,0,(i%D.cols)*D.w,Math.floor(i/D.cols)*D.h,D.w,D.h);paintDive(dv.context,ctx,this.look);dv.refresh();sheets.dive=dv;
    this.gunSheets[key]=sheets;}
-  const sheets=this.gunSheets[key];this.sheets=sheets;this.racked=false;for(const k of ORDER){const L=LAYERS[k];if(!this.parts[k])this.parts[k]=this.add.image(model.x,model.y,sheets[k].key,0).setOrigin(...origin(L)).setScale(.5);else this.parts[k].setTexture(sheets[k].key,0);}
-  if(!this.diveImg)this.diveImg=this.add.image(0,0,sheets.dive.key,0).setOrigin(DIVE_ART.x/DIVE_ART.w,DIVE_ART.y/DIVE_ART.h).setScale(.5).setVisible(false);else this.diveImg.setTexture(sheets.dive.key,0);}
+  const sheets=this.gunSheets[key];this.sheets=sheets;this.racked=false;for(const k of ORDER){const L=LAYERS[k];if(!this.parts[k])this.parts[k]=this.add.image(model.x,model.y,sheets[k].key,0).setOrigin(...origin(L)).setScale(.5);else this.parts[k].setTexture(sheets[k].key,0);}}
  zoom(){const s=this.scale;return Math.max(bridge.zoom(),s.width/MAP.w,s.height/MAP.h);}
  // You: the layers in the pose the model is in. A shot kicks your arms and head back along the shot for a moment, and the gun
- // cycles (the pistol's slide snaps back as it fires; the shotgun's pump is worked a moment later). A dive swaps the layers for
- // the dive's own frames: the leap, the slide along the ground and the rise.
- placeActor(){const gun=armed(this.look),p=pose(model,gun&&!!this.sheets?.turned),down=!!this.fight.down,K=this.kick,v=this.fight.dive,half=n=>Math.round(n*2)/2,f=this.fight;
+ // cycles (the pistol's slide snaps back as it fires; the shotgun's pump is worked a moment later). A shove throws the arms and
+ // shoulders forward and back.
+ placeActor(){const gun=armed(this.look),p=pose(model,gun&&!!this.sheets?.turned),down=!!this.fight.down,K=this.kick,v=this.fight.bash,half=n=>Math.round(n*2)/2,f=this.fight;
   // Gone: what is left of him is one of the dead now (the fight's body), so you are not drawn at all.
-  if(f.dead){this.diveImg.setVisible(false);for(const k of ORDER)this.parts[k].setVisible(false);return;}
+  if(f.dead){for(const k of ORDER)this.parts[k].setVisible(false);return;}
   let kx=0,ky=0;if(K){const k=Math.max(0,1-K.t/K.dur);kx=-Math.cos(K.a)*K.n*k*k;ky=-Math.sin(K.a)*K.n*k*k*.6;}
+  if(v){const k=Math.sin(Math.min(1,v.t/BASH.time)*Math.PI);kx+=Math.cos(v.a)*6*k;ky+=Math.sin(v.a)*6*k*.6;}
   const t=f.sinceShot,rk=gun&&!v&&(f.gunId==='pump-shotgun'?t>.22&&t<.5:t<.06);if(rk!==this.racked){this.racked=rk;this.parts.arms.setTexture((rk?this.sheets.racked:this.sheets.arms).key,p.arms);}
-  if(v){const T=DIVE.time,ph=v.t<.1?0:v.t<T?1:2,hop=v.t<T*.55?Math.sin(v.t/(T*.55)*Math.PI)*5:0,d=(Math.round(Math.atan2(v.dy,v.dx)/(Math.PI/4))+8)%8;
-   this.diveImg.setVisible(true).setFrame(d+ph*8).setPosition(half(model.x),half(model.y-hop)).setDepth(model.y+.02).setAlpha(down?.5:1);for(const k of ORDER)this.parts[k].setVisible(false);return;}
-  this.diveImg.setVisible(false);for(const k of ORDER)this.parts[k].setVisible(true);
+  for(const k of ORDER)this.parts[k].setVisible(true);
   // Going over a fence, all of you is lifted by the hop.
   const lift=f.vault?f.vault.h||0:0;
   for(const k of ORDER){const s=this.parts[k],ride=p.rides.includes(k)&&!down,body=k==='body'&&!ride;s.setFrame(p[k]);
    s.setPosition(half(model.x+(ride?p.dx+kx:body?kx*.35:0)),half(model.y-lift+(ride?p.dy+ky:body?ky*.35:0)));s.setAlpha(down?.5:1);}
   const y=model.y;this.parts.legs.setDepth(y);this.parts.body.setDepth(y+.01);this.parts.arms.setDepth(y+.02).setVisible(gun);this.parts.head.setDepth(y+.03);}
+ // One look's sheets, each as rows to paint and the frames to cut: standing and walking (or running) in eight facings, the act for the
+ // special dead, and unless it never comes apart, its pieces (a row each, in the same crop) and its crawl (five facings, the rest mirrored, by four frames).
+ sheetsOf(id){const look=ZOMBIE_LOOKS[id],sp=SPECIAL.has(id),n=ZF.rows+(sp?1:0),cell=(c,x,y,w,h,f)=>{c.save();c.beginPath();c.rect(x,y,w,h);c.clip();f();c.restore();},grid=(cols,rows,w,h)=>t=>{for(let i=0;i<cols*rows;i++)if(!t.has(i))t.add(i,0,(i%cols)*w,Math.floor(i/cols)*h,w,h);};
+  const out=[{key:'street-z-'+id,w:ZF.w*8,h:ZF.h*n,cut:grid(8,n,ZF.w,ZF.h),rows:Array.from({length:n},(_,f)=>c=>{for(let d=0;d<8;d++)cell(c,d*ZF.w,f*ZF.h,ZF.w,ZF.h,()=>{c.translate(d*ZF.w-ZF.x,f*ZF.h-ZF.y);c.scale(2,2);
+   if(sp)special(c,kindOf(id),d,f<ZF.rows?f:0,look,f<ZF.rows?0:1);else survivor(c,d,RUN_LOOKS.has(id)&&f>0?f+8:f,false,look);});})}];
+  if(WHOLE.has(id))return out;
+  out.push({key:'street-zp-'+id,w:ZF.w*8,h:ZF.h*4,cut:grid(8,4,ZF.w,ZF.h),rows:GORE_PARTS.map((part,r)=>c=>{for(let d=0;d<8;d++)cell(c,d*ZF.w,r*ZF.h,ZF.w,ZF.h,()=>{c.translate(d*ZF.w-ZF.x,r*ZF.h-ZF.y);zombiePiece(c,look,d,part,0,d+r*8+1);});})},
+   {key:'street-zc-'+id,w:CRAWL.w*5,h:CRAWL.h*4,cut:grid(5,4,CRAWL.w,CRAWL.h),rows:[c=>{for(const [d,col] of Object.entries(CRAWL_COL))for(let f=0;f<4;f++)cell(c,col*CRAWL.w,f*CRAWL.h,CRAWL.w,CRAWL.h,()=>{c.translate(col*CRAWL.w,f*CRAWL.h);crawlArt(c,look,+d,f,3);});}]});
+  return out;}
+ // A sheet goes to the graphics card once all its rows are painted: either all at once, or from a canvas painted a row at a time.
+ // If the card is lost later, it is painted again whole from the same rows.
+ sheet(S,ready){let pre=ready;const t=this.texture(S.key,S.w,S.h,c=>{c.imageSmoothingEnabled=false;if(pre){c.drawImage(pre,0,0);pre=null;}else for(const r of S.rows)r(c);});S.cut(t);return t;}
+ paintLook(id){for(const S of this.sheetsOf(id))this.sheet(S);}
+ // The special dead's other looks, painted a row or two a frame (about 4 ms) once the street has been open a moment, so nothing stutters;
+ // until a look's sheets are all there, its kind's first look stands in.
+ buildLooks(){const Q=this.lookQueue;if(!Q?.length||(this.lookWait=(this.lookWait||0)+1)<20)return;const t0=performance.now();
+  do{let job=this.lookJob;if(!job){const id=Q[0];job=this.lookJob={id,sheets:this.sheetsOf(id),s:0,r:0,cv:null};}
+   const S=job.sheets[job.s];if(!job.cv){job.cv=document.createElement('canvas');job.cv.width=S.w;job.cv.height=S.h;job.cx=job.cv.getContext('2d');job.cx.imageSmoothingEnabled=false;}
+   S.rows[job.r++](job.cx);if(job.r>=S.rows.length){this.sheet(S,job.cv);job.cv.width=job.cv.height=1;job.cv=null;job.r=0;if(++job.s>=job.sheets.length){Q.shift();this.lookJob=null;}}}
+  while(Q.length&&performance.now()-t0<4);}
+ // The sheet a look is drawn from: its own once painted, else its kind's first look.
+ sheetOf(look){const id=SHEET_OF[look]||look;return this.textures.exists('street-z-'+id)?id:kindOf(id);}
  // A zombie's sprite while it is near the screen, taken from a pool and handed back when it is not, so a whole neighbourhood of the
  // dead only ever needs as many as you can see.
- sprite(z){let s=this.zs.get(z);if(!s){s=this.pool.pop()||this.add.image(0,0,'street-z-cop',0).setScale(.5);const id=SHEET_OF[z.look]||z.look;
+ sprite(z){let s=this.zs.get(z);if(!s){s=this.pool.pop()||this.add.image(0,0,'street-z-cop',0).setScale(.5);const id=this.sheetOf(z.look);
   if(z.kind==='crawler')s.setTexture('street-zc-'+id,0).setOrigin(CRAWL.x/CRAWL.w,CRAWL.y/CRAWL.h);else s.setTexture('street-z-'+id,0).setOrigin((FRAME.w/2-ZF.x)/ZF.w,(FRAME.footY*2-ZF.y)/ZF.h);
   s.setScale(.5*(SCALE[z.kind]||1)).setAngle(0).setFlipX(false).clearTint().setAlpha(1).setVisible(true);s.laid=false;s.white=false;s.grey=false;this.zs.set(z,s);}return s;}
  free(z){const s=this.zs.get(z);if(!s)return;s.setVisible(false);this.pool.push(s);this.zs.delete(z);}
@@ -256,7 +269,7 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
     else{const k=Math.exp(-dt*8);b.vx*=k;b.vy*=k;b.vz=0;b.spin*=k;if(Math.hypot(b.vx,b.vy)<4){b.img.setAngle(b.flat?Math.round(b.a/b.flat)*b.flat:b.a).setPosition(half(b.x),half(b.y)).setDepth(b.y-8);this.lain.push(b.img);if(this.lain.length>GORE_FX.pieces)this.lain.shift().destroy();return false;}}}
    b.img.setAngle(b.a).setPosition(half(b.x),half(b.y-b.z)).setDepth(b.y+(b.z>0?2:-8));return true;});}
  // A body coming apart: the top half (thrown, or flying to where it will crawl from) or the head, gibs from the cut, and the blood.
- dismember(z,e,a){const id=SHEET_OF[z.look]||z.look,d=z.direction,c=Math.cos(a),s=Math.sin(a),r=()=>Math.random(),G=GORE_FX,key='street-zp-'+id;
+ dismember(z,e,a){const id=this.sheetOf(z.look),d=z.direction,c=Math.cos(a),s=Math.sin(a),r=()=>Math.random(),G=GORE_FX,key='street-zp-'+id;
   const at=([px,py])=>({origin:[(px-ZF.x)/ZF.w,(py-ZF.y)/ZF.h],z:(FRAME.footY*2-py)/2});
   if(e.gore==='half'){const U=at(G.spin.upper);if(e.crawler)this.throwBit(key,d,z.x,z.y,U.z,{origin:U.origin,spin:(e.dx>=0?1:-1)*(260+r()*160),land:{x:e.crawler.x,y:e.crawler.y,t:CRAWLER.rise}});
    else this.throwBit(key,d,z.x,z.y,U.z,{origin:U.origin,vx:c*(70+r()*50),vy:s*(45+r()*30),vz:80+r()*60,spin:(e.dx>=0?1:-1)*(300+r()*200)});}
@@ -289,6 +302,8 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   else if(e.type==='charge')j.puff(z.x,z.y-2,.8,0x6a6458,.5,-4);
   else if(e.type==='stun'){j.puff(z.x,z.y-30,1.1,0x8a8478,.7,-10);j.bits(10,z.x,z.y,{dir:0,spread:6.3,speed:90,lift:50,z:40,col:0x8a8478,life:.45,kind:'debris'});if(Math.hypot(z.x-model.x,z.y-model.y)<400)j.shake('brute');}
   else if(e.type==='lunge')j.puff(z.x,z.y-1,.5,0x6a6458,.4,-3);
+  // A shove: a scuff of dust at your feet and a puff where your hands land.
+  else if(e.type==='shove'){const c=Math.cos(e.a),sn=Math.sin(e.a);j.puff(model.x-c*4,model.y-1,.4,0x6a6458,.35,-3);j.puff(model.x+c*22,model.y+sn*14-18,e.hit?.6:.4,0x8a8478,.3,-6);if(e.hit)j.shake('down');}
   else if(e.type==='hurt')j.shake('hurt');
   else if(e.type==='down')j.shake('brute');
   else if(e.type==='stage'&&e.stage==='looted')this.setTrunk(true);
@@ -326,16 +341,15 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
  // One step of the fight on its clock.
  tick(dt,input){const f=this.fight;model.update(dt,input);f.update(dt,input);}
  update(now,delta){const dt=Math.min(.05,delta/1000),paused=bridge.paused(),held=this.juice.stopped(now),f=this.fight;
-  // A dive press is kept until a step takes it, since a fast screen can draw a frame between two steps.
-  if(paused||held)this.acc=0;else{const input=f.down?{}:bridge.input();let dive=!!input.dive||this.diveWait;this.acc=Math.min(STEP*MAX_STEPS,this.acc+Math.min(.1,delta/1000));
-   while(this.acc>=STEP-1e-6){this.acc-=STEP;this.tick(STEP,{...input,dive});dive=false;}this.diveWait=dive;}
+  // A shove press is kept until a step takes it, since a fast screen can draw a frame between two steps.
+  if(paused||held)this.acc=0;else{const input=f.down?{}:bridge.input();let shove=!!input.shove||this.shoveWait;this.acc=Math.min(STEP*MAX_STEPS,this.acc+Math.min(.1,delta/1000));
+   while(this.acc>=STEP-1e-6){this.acc-=STEP;this.tick(STEP,{...input,shove});shove=false;}this.shoveWait=shove;}
   for(const e of f.drain())this.react(now,e);
   while(this.pumps.length&&now>=this.pumps[0]){this.pumps.shift();this.eject(this.shotA??0,true);}
   if(this.kick&&(this.kick.t+=dt)>this.kick.dur)this.kick=null;const jk=Math.exp(-dt*16);this.jolt.x*=jk;this.jolt.y*=jk;
   this.brassStep(dt);this.bitStep(held?0:dt);this.fight.gore=this.goreOn;
   // Dust kicked up along the ground as you slide.
-  const dv=f.dive;if(dv&&dv.t>.1&&dv.t<DIVE.time){this.dustT=(this.dustT||0)-dt;if(this.dustT<=0){this.dustT=.05;this.juice.puff(model.x-dv.dx*6,model.y-1,.45,0x6a6458,.45,-3);}}
-  this.placeActor();this.stream();this.light();this.cull(dt);
+  this.placeActor();this.stream();this.light();this.cull(dt);this.buildLooks();
   // The dead near the screen: walking, winding up, or lying where they fell.
   const V=grow(this.view(),120),live=new Set(f.zombies);for(const z of this.zs.keys())if(!live.has(z))this.free(z);
   for(const z of f.zombies){if(z.delay>0&&!z.idle||z.x<V.x||z.x>V.x+V.w||z.y<V.y||z.y>V.y+V.h+100){this.free(z);continue;}const s=this.sprite(z);if(z.gone||s.alpha<1)s.setAlpha(1-(z.gone||0));
@@ -347,11 +361,11 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
    // Him getting back up: the topple played backwards, the grey going out of him. Twitching first.
    if(z.kind==='risen'&&z.hp<=0&&(z.rise!=null||z.twitch)){const e=z.rise!=null?z.rise*z.rise*(3-2*z.rise):0,sc=1;if(!s.laid){s.laid=true;s.setFrame(z.direction).setOrigin(.5,.62);}if(s.grey&&e>.3){s.grey=false;if(!white)s.clearTint();}
     s.setAngle(90*(z.fall||1)*(1-e)+(z.twitch?(z.fall||1)*-4:0)).setPosition(half(z.x+(z.twitch?.5:0)),half(z.y-(6+(TOPPLE.hips-6)*e)*sc)).setDepth(z.y-10*(1-e));continue;}
-   if(z.hp<=0){if(!s.laid){s.laid=true;if(z.gore)s.setTexture('street-zp-'+(SHEET_OF[z.look]||z.look),z.direction+(z.gore==='half'?8:24));else s.setFrame(z.direction);s.setOrigin(.5,.62);}z.fallT=Math.min(1,(z.fallT||0)+dt/TOPPLE.time);const k=z.fallT*z.fallT;
+   if(z.hp<=0){if(!s.laid){s.laid=true;if(z.gore)s.setTexture('street-zp-'+this.sheetOf(z.look),z.direction+(z.gore==='half'?8:24));else s.setFrame(z.direction);s.setOrigin(.5,.62);}z.fallT=Math.min(1,(z.fallT||0)+dt/TOPPLE.time);const k=z.fallT*z.fallT;
     const sc=SCALE[z.kind]||1;s.setAngle(90*z.fall*k).setPosition(half(z.x),half(z.y-(TOPPLE.hips+(6-TOPPLE.hips)*k)*sc)).setDepth(z.y-10*k);
     if(k>=1&&!s.grey){s.grey=true;if(!white)s.setTint(0x9a8a8a);if(!z.thud){z.thud=true;this.juice.puff(z.x+z.fall*14,z.y-2,.6,0x6a6458,.5,-4);}}
     if(z._pool&&!z.vx&&!z.vy&&k>=1){z._pool=false;this.stain('pool',z.x+z.fall*(z.gore==='half'?6:14),z.y+2);}continue;}
-   if(s.laid){s.laid=false;s.grey=false;if(!white)s.clearTint();s.setTexture('street-z-'+(SHEET_OF[z.look]||z.look),0).setOrigin((FRAME.w/2-ZF.x)/ZF.w,(FRAME.footY*2-ZF.y)/ZF.h);}
+   if(s.laid){s.laid=false;s.grey=false;if(!white)s.clearTint();s.setTexture('street-z-'+this.sheetOf(z.look),0).setOrigin((FRAME.w/2-ZF.x)/ZF.w,(FRAME.footY*2-ZF.y)/ZF.h);}
    const fl=z.flinch>0?z.flinch/TOPPLE.flinch:0;if(fl)z.flinch-=dt;s.setAngle(fl?Math.sign(z.flinchX||1)*7*fl:0);
    s.setPosition(half(z.x+(z.flinchX||0)*1.5*fl),z.y).setDepth(z.y).setFrame(z.direction+z.frame*8);}
   // The light bar turns; the cruiser's own lamps swap with it.

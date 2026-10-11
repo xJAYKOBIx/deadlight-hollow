@@ -544,6 +544,20 @@ Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack),
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
 
+## v0.62.0 — Special dead in three looks, a deadlier street, grabs and the shove
+
+**Looks.** Runners, brutes, screamers, bloaters and spitters each come in three looks now (Master Creator `characters/specials.js` `VARIANT_LOOKS`; look 0 is the one they always had, still pixel-identical). Runners: the old tank top, a burgundy hoodie with jeans, and a girl in a sky-blue tee with her ribs showing. Brutes: the old coat, a bald bouncer in black, and a rancher with a cowboy hat and a long beard. Screamers, bloaters and spitters get two more each the same way. They fight the same; only the clothes change. Each special that spawns (wanderers, breaches, waves, patrols) picks one with `vary()` in `street/data.js`; wanderers pick from their place in the list, so the seeded street is unchanged. The extra looks are painted a few milliseconds a frame after the street opens (`buildLooks` in `street/scene.js`), and anything spawning before its look is ready wears the base look until it is.
+
+**Danger.** Running away no longer keeps you safe forever. In a scripted test, kiting the first wave without shooting used to never get touched; now it gets caught in about 13 s, and standing still goes down in about 4 s instead of 11. The numbers (`street/fight.js`):
+- Shamblers walk 48 (was 40) and lurch at 100 from 110 away (was 64 from 80); the bite winds up in .36 s (was .45), does 22 (was 14) and comes again after .9 s (was 1.1).
+- Runners run 200 (was 150) and leap from 115 at 380 for 22 (was 90, 340, 16). You still outrun them at 215, but not by much.
+- Brutes walk 40 (was 30), charge at 250 for 38 (was 210, 30), swing for 36 (was 32). Crawlers bite for 11 (was 9).
+- Health comes back at 2 a second after 8 s untouched (was 5 a second after 5 s).
+
+**Grabs.** A shambler bite that lands now takes hold of you: 1.1 s at 15% speed, and it bites again after .6 s. A runner that lands its leap pins you for .8 s. A crawler holds your ankle as before. While something has you, other hits don't knock you about. The hold ends when it runs out, when you shove, or when the grabber is killed or staggered. The first grab of a run says "It has hold of you. Shove to break free", and the Shove button pulses red while you are held.
+
+**The shove replaces the dive.** Same button and key (C, B on a controller). It shoves everything in a short arc in front of you (50 away, about 110°) 230 back and staggers them for .75 s, which also breaks a bite or leap being wound up, a spitter's spit and a screamer's scream. It aims where you aim, else at whatever holds you, else where you are moving, else at the nearest dead in reach. It costs 14 stamina and has a .55 s cooldown; brutes barely move (12%). It breaks any grab and is how you get a crawler off. It sets down carried parts and stops a search or a fix like the dive did. Moved touch buttons keep their place: `normalizeConsole` moves a saved `dive` slot to `shove`.
+
 ## v0.61.1 — The Use key clears the health plate
 
 On a phone held upright, the street's health and stamina plate sits on the deck's top edge, right where the Use key (Search, Board and the rest) floats above the deck, so the plate hid it. On the street, a Use key placed above the deck now rises 62 px to sit just over the plate (`study/console.js` marks it `data-up`; `study/style.css` lifts it). A Use key someone moved down into the deck stays where they put it, and landscape is unchanged (its prompt floats over the target). The page test now checks the version label's shape rather than one version number, which v0.61.0 had left failing.
