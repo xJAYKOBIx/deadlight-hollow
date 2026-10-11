@@ -65,7 +65,7 @@ export function normalizeHome(v,grid=carrying({})){const guns={};for(const id of
  const M=v?.mission,done=[...new Set((Array.isArray(M?.done)?M.done:[]).filter(id=>JOBS.includes(id)))],step={};
  for(const id of JOBS)step[id]=done.includes(id)?CHAINS[id].length:Math.max(0,Math.min(CHAINS[id].length-1,Math.floor(Number(M?.step?.[id])||0)));
  const drops=[];for(const d of Array.isArray(M?.drops)?M.drops:[])if(PARTS.includes(d?.item)&&!drops.some(e=>e.item===d.item)&&Number.isFinite(Number(d.x))&&Number.isFinite(Number(d.y)))drops.push({item:d.item,x:Number(d.x),y:Number(d.y)});
- const mission={done,out:M?.out===true,step,have:[...new Set((Array.isArray(M?.have)?M.have:[]).filter(h=>HAVE.includes(h)))],carry:PARTS.includes(M?.carry)&&!drops.some(d=>d.item===M.carry)?M.carry:null,drops};
+ const mission={done,out:M?.out===true,step,have:[...new Set((Array.isArray(M?.have)?M.have:[]).filter(h=>HAVE.includes(h)))],carry:PARTS.includes(M?.carry)&&!drops.some(d=>d.item===M.carry)?M.carry:null,drops,track:JOBS.includes(M?.track)&&!done.includes(M.track)?M.track:null};
  const phase=PHASES.includes(v?.phase)?v.phase:'tutorial',c=v?.corpse,corpse=phase==='own'&&c?{guns:normGuns(c.guns),held:c.held??null,bag:normalizeBag(c.bag,BIGGEST),x:Number(c.x)||0,y:Number(c.y)||0,dir:Number(c.dir)>=0&&Number(c.dir)<8?Number(c.dir)|0:2,taken:c.taken===true}:null;
  return {woke:v?.woke===true,light:v?.light===true,guns,held,bag,searched,street,looted,mission,phase,corpse};}
 export function readHome(storage,grid,fresh=FRESH){if(fresh)return normalizeHome(null,grid);try{return normalizeHome(JSON.parse(storage.getItem(HOME_KEY)),grid);}catch{return normalizeHome(null,grid);}}
@@ -115,6 +115,35 @@ export function goal(k,outside=false){if(!k.woke)return '';const p=found(k,'ligh
   return 'Get ready to leave: '+JOBS.filter(id=>!m.done.includes(id)).map(id=>STEP_GOALS[id][stepOf(k,id)]).join(', ');}
  if(outside||k.street!=='start')return {start:'See what crashed down the street',cleared:'Search the police cruiser',looted:'Hold them off',done:'The street is quiet, for now'}[k.street];
  return 'Go and see what crashed down the street';}
+// The jobs list (study/app.js): the night as jobs, each a few steps ticked off as you go. Until the street is quiet there is one,
+// the night itself; then the three jobs in any order, and the way out once they are done. After he dies, there is only yours.
+// Each job: id, title, what it is for, its steps ({text, done, now}), done, locked (the way out, before the jobs) and tracked
+// (the one the goal line and the marker follow; mission.track, chosen in the list).
+export const JOB_TITLES={night:'Night one',radio:'The radio',power:'The generator',supplies:'The go-bag',out:'The way out',own:'His gear'};
+export const JOB_SHORT={night:'Goal',radio:'Radio',power:'Generator',supplies:'Go-bag',out:'Way out',own:'Goal'};
+const JOB_FOR={night:'Something crashed down the street. Find out what.',radio:'Curtis Webb\'s ham radio, to reach the Guard',power:'Ray\'s generator, for light the truck can see',
+ supplies:'Mrs. Hargrove\'s go-bag, packed and waiting',out:'The truck from the school bus lot, at the east end of your street',own:'He went down. What he carried is still out there'};
+const up=t=>t[0].toUpperCase()+t.slice(1);
+export const tracked=k=>{const t=k.mission?.track;return JOBS.includes(t)&&!k.mission.done.includes(t)?t:null;};
+export const trackJob=(k,id)=>k.mission?{...k,mission:{...k.mission,track:JOBS.includes(id)&&!k.mission.done.includes(id)?id:null}}:k;
+export function jobList(k,outside=false){if(!k.woke)return [];const row=(id,steps,e={})=>{const n=steps.findIndex(s=>!s.done);return {id,title:JOB_TITLES[id],for:JOB_FOR[id],
+  steps:steps.map((s,i)=>({...s,now:i===n})),done:n<0,locked:false,tracked:false,...e};},S=(text,done)=>({text,done:!!done});
+ if(k.phase==='own'){const m=k.mission?.out;return [row('own',[...(k.corpse?[S('Put him down, and take back what he carried',k.corpse.taken)]:[]),S('Get to the truck at the east end of the street',m)])];}
+ const st=STREET_STAGES.indexOf(k.street),armed=found(k,'light-pistol')||found(k,'pump-shotgun');
+ const night=row('night',[...(outside&&!k.light?[]:[S('Find the flashlight in the kitchen',k.light)]),S('Find something to protect yourself with',armed),
+  S('See what crashed down the street',st>0),S('Search the police cruiser',st>1),S('Hold them off',st>2)]);
+ if(k.street!=='done'||!k.mission)return [night];const m=k.mission,t=tracked(k);
+ const jobs=JOBS.map(id=>{const at=m.done.includes(id)?CHAINS[id].length:m.step[id]||0;return row(id,CHAINS[id].map((c,i)=>S(up(STEP_GOALS[id][c]),i<at)),{tracked:t===id});});
+ const out=row('out',[S('Call the truck from the school bus lot',m.out),S('Get in the back',m.out)],{locked:!jobsDone(k)});
+ return [...jobs.filter(j=>!j.done),out,...jobs.filter(j=>j.done),{...night,done:true}];}
+// The goal line: a short tag and the one step to do now. With a job tracked it is that job's step; with none, how many are left.
+export function goalLine(k,outside=false){const text=goal(k,outside);if(!text)return null;
+ if(k.phase==='own'||k.street!=='done'||!k.mission||k.mission.out||jobsDone(k))return {tag:jobsDone(k)&&!k.mission?.out&&k.phase!=='own'?JOB_SHORT.out:'Goal',text};
+ if(k.mission.carry)return {tag:JOB_SHORT[k.mission.carry==='battery'?'radio':'power'],text};
+ const t=tracked(k),left=JOBS.filter(id=>!k.mission.done.includes(id));
+ if(t)return {tag:JOB_SHORT[t],text:up(STEP_GOALS[t][stepOf(k,t)])};
+ if(left.length===1)return {tag:JOB_SHORT[left[0]],text:up(STEP_GOALS[left[0]][stepOf(k,left[0])])};
+ return {tag:'Jobs',text:`${left.length===3?'Three':'Two'} jobs before the truck`};}
 // What the nightstand, the closet, the searchable spots and the front door say, and what using them does. act names what
 // happens after the last line.
 // The lines come from the script (story/night1.js) as plain text; whoever you are says them.

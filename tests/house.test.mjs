@@ -53,7 +53,7 @@ test('walking speed follows real time from the first step, not a smoothed 60 fps
  assert.match(fs.readFileSync(new URL('../dist/study/scene.js',import.meta.url),'utf8'),/delta=Math\.min\(50,delta\)/);});
 test('the first night: you wake, find the pistol and the shotgun with their rounds, and it is saved',async()=>{
  const {readHome,saveHome,normalizeHome,take,swap,goal,useLines,rounds,verbFor,spare,FINDS}=await import('../dist/home/kit.js');
- let k=normalizeHome();assert.deepEqual(k,{woke:false,light:false,guns:{},held:null,bag:{items:[],spill:[]},searched:[],street:'start',looted:[],mission:{done:[],out:false,step:{radio:0,power:0,supplies:0},have:[],carry:null,drops:[]},phase:'tutorial',corpse:null});assert.equal(goal(k),'');k={...k,woke:true};assert.match(goal(k),/flashlight in the kitchen/);
+ let k=normalizeHome();assert.deepEqual(k,{woke:false,light:false,guns:{},held:null,bag:{items:[],spill:[]},searched:[],street:'start',looted:[],mission:{done:[],out:false,step:{radio:0,power:0,supplies:0},have:[],carry:null,drops:[],track:null},phase:'tutorial',corpse:null});assert.equal(goal(k),'');k={...k,woke:true};assert.match(goal(k),/flashlight in the kitchen/);
  // In the dark the guns wait for the flashlight, which is in the kitchen junk drawer.
  assert.equal(useLines(k,'nightstand').act,undefined);assert.match(useLines(k,'closet').lines.join(' '),/flashlight/);assert.equal(useLines(k,'counter').act,'flashlight');assert.equal(verbFor(k,'counter'),'Search');
  k={...k,light:true};assert.match(goal(k),/protect yourself/);
@@ -63,7 +63,7 @@ test('the first night: you wake, find the pistol and the shotgun with their roun
  assert.equal(take(k,'pump-shotgun'),k,'taking twice changes nothing');assert.equal(swap(k).held,'light-pistol');assert.equal(swap(swap(k)).held,'pump-shotgun');
  assert.equal(FINDS['pump-shotgun'].ammo,8);assert.deepEqual(FINDS['pump-shotgun'].bag,[['shells',16],['gun-oil',1]],'the shotgun comes with a box of 16 shells and gun oil');
  const store=new Map(),mem={getItem:x=>store.get(x)??null,setItem:(x,v)=>store.set(x,v)};assert.ok(saveHome(mem,k));assert.deepEqual(readHome(mem,undefined,false),k);assert.deepEqual(readHome(mem),normalizeHome(),'while the tutorial is built, every visit starts fresh');
- store.set('deadlight-home-v1','{"woke":true,"guns":{"pump-shotgun":{"ammo":99,"reserve":-3},"bazooka":{}},"held":"bazooka"}');assert.deepEqual(readHome(mem,undefined,false),{woke:true,light:false,guns:{'pump-shotgun':{ammo:8}},held:'pump-shotgun',bag:{items:[],spill:[]},searched:[],street:'start',looted:[],mission:{done:[],out:false,step:{radio:0,power:0,supplies:0},have:[],carry:null,drops:[]},phase:'tutorial',corpse:null});
+ store.set('deadlight-home-v1','{"woke":true,"guns":{"pump-shotgun":{"ammo":99,"reserve":-3},"bazooka":{}},"held":"bazooka"}');assert.deepEqual(readHome(mem,undefined,false),{woke:true,light:false,guns:{'pump-shotgun':{ammo:8}},held:'pump-shotgun',bag:{items:[],spill:[]},searched:[],street:'start',looted:[],mission:{done:[],out:false,step:{radio:0,power:0,supplies:0},have:[],carry:null,drops:[],track:null},phase:'tutorial',corpse:null});
  store.set('deadlight-home-v1','{"woke":true,"guns":{"pump-shotgun":{"ammo":5,"reserve":16}},"held":"pump-shotgun"}');assert.equal(rounds(readHome(mem,undefined,false)),'5 / 16','an older save moves its spare shells into the bag');
  assert.deepEqual(readHome({getItem(){throw new Error('blocked');}},undefined,false),normalizeHome());});
 test('waking up on the couch plays through, waits on each line, brings the dog over and hands control back',async()=>{
@@ -101,3 +101,17 @@ test('when he dies, the one who watched takes over: a new survivor with a pistol
  assert.deepEqual(K.normalizeHome(JSON.parse(JSON.stringify(r))),r,'it survives a save');
  const back=K.reclaim(r);assert.deepEqual(Object.keys(back.guns).sort(),['heavy-pistol','light-pistol','pump-shotgun']);assert.equal(back.held,K.OWN_GUN);assert.equal(B.count(back.bag,'shells'),16);assert.equal(B.count(back.bag,'scrap'),3);assert.equal(back.corpse.taken,true);
  assert.equal(K.reclaim(back),back,'there is nothing left on him the second time');assert.match(K.reclaimed(r.corpse),/Light Pistol.*Pump Shotgun.*16 shotgun shells/);assert.match(K.goal(back,true),/truck/);});
+
+test('the jobs list: the night until the street is quiet, then the three jobs and the way out, and the job you follow', async()=>{
+ const {normalizeHome,jobList,goalLine,trackJob,tracked}=await import('../dist/home/kit.js');
+ let k=normalizeHome({woke:true,light:true,guns:{'light-pistol':{ammo:12}},street:'cleared'});
+ assert.deepEqual(jobList(k,true).map(j=>j.id),['night']);assert.deepEqual(jobList(k,true)[0].steps.map(s=>s.done),[true,true,true,false,false]);
+ assert.deepEqual(goalLine(k,true),{tag:'Goal',text:'Search the police cruiser'});
+ k=normalizeHome({...k,street:'done',mission:{done:['power'],step:{radio:1}}});
+ assert.deepEqual(jobList(k,true).map(j=>j.id),['radio','supplies','out','power','night']);assert.equal(jobList(k,true).find(j=>j.id==='out').locked,true);
+ assert.deepEqual(goalLine(k,true),{tag:'Jobs',text:'Two jobs before the truck'});
+ k=trackJob(k,'radio');assert.equal(tracked(k),'radio');assert.deepEqual(goalLine(k,true),{tag:'Radio',text:'Carry the battery to Curtis Webb\'s'});
+ assert.deepEqual(jobList(k,true)[0].steps.map(s=>s.now),[false,true,false,false]);
+ // A finished job cannot be followed, and the choice is saved with the night.
+ assert.equal(tracked(trackJob(k,'power')),null);assert.equal(normalizeHome(JSON.parse(JSON.stringify(k))).mission.track,'radio');
+ assert.equal(normalizeHome({...k,mission:{...k.mission,track:'bazooka'}}).mission.track,null);});

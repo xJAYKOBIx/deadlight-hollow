@@ -628,7 +628,14 @@ html body.deck .topbar #menu::after{background-image:var(--gore-wipe);background
 /* The starter house: what to do next, the gun in your hands (tap to switch), pick-up notes and the wake-up scene. */
 #goalChip,#gunChip{display:none}
 .home #vitals .chips{flex-direction:column;align-items:flex-start}
-.home #goalChip:not([hidden]){display:block;max-width:min(62vw,300px);font-size:10px;letter-spacing:.04em;padding:4px 8px 4px 7px;color:var(--bone);border:1px solid var(--edge);border-left:2px solid var(--ember);background:#141311cc;font-family:var(--body);text-transform:none}
+/* The goal line: a tag (the job being followed, or Goal), the one step to do now on a single line, and a chevron. It opens the
+   jobs list, so it takes taps though the panel it sits in does not. */
+.home #goalChip:not([hidden]),.street #goalChip:not([hidden]){display:flex;align-items:center;gap:7px;max-width:min(62vw,320px);min-height:0;margin:0;padding:5px 6px 5px 8px;color:var(--bone);border:1px solid var(--edge);border-left:2px solid var(--ember);border-radius:0;background:#141311cc;font:500 11px/1.2 var(--body);letter-spacing:.01em;text-transform:none;text-align:left;pointer-events:auto;cursor:pointer;box-shadow:none}
+#goalChip b{flex:none;font:700 9.5px/1 var(--ui);letter-spacing:.16em;text-transform:uppercase;color:var(--ember-hi)}
+#goalChip span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#goalChip i{flex:none;margin-left:1px;font:700 14px/1 var(--ui);font-style:normal;color:var(--dust)}
+#goalChip:hover,#goalChip:focus-visible{border-color:var(--edge-hi);border-left-color:var(--ember-hi);outline:none}#goalChip:hover i,#goalChip:focus-visible i{color:var(--ember-hi)}
+#goalChip:active{transform:translateY(1px)}
 .home #gunChip:not([hidden]){display:flex;align-items:center;gap:6px;padding:2px 8px 2px 4px;font:600 10px/1 var(--ui);letter-spacing:.06em;text-transform:uppercase;color:var(--bone);background:#141311cc;border:1px solid var(--edge);border-radius:3px;pointer-events:auto;cursor:default}
 #gunChip canvas{width:48px;height:16px;image-rendering:pixelated}#gunChip span{color:var(--ember-hi);font-variant-numeric:tabular-nums}
 #gunChip.two{cursor:pointer}#gunChip.two::after{content:'⇄';margin-left:2px;color:var(--ember-hi)}
@@ -697,7 +704,6 @@ dialog.bag{width:min(940px,calc(100% - 24px));--cell:min(50px,calc((min(100vw,94
 .street #vitals{display:flex}
 .street #fishChip,.street #mealChip{display:none!important}
 .street #vitals .chips{flex-direction:column;align-items:flex-start}
-.street #goalChip:not([hidden]){display:block;max-width:min(62vw,300px);font-size:10px;letter-spacing:.04em;padding:4px 8px 4px 7px;color:var(--bone);border:1px solid var(--edge);border-left:2px solid var(--ember);background:#141311cc;font-family:var(--body);text-transform:none}
 .street .wh-gren,.street #grenadeDot{display:none!important}
 .street #throwGrenade.lit svg{color:#ffe2a0}
 /* The street: the mouse's own crosshair replaces the pointer over the game, and Shove sits by Run on a touch screen. */
@@ -956,19 +962,26 @@ body.titled>*:not(#title):not(#game):not(dialog):not(#loading):not(#fall):not(sc
 .ti-press{margin-top:auto;font:600 14px/1 var(--ui);letter-spacing:.42em;text-transform:uppercase;color:var(--bone);text-shadow:0 2px 0 #000;animation:ti-pulse 2.4s ease-in-out infinite;padding:12px 0}
 .ti-menuing .ti-press{display:none}
 @keyframes ti-pulse{0%,100%{opacity:.3}50%{opacity:1}}
-.ti-menu,.ti-panel{margin-top:auto;display:flex;flex-direction:column;gap:2px;width:min(400px,100%)}
+.ti-menu,.ti-panel{margin-top:auto;display:flex;flex-direction:column;gap:0;width:min(400px,100%)}
 .ti-menu[hidden],.ti-panel[hidden]{display:none}
 .ti-panel h2{margin:0 0 10px 28px;font:400 30px/1 var(--display);letter-spacing:.04em;color:var(--bone);text-shadow:0 2px 0 #000}
-.ti-list{display:flex;flex-direction:column;gap:2px}
+.ti-list{display:flex;flex-direction:column;gap:0}
 .ti-item,.ti-item:focus-visible{outline:none!important}
-.ti-item{appearance:none;display:grid;grid-template-columns:22px 1fr;align-items:center;width:100%;min-height:50px;margin:0;padding:8px 18px 8px 6px;border:0;border-radius:0;background:none;color:#b9b0a0;text-align:left;cursor:pointer;font:inherit;outline:none;animation:ti-in .5s cubic-bezier(.2,.7,.2,1) both;transition:color .15s,background .2s,box-shadow .2s}
+.ti-item{appearance:none;position:relative;display:flex;align-items:center;gap:14px;width:100%;min-height:58px;margin:0;padding:11px 18px 11px 4px;border:0;border-radius:0;background:none;color:#b9b0a0;text-align:left;cursor:pointer;font:inherit;outline:none;animation:ti-in .5s cubic-bezier(.2,.7,.2,1) both;transition:color .15s,background .2s,box-shadow .2s}
 .ti-item:nth-child(2){animation-delay:.06s}.ti-item:nth-child(3){animation-delay:.12s}.ti-item:nth-child(4){animation-delay:.18s}.ti-item:nth-child(5){animation-delay:.24s}.ti-item:nth-child(n+6){animation-delay:.3s}
 @keyframes ti-in{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:none}}
-.ti-item b{display:block;font:700 clamp(19px,1.9vw,23px)/1.05 var(--ui);letter-spacing:.16em;text-transform:uppercase;text-shadow:0 2px 0 #000}
+.ti-item b{display:block;font:700 clamp(20px,2vw,25px)/1.05 var(--ui);letter-spacing:.18em;text-transform:uppercase;text-shadow:0 2px 0 #000;transition:letter-spacing .3s cubic-bezier(.2,.7,.2,1)}
 .ti-item small{display:block;margin-top:4px;font:500 12.5px/1.3 Barlow,var(--ui);letter-spacing:.03em;color:#8d8577;transition:color .15s}
-.ti-mark{width:9px;height:12px;background:var(--ember-hi);clip-path:polygon(0 0,100% 50%,0 100%);opacity:0;transform:translateX(-6px);transition:opacity .15s,transform .2s}
-.ti-item:focus,.ti-item:focus-visible{color:#fff6e6;background:linear-gradient(90deg,#ff8a3c30,#ff8a3c0c 55%,#ff8a3c00);box-shadow:inset 2px 0 0 var(--ember-hi)}
-.ti-item:focus .ti-mark{opacity:1;transform:none}.ti-item:focus small{color:#cdbfa8}
+.ti-mark{flex:none;align-self:flex-start;margin-top:calc(clamp(20px,2vw,25px) * .5);width:16px;height:2px;background:var(--ember-hi);box-shadow:0 0 8px var(--ember);transform:scaleX(0);transform-origin:left;transition:transform .3s cubic-bezier(.2,.7,.2,1)}
+/* Hairlines between the choices, fading out to the right; the focused choice's label opens up a little. In the main menu only the
+   focused choice says what it does, so the list reads as five clean words with one line of help. */
+.ti-text{display:flex;flex-direction:column;min-width:0}
+.ti-item+.ti-item::before{content:'';position:absolute;left:0;right:0;top:0;height:1px;background:linear-gradient(90deg,#e8e0d124,#e8e0d10c 60%,#e8e0d100);pointer-events:none}
+.ti-item:focus b{letter-spacing:.24em}
+.ti-menu .ti-item small{max-height:0;margin-top:0;opacity:0;overflow:hidden;transition:max-height .3s,opacity .25s,margin .3s}
+.ti-menu .ti-item:focus small{max-height:3em;margin-top:6px;opacity:1}
+.ti-item:focus,.ti-item:focus-visible{color:#fff6e6;background:linear-gradient(90deg,#ff8a3c26,#ff8a3c08 60%,#ff8a3c00);box-shadow:none}
+.ti-item:focus .ti-mark{transform:none}.ti-item:focus small{color:#cdbfa8}
 .ti-item:disabled{opacity:.4;cursor:default}
 .ti-scroll{max-height:min(46vh,420px);overflow:auto;margin:0 0 10px 28px;padding-right:8px;font:500 14px/1.45 Barlow,var(--ui);color:#cfc6b4;-webkit-user-select:text;user-select:text}
 .ti-credits{margin:0 0 12px 28px}.ti-credits dt{font:700 11px/1 var(--ui);letter-spacing:.24em;text-transform:uppercase;color:var(--ember-hi);margin-top:12px}.ti-credits dt:first-child{margin-top:0;font:400 22px/1 var(--display);letter-spacing:.04em;color:var(--bone);text-transform:none}
@@ -984,11 +997,55 @@ body.titled>*:not(#title):not(#game):not(dialog):not(#loading):not(#fall):not(sc
 @media(orientation:portrait){
  .ti-col{width:100%;align-items:center;text-align:center;padding:max(7vh,calc(env(safe-area-inset-top) + 24px)) 20px calc(env(safe-area-inset-bottom) + 52px)}
  .ti-shade{background:linear-gradient(180deg,#07080bd9 0%,#07080b66 20%,#07080b00 34%,#07080b00 46%,#07080bd0 62%,#07080bf6 74%,#07080b 100%),radial-gradient(130% 90% at 50% 40%,#0000 55%,#000a 100%)}
- .ti-dead{font-size:min(15.6vw,96px)}.ti-mark{display:none}.ti-kick{margin-left:.56em}.ti-tag{font-size:14px}
- .ti-menu,.ti-panel{width:min(340px,100%)}.ti-item{grid-template-columns:22px 1fr 22px;text-align:center;min-height:48px;padding:7px 6px}
- .ti-item:focus{background:linear-gradient(90deg,#ff8a3c00,#ff8a3c26 50%,#ff8a3c00);box-shadow:none}
+ .ti-dead{font-size:min(15.6vw,96px)}.ti-kick{margin-left:.56em}.ti-tag{font-size:14px}
+  .ti-menu,.ti-panel{width:min(320px,100%)}.ti-item{justify-content:center;text-align:center;min-height:54px;padding:10px 36px}.ti-text{align-items:center}
+ .ti-item+.ti-item::before{background:linear-gradient(90deg,#e8e0d100,#e8e0d122 50%,#e8e0d100)}
+ .ti-mark,.ti-item::after{position:absolute;top:50%;width:20px;margin-top:-1px;align-self:auto}.ti-mark{left:6px}
+ .ti-item::after{content:'';right:6px;height:2px;background:var(--ember-hi);box-shadow:0 0 8px var(--ember);transform:scaleX(0);transform-origin:right;transition:transform .3s cubic-bezier(.2,.7,.2,1)}.ti-item:focus::after{transform:none}
+ .ti-item:focus{background:radial-gradient(60% 100% at 50% 50%,#ff8a3c26,#ff8a3c00);box-shadow:none}
  .ti-panel h2{margin-left:0}.ti-scroll,.ti-credits{margin-left:0;text-align:left}.ti-credits{text-align:center}
  .ti-foot{justify-content:center}.ti-hints{display:none}
 }
-@media(orientation:landscape) and (max-height:520px){.ti-col{padding-top:max(5vh,calc(env(safe-area-inset-top) + 14px));padding-bottom:calc(env(safe-area-inset-bottom) + 40px)}.ti-dead{font-size:clamp(48px,8vw,90px)}.ti-tag{display:none}.ti-item{min-height:40px;padding-top:4px;padding-bottom:4px}.ti-item small{display:none}}
+@media(orientation:landscape) and (max-height:520px){.ti-col{padding-top:max(5vh,calc(env(safe-area-inset-top) + 14px));padding-bottom:calc(env(safe-area-inset-bottom) + 40px)}.ti-dead{font-size:clamp(48px,8vw,90px)}.ti-tag{display:none}.ti-item{min-height:42px;padding-top:4px;padding-bottom:4px}.ti-item small,.ti-menu .ti-item:focus small{display:none}}
 @media(prefers-reduced-motion:reduce){.ti-grain,.ti-lit .ti-logo::before,.ti-press{animation:none}.ti-lit .ti-dead span,.ti-lit .ti-dead .l5{animation:none;opacity:1}.ti-item{animation:none}}
+
+/* The goal on the portrait deck's readout: the same tag and step, cut short with an ellipsis so it never runs under the buttons. */
+#drillHud .row:has(.goal-go){max-width:100%;min-width:0}
+#drillHud .goal-go{display:flex;align-items:baseline;gap:8px;max-width:100%;min-width:0;min-height:0;margin:0;padding:2px 0;border:0;border-radius:0;background:none;box-shadow:none;color:inherit;font:inherit;letter-spacing:inherit;text-transform:none;text-align:left;cursor:pointer;pointer-events:auto}
+#drillHud .goal-go span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#drillHud .goal-go span::before{display:none}
+#drillHud .goal-go b{flex:none;color:var(--ember-hi)}
+#drillHud .goal-go i{flex:none;font:700 13px/1 var(--ui);font-style:normal;color:var(--dust)}
+#drillHud .goal-go:focus-visible{outline:1px solid var(--ember-hi);outline-offset:2px}
+html body.deck #goalChip:not([hidden]){max-width:calc(var(--rt-w,220px) - 10px)}
+
+/* The jobs list: a card per job with its steps, ticked off as you go; the one to do now lit in ember, the job being followed edged
+   in it. Finished jobs fold to one line at the bottom. */
+dialog.jobs{width:min(560px,calc(100% - 24px))}
+.jobs .options-body{display:flex;flex-direction:column;gap:12px;min-height:0}
+.jobs .jobs-list{max-height:calc(var(--vh) - 230px);overflow:auto;overscroll-behavior:contain;padding-right:2px}
+.jobs-list{display:flex;flex-direction:column;gap:8px}
+.jobs .job{display:flex;flex-direction:column;align-items:stretch;gap:6px;width:100%;min-height:0;margin:0;padding:11px 14px 12px 15px;text-align:left;color:var(--bone);background:#0d0c0b80;border:1px solid #ffffff0f;border-left:3px solid var(--edge-hi);border-radius:2px;box-shadow:none;font:400 13px/1.35 var(--body);letter-spacing:0;text-transform:none;cursor:pointer}
+.jobs .job:hover,.jobs .job:focus-visible{background:#1a1714cc;border-color:#ffffff22;border-left-color:var(--ember-hi);outline:none}
+.jobs .job.on{background:linear-gradient(90deg,#dd6f2c22,transparent 75%),#0d0c0b99;border-color:#dd6f2c55;border-left-color:var(--ember)}
+.jobs .job[aria-disabled]{cursor:default}
+.jobs .job.done{gap:0;padding-block:8px;opacity:.6}
+.jobs .job.locked .job-steps span{color:#6f6759}
+.job-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px;min-width:0}
+.job-head b{white-space:nowrap;font:400 19px/1 var(--display);letter-spacing:.04em;text-transform:uppercase;text-shadow:0 2px 0 #000}
+.job.done .job-head b{font-size:15px}
+.job-head em{flex:none;padding:3px 6px 2px;font:700 9px/1 var(--ui);font-style:normal;letter-spacing:.2em;text-transform:uppercase;color:var(--ember-hi);border:1px solid #dd6f2c66}
+.job.done .job-head em{color:var(--ok);border-color:#9fd65a55}.job.locked .job-head em{color:var(--dust);border-color:var(--edge-hi)}
+.job-far{margin-left:auto;font:600 12px/1 var(--ui);letter-spacing:.06em;color:var(--ember-hi);font-variant-numeric:tabular-nums}
+.job-n{min-width:26px;text-align:right;font:600 12px/1 var(--ui);letter-spacing:.04em;color:var(--dust);font-variant-numeric:tabular-nums}
+.job-far:empty{display:none}.job-head b+.job-far:empty+.job-n,.job-head em+.job-far:empty+.job-n{margin-left:auto}
+.job-for{font:italic 400 12.5px/1.4 var(--body);color:var(--dust)}
+.job-steps{display:flex;flex-direction:column;gap:5px;margin-top:3px}
+.job-steps span{position:relative;padding-left:20px;font:500 13px/1.35 var(--body);color:#9a9183}
+.job-steps span::before{content:'';position:absolute;left:3px;top:.42em;width:6px;height:6px;border:1.5px solid #6f6759;transform:rotate(45deg)}
+.job-steps .ok{color:#776f63;text-decoration:line-through;text-decoration-color:#776f6399}
+.job-steps .ok::before{background:#776f63;border-color:#776f63}
+.job-steps .now{color:var(--bone);font-weight:600}
+.job-steps .now::before{background:var(--ember);border-color:var(--ember-hi);box-shadow:0 0 8px var(--ember)}
+.jobs-hint{margin:0;font:600 11px/1.35 var(--ui);letter-spacing:.07em;text-transform:uppercase;color:var(--dust)}
+@media(prefers-reduced-motion:reduce){#goalChip:active{transform:none}}

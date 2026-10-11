@@ -89,8 +89,8 @@ export class Jobs{
   for(const it of PARTS){const d=k.mission?.drops?.find(d=>d.item===it);if(T[it])if(d)put(T[it],d.x,d.y,16);else put(T[it],AWAY,AWAY,0);}}
  // Where to go that is not a spot: her, while she still walks about, and the light while you are away from it.
  marks(){const out=[];if(!this.on())return out;const k=this.kit,h=this.her();
-  if(h&&stepOf(k,'supplies')==='hunt')out.push({mark:'Mrs. Hargrove',x:h.x,y:h.y,mx:h.x,my:h.y-62});
-  if(stepOf(k,'power')==='hold'&&!this.near)out.push({mark:'Light',x:HOLD_AT.x,y:HOLD_AT.y,mx:HOLD_AT.x,my:HOLD_AT.y-50});return out;}
+  if(h&&stepOf(k,'supplies')==='hunt')out.push({mark:'Mrs. Hargrove',job:'supplies',x:h.x,y:h.y,mx:h.x,my:h.y-62});
+  if(stepOf(k,'power')==='hold'&&!this.near)out.push({mark:'Light',job:'power',x:HOLD_AT.x,y:HOLD_AT.y,mx:HOLD_AT.x,my:HOLD_AT.y-50});return out;}
  // What the readout shows for a fix: its name, what to do, the zone to hit and the cursor (0 to 1), and how many of how many.
  view(){const x=this.fix;if(!x)return null;const g=x.g,F=FIX[x.kind];
   if(x.kind==='wire'){const p=F.posts[Math.min(g.k,F.posts.length-1)];return {kind:'wire',title:'Wiring',hint:'Tap as the spark crosses the post',zone:[p-F.half,p+F.half],cur:g.c,done:g.k,of:F.posts.length};}
