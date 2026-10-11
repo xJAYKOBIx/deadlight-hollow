@@ -245,3 +245,8 @@ test('a crawler is hit where the laser lies across it, and where the line runs u
 test('a shot that just misses bends onto the zombie, and the touch pull aims a crawler across the laser',()=>{
  const {m,f}=setup();f.zombies.length=0;const z=special(f,'shambler',m.x+120,m.y+Math.tan(3*Math.PI/180)*120);z.look='cop';f.aimAngle=0;assert.ok(f.fire());assert.ok(z.hp<z.max,'bent onto it');
  const c=special(f,'crawler',m.x+80,m.y-32),t=f.aimAt(c),L=f.lineOf(Math.atan2(t.y,t.x),190);assert.equal(L.z,c,'aiming where aimAt says hits the crawler');});
+test('bodies do not pile up forever: past the keep the oldest fade out and are gone, a named body stays, and none of them get back up',async()=>{const {BODIES}=await import('../dist/street/fight.js');const {m,f}=setup();
+ const R=f.zombies.filter(z=>z.roam!==undefined&&!z.who),named=f.zombies.find(z=>z.who),n=BODIES.keep+5;assert.ok(R.length>n);Object.assign(m,{x:-5000,y:-5000});
+ if(named)f.hit(named,999,1,0);for(const z of R.slice(0,n))f.hit(z,999,1,0);run(f,m,.1);assert.ok(R.slice(0,5).every(z=>z.gone>0&&z.gone<1));assert.ok(R.slice(5,n).every(z=>!z.gone));
+ run(f,m,BODIES.fade+.2);for(const z of R.slice(0,5))assert.ok(!f.zombies.includes(z));for(const z of R.slice(5,n))assert.ok(f.zombies.includes(z));if(named)assert.ok(f.zombies.includes(named));
+ f.start();for(const z of R.slice(0,5))assert.ok(!f.zombies.includes(z));assert.ok(!f.zombies.some(z=>z.roam!==undefined&&R.slice(0,5).some(o=>o.roam===z.roam)));});

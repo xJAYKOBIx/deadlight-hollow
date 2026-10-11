@@ -14,6 +14,9 @@ import {Jobs,CARRY} from './jobs.js';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),facing=(dx,dy)=>(Math.round(Math.atan2(dy,dx)/(Math.PI/4))+8)%8;
 // Wanderers: how far they stroll from where they started and how slowly, when they give up on you, and how far off they stop
 // being thought about every frame. Groans only carry so far.
+// Bodies left in the street: past keep of them, the oldest fade out over fade seconds and are gone, so a long fight does not keep
+// every body it ever made (each one is drawn and walked past every frame).
+export const BODIES={keep:40,fade:1.5};
 export const ROAM={stroll:{x:140,y:80},walk:16,lose:900,far:800,every:.5,hear:600};
 // Your flashlight shows you more, and shows you to them: a wanderer the beam falls on sees you from this far.
 export const BEAM_SEEN={range:300,half:26*Math.PI/180};
@@ -160,9 +163,15 @@ export class Fight{
   const push=s.push*(this.gun?.pellets&&Math.hypot(z.x-m.x,z.y-m.y)<SHOVE.close.range?SHOVE.close.push:1)*(z.hp<=0?SHOVE.kill:1)*(big?BRUTE.shove:1);z.vx+=dx*push;z.vy+=dy*push;if(!big)z.stagger=Math.max(z.stagger,s.stagger);z.idle=false;if(z.roam!==undefined)z.hunt=true;
   if((z.state==='windup'||z.state==='crouch'||z.state==='spit')&&this.gun?.pellets&&!big){z.state='chase';z.tell=0;z.cool=.5;}
   if(z.state==='scream'&&z.hp>0){z.state='chase';z.tell=0;z.scool=SCREAMER.scream.again;this.emit('miss',{z});}
-  if(z.hp<=0){this.stats.kills++;if(z.roam!==undefined)this.fallen.add(z.roam);z.state='dead';z.tell=0;z.frame=0;z._popped=true;z.fall=dx>=0?1:-1;
+  if(z.hp<=0){this.stats.kills++;z.died=this.deaths=(this.deaths||0)+1;if(z.roam!==undefined)this.fallen.add(z.roam);z.state='dead';z.tell=0;z.frame=0;z._popped=true;z.fall=dx>=0?1:-1;
    if(z.kind==='risen'){this.remains={x:z.x,y:z.y};this.emit('fallen',{z});}
    this.drop(z,dx,dy);this.noise(HEAT.kill);if(z.kind==='bloater')this.pop(z);const gore=z.gore=this.goreOf(z),crawler=gore==='half'&&this.rand()<GORE_KILL.crawl?this.crawler(z,dx,dy):null;this.emit('kill',{z,dx,dy,gore,crawler});this.check();}else this.emit('hit',{z,dx,dy});}
+ // Too many bodies: the oldest ordinary ones start to fade (never a named one, or him, who the story still needs), and once faded
+ // they leave the street; a roamer's body goes from the roamers too, so it is not brought back.
+ bodies(dt){let n=0;for(const z of this.zombies)if(z.hp<=0&&!z.who&&z.kind!=='risen'&&!z.gone)n++;
+  if(n>BODIES.keep){const old=this.zombies.filter(z=>z.hp<=0&&!z.who&&z.kind!=='risen'&&!z.gone).sort((a,b)=>(a.died||0)-(b.died||0));for(let i=0;i<n-BODIES.keep;i++)old[i].gone=1e-6;}
+  let out=false;for(const z of this.zombies)if(z.gone&&z.hp<=0){z.gone=Math.min(1,z.gone+dt/BODIES.fade);if(z.gone>=1)out=true;}else if(z.gone)z.gone=0;
+  if(out){for(const z of this.zombies)if(z.gone>=1&&z.roam>=0&&this.roamList?.[z.roam])this.roamList[z.roam].z=null;const keep=this.zombies.filter(z=>!(z.gone>=1));this.zombies.length=0;this.zombies.push(...keep);}}
  // Noise raises the heat and resets the quiet.
  // Noise heats the street up, except while a swarm is on you: what you make fighting it never queues up the next one.
  noise(n){if(!this.swarmLeft())this.heat=Math.min(100,this.heat+n);this.quiet=0;}
@@ -323,6 +332,7 @@ export class Fight{
   if(this.kit().street==='done'&&!this.down&&!this.kit().mission?.out&&!(this.evac?.state==='hold'&&!this.evac.paused)){if((this.patrolT-=dt)<=0){this.patrolT=HEAT.patrol[this.level]*(.8+this.rand()*.4);this.patrol(false);}if(this.level===3&&!sw&&(this.hordeT-=dt)<=0){this.hordeT=HEAT.horde.every;this.patrol(true);}}
   // Extra dead well away from you that are not after you are let go, and so are their bodies.
   if(this.zombies.some(z=>z.extra&&(z.hp<=0||!z.hunt)&&Math.hypot(z.x-m.x,z.y-m.y)>HEAT.gone)){const keep=this.zombies.filter(z=>!(z.extra&&(z.hp<=0||!z.hunt)&&Math.hypot(z.x-m.x,z.y-m.y)>HEAT.gone));this.zombies.length=0;this.zombies.push(...keep);}
+  this.bodies(dt);
   // Walking over something the dead dropped picks it up.
   for(const d of this.drops){d.age+=dt;if(Math.hypot(d.x-m.x,(d.y-m.y)*1.3)<SEARCH.pick){const k=this.kit();this.setKit({...k,bag:add(k.bag,this.grid(),d.id,d.n)});d.taken=true;this.emit('pickup',{id:d.id,n:d.n});}}
   if(this.drops.some(d=>d.taken))this.drops=this.drops.filter(d=>!d.taken);

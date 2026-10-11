@@ -44,7 +44,7 @@ const ZF={x:16,y:8,w:128,h:176,rows:9};
 // Gore: each look's pieces (top and bottom halves, head and headless, cropped like the walk) and its crawl; flying pieces and gibs
 // fall, bounce and skid like the casings and lie where they stop; blood is stamped on the ground and up the walls as pictures. How
 // many of each are kept (the oldest go first), and where on a piece it spins round (frame pixels) and how high that is off the ground.
-export const GORE_FX={keep:240,pieces:70,gravity:540,gibs:{half:9,head:4,blast:4},spin:{upper:[80,82],head:[80,46]}};
+export const GORE_FX={keep:180,pieces:56,gravity:540,gibs:{half:9,head:4,blast:4},spin:{upper:[80,82],head:[80,46]}};
 const CRAWL_COL={0:0,1:1,2:2,6:3,7:4},CRAWL_FLIP={3:1,4:0,5:4};
 // The blood stamps, one sheet: pools, splashes thrown each way, drops, drag marks and wall splatter, a few of each.
 const STAINS=[...[0,1,2,3].map(s=>['pool',s,0]),...[0,1].flatMap(s=>[0,1,2,3,4,5,6,7].map(d=>['splash',s,d])),...[0,1,2,3].map(s=>['drops',s,0]),...[0,1,2,3,4,5,6,7].map(d=>['smear',0,d]),...[0,1,2,3].map(s=>['wall',s,0])];
@@ -238,6 +238,9 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   const f=kind==='splash'?STAIN_AT(kind,v%2,d):kind==='smear'?STAIN_AT(kind,0,d):STAIN_AT(kind,v);if(f<0)return;
   const img=this.stains.length>=GORE_FX.keep?this.stains.shift():this.add.image(0,0,'gore-blood',0).setScale(.5);img.setFrame(f).setPosition(Math.round(x*2)/2,Math.round(y*2)/2).setDepth(depth).setAlpha(1).setVisible(true)
    .setFlipX(kind!=='splash'&&kind!=='smear'&&Math.random()<.5).setFlipY(kind==='pool'||kind==='drops'?Math.random()<.5:false);this.stains.push(img);}
+ // Blood and pieces away from the screen are hidden, a few times a second, so the ones left across the town cost nothing to draw.
+ cull(dt){if((this.cullT=(this.cullT||0)-dt)>0)return;this.cullT=.2;const V=grow(this.view(),48);
+  for(const i of this.stains)i.setVisible(i.x>V.x&&i.x<V.x+V.w&&i.y>V.y&&i.y<V.y+V.h);for(const i of this.lain)i.setVisible(i.x>V.x&&i.x<V.x+V.w&&i.y>V.y&&i.y<V.y+V.h);}
  // Gore on: set from the options each frame (the fight cuts bodies only when it is on).
  get goreOn(){return bridge.gore?.()!=='reduced';}
  // A piece or a chunk thrown from a body: it flies, tumbles, bounces and skids along the ground, bleeding as it goes, and lies where
@@ -332,10 +335,10 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   this.brassStep(dt);this.bitStep(held?0:dt);this.fight.gore=this.goreOn;
   // Dust kicked up along the ground as you slide.
   const dv=f.dive;if(dv&&dv.t>.1&&dv.t<DIVE.time){this.dustT=(this.dustT||0)-dt;if(this.dustT<=0){this.dustT=.05;this.juice.puff(model.x-dv.dx*6,model.y-1,.45,0x6a6458,.45,-3);}}
-  this.placeActor();this.stream();this.light();
+  this.placeActor();this.stream();this.light();this.cull(dt);
   // The dead near the screen: walking, winding up, or lying where they fell.
-  const V=grow(this.view(),120);for(const z of this.zs.keys())if(!f.zombies.includes(z))this.free(z);
-  for(const z of f.zombies){if(z.delay>0&&!z.idle||z.x<V.x||z.x>V.x+V.w||z.y<V.y||z.y>V.y+V.h+100){this.free(z);continue;}const s=this.sprite(z);
+  const V=grow(this.view(),120),live=new Set(f.zombies);for(const z of this.zs.keys())if(!live.has(z))this.free(z);
+  for(const z of f.zombies){if(z.delay>0&&!z.idle||z.x<V.x||z.x>V.x+V.w||z.y<V.y||z.y>V.y+V.h+100){this.free(z);continue;}const s=this.sprite(z);if(z.gone||s.alpha<1)s.setAlpha(1-(z.gone||0));
    // Hit: a white flash for a few frames, and a flinch back away from the shot. Down: it topples over (pivoting at the hips as
    // they drop), still sliding from the shot that dropped it, and greys once it lands.
    const white=z.flash>0,half=n=>Math.round(n*2)/2;if(white!==!!s.white){s.white=white;if(white)s.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);else if(s.grey)s.clearTint().setTint(0x9a8a8a);else s.clearTint();}

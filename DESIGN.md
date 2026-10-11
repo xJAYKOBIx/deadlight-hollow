@@ -544,6 +544,15 @@ Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack),
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
 
+## v0.61.0 — The lag in long fights
+
+A long fight got slower the longer it went on. Measured with `perf` (twelve dead a round, eight rounds, all in one spot), the frame time grew from 135 to 189 ms in headless software rendering as bodies, blood and sounds piled up. The causes and the fixes:
+- Every sound built its own compressor, filter chain and a fresh two-second noise buffer, the biggest script cost in the fight. The noise and the compressor are now built once per audio context and shared (Master Creator `assets/sounds/kit.js`); each sound keeps its own volume. It no longer shows in the profile.
+- Bodies were never let go. Past 40 ordinary bodies (`BODIES` in `street/fight.js`), the oldest fade out over 1.5 s and leave the street; a named body (Mrs. Hargrove) and him are never faded, and a faded wanderer stays down for the night.
+- Blood and pieces away from the screen are hidden a few times a second, and the caps are a little lower (180 stains, 56 pieces).
+- The check for which sprites to hand back now uses a set instead of searching the list for each one.
+After: the same fight holds flat at about 140 to 150 ms in the same software renderer instead of climbing (a real phone's graphics card is far quicker; what matters is that it no longer grows).
+
 ## v0.60.0 — Jobs as chains, the bus-lot hold-out, and the aim and HUD pass
 
 Each job is now a chain of steps (`street/jobs.js`; the step is saved per job in `mission.step`): find, carry, get in, fix, hold, hunt.
