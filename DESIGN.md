@@ -712,6 +712,7 @@ The touch fire stick no longer fires the moment the thumb leaves the middle, whi
 - **Backpacks (decided 2026-10-10):** three bags, Small, Medium and Large. Drawn and in the data since v0.33.0.
 - **Crafting and upgrades (decided 2026-10-10):** weapon tiers; armor as head, body and leg pieces shown on the survivor; common scrap from anywhere plus rare parts from special infected; armor wears as it is hit and guns foul with use (gun oil in the field, a full clean at camp); shotgun and rifle ammo found and crafted at camp. The full plan is the Claude Doc "Deadlight Hollow: Crafting and Upgrades".
 - **A Master Creator:** one place that houses every reusable asset (characters, animations, sounds, objects) so they can be browsed and reused. Today the character creator covers survivors, zombies and pets; everything else lives in code across `study/`, `companion/`, `camp/`, `grounds/` and `intro/`.
+- **Co-op companions (2026-10-11):** AI companions fill the co-op spots when there are no other players. Three to start, all to be tested and balanced: **Bible**, a God-loving, Bible-quoting, crazy cowboy who loves sending the undead back to their graves; **Gadget**, the LEET AF soldier already in the Training Grounds (Engineer), with a knack for tech; **Hank**, a human brute, amazing at shooting things and lifting heavy objects, who talks only in grunts.
 
 ## Where we are and what's next (2026-10-10)
 Bookmark set by Jaykobi before starting the Master Creator.
