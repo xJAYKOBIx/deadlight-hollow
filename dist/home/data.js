@@ -2,6 +2,7 @@
 // north, the bedroom, bathroom and front hall along the south. The power is out; the moon comes in through the windows and a
 // candle burns on the coffee table. A dog and a cat live here and go about their own business.
 // The art for every piece comes from the Master Creator (mc/assets/props/home.js); this file only places it.
+import {SCRIPT} from '../story/night1.js';
 export const HOME={w:760,h:600};
 // The house itself and the walls' measurements: outside walls 12 thick, inside walls 10, all cut away at 48 high.
 export const HOUSE={x:100,y:70,w:560,h:420},Z=48,T=12,IT=10;
@@ -75,17 +76,18 @@ export const USE_RANGE=40;
 const at=(id,dy=12)=>{const o=PROPS.find(p=>p.id===id);return {x:o.x+o.w/2,y:o.y+o.h+dy,mx:o.x+o.w/2,my:o.y-o.z-4};};
 // Things to look at and use. The nightstand and the closet hold the guns; the kitchen drawers, under the sink and the laundry
 // basket hold supplies for the bag (see kit.js).
+const say=k=>SCRIPT.look[k].map(l=>l[1]);
 export const OBJECTS=[
- {id:'tv',verb:'Look',name:'The TV',role:'Living room',...at('tv',60),lines:['Dead since the power went. A second before it did, the anchor was shouting about the bridges.','You can still hear sirens outside. More of them than before.']},
- {id:'window',prop:'north-window330',verb:'Look',name:'Front window',role:'Living room',...at('north-window330',28),lines:['Your street, under the moon. Every porch light is out.','Somebody\'s car alarm is going, a few houses down. Nobody comes out to stop it.']},
- {id:'nightstand',verb:'Open',name:'Nightstand',role:'Bedroom',...at('nightstand',10),lines:['The top drawer sticks, like always.','Something heavy rolls around inside.']},
- {id:'closet',verb:'Open',name:'Hall closet',role:'Front hall',...at('closet',10),lines:['Coats, boxes of who-knows-what, and the vacuum nobody uses.','The lockbox is on the floor at the back. Your fingers still know the code.']},
- {id:'counter',verb:'Search',name:'Kitchen drawers',role:'Kitchen',...at('counter',10),lines:['The junk drawer. Takeout menus, rubber bands and a lot of screws.']},
- {id:'sink',verb:'Search',name:'Under the sink',role:'Kitchen',...at('sink',10),lines:['Dish soap, sponges and a mousetrap nobody set.']},
- {id:'laundry',verb:'Search',name:'Laundry basket',role:'Bedroom',...at('laundry',10),lines:['Clean, folded, and never put away.']},
- {id:'fridge',verb:'Open',name:'Fridge',role:'Kitchen',...at('fridge',10),lines:['Still cold, for now.','Leftover pizza, mustard and a jar of pickles nobody remembers buying.']},
- {id:'bookshelf',verb:'Look',name:'Bookcase',role:'Living room',...at('bookshelf',12),lines:['Paperbacks, a dog-training book with the spine cracked at chapter two, and a first-aid manual still in its plastic.']},
- {id:'frontdoor',prop:'south-front500',verb:'Leave',name:'Front door',role:'Front hall',x:517,y:452,mx:517,my:INSIDE.bottom-Z-6,lines:['You put your hand on the lock and stop.','Not without something to protect yourself with.']}];
+ {id:'tv',verb:'Look',name:'The TV',role:'Living room',...at('tv',60),lines:say('tv')},
+ {id:'window',prop:'north-window330',verb:'Look',name:'Front window',role:'Living room',...at('north-window330',28),lines:say('window')},
+ {id:'nightstand',verb:'Open',name:'Nightstand',role:'Bedroom',...at('nightstand',10),lines:say('dark')},
+ {id:'closet',verb:'Open',name:'Hall closet',role:'Front hall',...at('closet',10),lines:say('dark')},
+ {id:'counter',verb:'Search',name:'Kitchen drawers',role:'Kitchen',...at('counter',10),lines:say('counter')},
+ {id:'sink',verb:'Search',name:'Under the sink',role:'Kitchen',...at('sink',10),lines:say('sink')},
+ {id:'laundry',verb:'Search',name:'Laundry basket',role:'Bedroom',...at('laundry',10),lines:say('laundry')},
+ {id:'fridge',verb:'Open',name:'Fridge',role:'Kitchen',...at('fridge',10),lines:say('fridge')},
+ {id:'bookshelf',verb:'Look',name:'Bookcase',role:'Living room',...at('bookshelf',12),lines:say('bookshelf')},
+ {id:'frontdoor',prop:'south-front500',verb:'Leave',name:'Front door',role:'Front hall',x:517,y:452,mx:517,my:INSIDE.bottom-Z-6,lines:say('doorDark')}];
 // The dog and the cat. Each has its own spots around the house: where it naps, eats, watches and waits.
 // A spot is a floor point and a pose. A perch lifts the animal onto furniture: it hops from the floor point up to (x, y) at
 // height h, drawn at depth d so the furniture in front of it still covers its feet.

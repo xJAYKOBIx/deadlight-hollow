@@ -523,6 +523,18 @@ Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack),
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
 
+## v0.53.0 — The dialog box, and one script for night one
+
+Jaykobi (2026-10-11): narration, thoughts and dialog felt quick, out of place and thrown in. Asked for a small dialog box with a portrait of who is talking and a button to continue, so the player reads at their own pace, without it becoming another burden on the screen.
+
+**One script** (`story/night1.js`). Every line of night one lives in one file, scene by scene, as `[who, text]`; the scenes read from it, so the words can be rewritten without touching code. The same script is written up for review in the Night One Script doc. The second-person narrator is gone: Owen speaks for himself, and after he dies the survivor you made speaks as "You" (with the name you gave them).
+
+**The dialog box** (`study/say.js`). A slim steel strip over the bottom of the game view, with the speaker's face (cut from their real character art, a radio handset for the Guard, a dark silhouette for the watcher), their name, and the line typing in at 55 characters a second. A tap anywhere (or Space, Enter, E, or A on a pad) finishes the line, the next tap moves on. While it is up the game holds, so nothing hits you while you read; cutscene beats wait for the last line to be tapped past. Other prompts hide under it.
+
+**The radio** stays out of the way: during a fight the Guard's calls show for a few seconds in a small strip at the top and nothing waits for them (the jobs done, the flare, the minute call, the overrun, the truck leaving).
+
+**What moved into the box:** the wake-up and crash lines, looking at things in the house, the officer at the cruiser (a line as you see the crash, and one just before he turns), the quiet after the first fight, the trunk, the radio briefing, each job, the window scene (each line holds the picture until you tap), your turn, and taking his gear back. **What was cut:** the Street clear, More of them, Quiet again, Got the radio, Ready to go, Truck called, Overrun, He is down, Your turn and Got it back banners, and most toasts. Passing thoughts stay over your head but are few now: a nudge after a minute in the dark, the second gun, and short reactions in a fight.
+
 ## v0.52.0 — Playtest fixes: the swarm loop, the dark house, the flashlight
 
 Jaykobi played night one (2026-10-11): the house is too dark before the flashlight and the beam only paints a cone over everything; no flashlight in your hands and the light comes from the wrong place; the swarm meter fills while you fight a swarm, so swarms never end.

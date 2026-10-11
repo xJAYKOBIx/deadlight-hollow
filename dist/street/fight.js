@@ -70,10 +70,9 @@ export const SPITTER={hp:55,speed:36,keep:[150,280],spit:{tell:.55,flight:.95,co
 // come from every side at once (the overrun), their bites land harder, and if he is somehow still standing at the end of it, one of
 // them gets him. Going down in the hold-out is the end of him, with no checkpoint. Then, as seen from a window across the street
 // (the game draws that): the dead close in and feed, then drift off; he twitches, gets up, and turns toward the window; then the
-// picture goes and you make the survivor who was watching. Times are seconds from when he went down. lines are what the watcher says.
+// picture goes and you make the survivor who was watching. Times are seconds from when he went down. lines are what the watcher says are in story/night1.js (SCRIPT.window).
 export const DEATH={overrun:20,ring:[170,300],shamblers:14,runners:4,hurt:1.5,doom:26,feeders:6,
- cine:{leave:6.5,twitch:8.6,rise:10,up:11.4,walk:12.6,end:15.6},
- lines:[[1.2,'No. No, no, no…'],[3.8,'Don\'t look. Don\'t you dare look away.'],[6.9,'They\'re leaving him. They\'re just… leaving him there.'],[9,'He moved. Did he move?'],[12.2,'That\'s not him any more.']]};
+ cine:{leave:6.5,twitch:8.6,rise:10,up:11.4,walk:12.6,end:15.6}};
 // Him, after: tougher than most, standing where he got up until you come close or shoot him. Taking your gear back off him is a search.
 export const RISEN={hp:150,notice:230,search:2};
 export const CRAWLER={hp:25,speed:22,reach:16,windup:.55,damage:9,hold:.9,slow:.3,rise:.6,cool:1.4};
@@ -298,7 +297,12 @@ export class Fight{
   // Walking over something the dead dropped picks it up.
   for(const d of this.drops){d.age+=dt;if(Math.hypot(d.x-m.x,(d.y-m.y)*1.3)<SEARCH.pick){const k=this.kit();this.setKit({...k,bag:add(k.bag,this.grid(),d.id,d.n)});d.taken=true;this.emit('pickup',{id:d.id,n:d.n});}}
   if(this.drops.some(d=>d.taken))this.drops=this.drops.filter(d=>!d.taken);
-  if(!this.alert&&this.zombies.some(z=>z.idle&&Math.hypot(z.x-m.x,z.y-m.y)<NOTICE))this.wake();
+  // The officer, the first time: what you see coming up to the cruiser, then him, just before he would notice you. The game holds
+  // the street while those lines are read and wakes him after the last one (study/app.js), so the line comes before the lunge.
+  const cop=!this.alert&&this.wave===0&&this.zombies.find(z=>z.idle&&z.look==='cop'),near=cop&&Math.hypot(cop.x-m.x,cop.y-m.y);this.told??=new Set();
+  if(cop&&near<NOTICE*2.4&&!this.told.has('see')){this.told.add('see');this.emit('story',{beat:'see'});}
+  if(cop&&near<NOTICE+30&&!this.told.has('him')){this.told.add('him');this.emit('story',{beat:'him'});}
+  else if(!this.alert&&this.zombies.some(z=>z.idle&&Math.hypot(z.x-m.x,z.y-m.y)<NOTICE))this.wake();
   // The way to you, spread again while anything is coming.
   if(this.zombies.some(z=>this.out(z)&&(z.roam!==undefined?z.hunt:this.alert)))this.flow.update(dt,[m]);
   // Near ones every frame; far wanderers that have not seen you, twice a second.

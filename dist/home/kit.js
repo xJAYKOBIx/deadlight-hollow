@@ -6,7 +6,7 @@ import {GUNS,unlimited} from '../study/equipment.js';
 import {itemInfo} from '../mc/assets/gear/items.js';
 import {carrying,BAGS} from '../mc/assets/gear/bags.js';
 import {add,count,normalizeBag} from './bag.js';
-import {rng} from '../mc/assets/core/kit.js';
+import {rng} from '../mc/assets/core/kit.js';import {SCRIPT} from '../story/night1.js';
 export const HOME_KEY='deadlight-home-v1';
 // While the tutorial is being built, the saved night is ignored on load: you wake on the couch with nothing, every time.
 export const FRESH=true;
@@ -94,24 +94,20 @@ export function goal(k,outside=false){if(!k.woke)return '';const p=found(k,'ligh
  return 'Go and see what crashed down the street';}
 // What the nightstand, the closet, the searchable spots and the front door say, and what using them does. act names what
 // happens after the last line.
-const SEARCH_LINES={counter:['The junk drawer. Takeout menus, rubber bands and a lot of screws.','A handful of hinges and brackets, and the old phone with the cracked screen. Parts are parts now.'],
- sink:['Dish soap, sponges and a mousetrap nobody set.','At the back, the can of degreaser you bought for the bike and never used.'],
- laundry:['Clean, folded, and never put away.','A couple of old flannel shirts. They will make good rags, or patches.']};
+// The lines come from the script (story/night1.js) as plain text; whoever you are says them.
+const L=lines=>lines.map(l=>l[1]),look=id=>L(SCRIPT.look[id]);
 export function useLines(k,id){
  // Until you have the flashlight, the drawers and the closet are too dark to go through; the flashlight is in the kitchen junk drawer.
- if(!k.light&&(id==='nightstand'||id==='closet'))return {lines:[id==='closet'?'You open the closet onto pitch black. Coats, boxes, something that falls over.':'The drawer sticks. Inside it is too dark to tell what is what.','You need the flashlight. It should be in the kitchen junk drawer.']};
- if(id==='counter'&&!k.light)return {lines:['The junk drawer. Takeout menus, rubber bands and a lot of screws.','And at the back, where it always ends up: the flashlight. You thumb the switch and it comes on, strong and white.'],act:'flashlight',verb:'Take'};
- if(id==='nightstand')return found(k,'light-pistol')?{lines:['Just the paperback and the phone charger now.']}:
-  {lines:['The top drawer sticks, like always.','Your Light Pistol is right where you left it, loaded, with the spare magazines you always keep topped up.'],act:'take:light-pistol',verb:'Take'};
- if(id==='closet')return found(k,'pump-shotgun')?{lines:['The lockbox is empty now. The coats can stay.']}:
-  {lines:['Coats, boxes of who-knows-what, and the vacuum nobody uses.','The lockbox is on the floor at the back. Your fingers still know the code.','The Pump Shotgun. Eight shells in the tube, a box of sixteen more, and the little bottle of gun oil.'],act:'take:pump-shotgun',verb:'Take'};
- if(SUPPLIES[id])return k.searched.includes(id)?{lines:['Nothing else worth taking.']}:{lines:SEARCH_LINES[id],act:'search:'+id,verb:'Take'};
+ if(!k.light&&(id==='nightstand'||id==='closet'))return {lines:look('dark')};
+ if(id==='counter'&&!k.light)return {lines:L(SCRIPT.drawer),act:'flashlight',verb:'Take'};
+ if(id==='nightstand')return found(k,'light-pistol')?{lines:look('nightstandEmpty')}:{lines:look('nightstand'),act:'take:light-pistol',verb:'Take'};
+ if(id==='closet')return found(k,'pump-shotgun')?{lines:look('closetEmpty')}:{lines:look('closet'),act:'take:pump-shotgun',verb:'Take'};
+ if(SUPPLIES[id])return k.searched.includes(id)?{lines:look('searched')}:{lines:[...look(id),...L(SCRIPT.search[id])],act:'search:'+id,verb:'Take'};
  if(id==='frontdoor'){const p=found(k,'light-pistol'),s=found(k,'pump-shotgun');
-  if(!p&&!s)return {lines:['You put your hand on the lock and stop.','Not without something to protect yourself with.']};
-  const lines=k.street==='start'?['You check the lock, then the window beside it. Red and blue light is still turning down the street.','Whoever was in that car might need help. Or might not be a whoever any more.']:['The street is out there, the way you left it.'];
-  if(!p||!s)lines.push(!s?'The shotgun is still in the closet lockbox. You could take it too.':'The pistol is still in the bedroom nightstand. You could take it too.');
-  return {lines,act:'leave',verb:'Go out'};}
- if(id==='window'&&k.woke&&k.street==='start')return {lines:['Down the street, a police cruiser has gone up the curb into a pole. Its lights are still turning.','Nobody has got out of it. Nobody has come out of the houses either.']};
+  if(!p&&!s)return {lines:look(k.light?'doorEmpty':'doorDark')};
+  return {lines:look(k.street!=='start'?'doorBack':s?'door':'doorOne'),act:'leave',verb:'Go out'};}
+ if(id==='window'&&k.woke&&k.street==='start')return {lines:look('windowCrash')};
+ if(SCRIPT.look[id])return {lines:look(id)};
  return null;}
 // Once something is taken, the spot is only worth a look.
 export const verbFor=(k,id)=>id==='counter'&&!k.light?'Search':(id==='nightstand'&&found(k,'light-pistol'))||(id==='closet'&&found(k,'pump-shotgun'))||(SUPPLIES[id]&&k.searched.includes(id))?'Look':null;

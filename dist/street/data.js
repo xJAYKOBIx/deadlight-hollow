@@ -25,9 +25,10 @@ const P=(id,kind,x,y,w,h,z,extra={})=>({id,kind,x,y,w,h,z,...extra});
 const house=(id,x,x1,{windows,door,garage,paint=5,roof=0,chimney,depth=150},o)=>P(id,'house',o.x+x,o.y+FRONT+WALL_T-depth,x1-x,depth,Z,{paint,roof,windows:windows.map(([a,b])=>[a-x,b-x]),door:door-x,...(garage?{garage:[garage[0]-x,garage[1]-x]}:{}),...(chimney!=null?{chimney:chimney-x}:{}),fade:true,door0:o.x+door});
 // The neighbours' doors: a name, and what you find when you knock.
 const NAMES=['The Hendersons\' house','The Okafor house','The Millers\' house','The Ruiz house','The Brennans\' house','The Novak house','The Whitakers\' house','The Lindqvist house','The Duvalls\' house','The Abernathy house','The Kowalskis\' house','The Tran house'];
-const KNOCKS=[['You knock. Nothing.','Somewhere inside, something knocks back.'],['Locked. A note is taped to the glass: "Gone to St. Agnes. Stay inside."','The ink has run.'],['You knock. A dog barks once inside, then goes quiet.'],
- ['The door is open a hand\'s width. It is dark inside, and it smells wrong.','You leave it alone.'],['Boards are nailed across the door from the inside.','Someone got ready for this.'],['You knock. A candle in the window goes out.'],
- ['The porch light is smashed. Glass crunches under your shoes.','Nobody answers.'],['Muddy handprints all over the door, at every height.','You step back.']];
+// Knocking on a neighbour's door, said in your own voice (story/night1.js has the rest of the night).
+const KNOCKS=[['Hello? ...Nothing.','Something inside knocks back.'],['Locked. There\'s a note on the glass: "Gone to St. Agnes. Stay inside."','The ink\'s run.'],['A dog barks once inside. Then nothing.'],
+ ['Door\'s open a hand\'s width. It smells wrong in there.','I\'m leaving that alone.'],['Boarded up from the inside.','Somebody saw this coming.'],['A candle in the window goes out.'],
+ ['Porch light\'s smashed. Glass everywhere.','Nobody\'s answering.'],['Muddy handprints all over the door. At every height.','Nope.']];
 // Your block, as it always was: yours (the same windows and door as the house you just left), the corner house to the west and two
 // to the east, then the cars, the poles, the lamps and the cruiser.
 function homeBlock(o){
@@ -135,8 +136,8 @@ const JOB_SPOTS=[{id:'job-radio',job:'radio',prop:RH.id,verb:'Search',name:'The 
 export const OBJECTS=[
  {id:'frontdoor',prop:'yours',verb:'Go in',name:'Your front door',role:'Home',...H(717,146),mx:HOME.x+717,my:HOME.y+FRONT-Z-6,range:34,facing:true},
  {id:'cruiser',prop:'cruiser',verb:'Search',name:'Police cruiser',role:'The trunk',x:cr.x+22,y:cr.y+cr.h+12,mx:cr.x+22,my:cr.y-cr.z-4,range:44},
- {id:'door-e1',prop:'east1',verb:'Knock',name:'The Parks\' house',role:'Next door',...H(1077,150),mx:HOME.x+1077,my:HOME.y+FRONT-Z-6,range:34,lines:['You knock, softly. Nothing.','Through the glass, a candle moves away from the door and goes out.']},
- {id:'door-w',prop:'west',verb:'Knock',name:'The corner house',role:'Next door',...H(157,150),mx:HOME.x+157,my:HOME.y+FRONT-Z-6,range:34,lines:['The door is open a crack. It is completely dark inside, and it smells wrong.','You pull it shut.']},
+ {id:'door-e1',prop:'east1',verb:'Knock',name:'The Parks\' house',role:'Next door',...H(1077,150),mx:HOME.x+1077,my:HOME.y+FRONT-Z-6,range:34,lines:['Mrs. Park? It\'s me, from next door.','A candle moves away from the glass and goes out.']},
+ {id:'door-w',prop:'west',verb:'Knock',name:'The corner house',role:'Next door',...H(157,150),mx:HOME.x+157,my:HOME.y+FRONT-Z-6,range:34,lines:['Door\'s open a crack. Pitch black in there, and it smells wrong.','I\'m pulling it shut.']},
  ...BLOCKS.filter(b=>!b.home).flatMap(b=>b.houses.map((h,k)=>{if(h===RADIO_HOUSE)return null;const d=h.door0+17,s=(b.i*5+b.j)*3+k,at={x:d,y:b.y+FRONT+WALL_T+20,mx:d,my:b.y+FRONT-Z-6,range:34,name:NAMES[s%NAMES.length]};
   return s%3?{id:'search-'+h.id,prop:h.id,loot:'house',verb:'Search',role:'The door is not locked',...at}:{id:'door-'+h.id,prop:h.id,verb:'Knock',role:'A neighbour',...at,lines:KNOCKS[(s*7+3)%KNOCKS.length]};})),
  ...SPOTS,...JOB_SPOTS].filter(Boolean);
