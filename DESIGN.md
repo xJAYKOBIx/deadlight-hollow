@@ -523,6 +523,20 @@ Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack),
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
 
+## v0.42.0 — Gore
+
+From Jaykobi (2026-10-11): more gore and blood; zombies blown in half; something like ragdolls.
+
+**Bodies come apart.** A shotgun kill within 80 units cuts a zombie in two at the waist, and between 80 and 140 it does 40% of the time (`GORE_KILL` in `street/fight.js`). A pistol kill takes the head off 22% of the time. The bottom half (or the headless body) topples where it stood; the top half or the head flies along the shot, tumbling, bounces, skids and lies where it stops, dripping as it goes. Gibs (meat, ribs, bone, gut, a hand, cloth, scalp) are thrown from the cut. Pieces and gibs are faked ragdoll: they fall, bounce and slide like the casings, and the last 70 stay on the ground.
+
+**Crawlers.** Half the top halves keep coming: the piece lands a little way along the shot and starts dragging itself at you by its arms (`CRAWLER`: 25 health, slow, low). Instead of biting it grabs your ankle: less damage, but you are held nearly still for a moment; a dive tears you free. A crawler from a wave counts as one of that wave, so the street is not quiet until it is dead. The second wave also has one that lost its legs before tonight, coming up from the south.
+
+**Much more blood.** Blood is now stamped as pictures: a spray thrown past every hit, more on a kill, a pool where each body stops, drops where pieces land and bounce and along a crawler's way, and splatter up the wall of anything solid just behind a zombie you shoot (when you can see that wall's face). The last 240 stamps stay.
+
+**Gore setting.** The menu has "Gore: Full / Reduced" (kept as `deadlight-gore-v1`). Reduced: no bodies coming apart or crawlers from kills, and about half the blood.
+
+**Master Creator.** New `assets/effects/gore.js`: `zombiePiece` (any look and facing cut at the waist or neck along a ragged line, with a wound, spine and gut), `crawlArt` (the crawling top half, 8 facings by 4 frames), `gibArt`, `bloodArt` (pool, spray, drops, drag mark, wall splatter) and the `GORE` palette, with library entries for each. Existing art is unchanged.
+
 ## v0.41.0 — Combat polish
 
 From Jaykobi (2026-10-11): polish things like the dive animation; the right stick should only shoot when pushed all the way, with a setting so each player can choose.

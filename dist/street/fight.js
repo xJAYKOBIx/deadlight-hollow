@@ -27,14 +27,20 @@ export const SLOW={shot:.9,after:.2,reload:.82};
 // The dive: a burst along the way you are going (or aiming, standing still) that costs stamina, puts you on the ground for a
 // moment and gets you out from under a bite: one that lands while you are in the air misses. You cannot shoot until you are up.
 export const DIVE={speed:390,time:.42,rise:.24,cost:24,cool:.25};
+// How the dead come apart, with gore on: a shotgun blast this close cuts one in two, and further out sometimes does; a pistol round
+// sometimes takes the head. Half the top halves keep coming.
+export const GORE_KILL={near:80,far:140,chance:.4,head:.22,crawl:.5};
+// A crawler: the top half of one, or one that lost its legs before tonight. Slow and low; it grabs your ankle instead of biting, which
+// hurts less but holds you nearly still for a moment (a dive tears you free). A top half takes a moment to land before it moves.
+export const CRAWLER={hp:25,speed:22,reach:16,windup:.55,damage:9,hold:.9,slow:.3,rise:.6,cool:1.4};
 export class Fight{
- constructor(model,{kit,setKit,grid}){Object.assign(this,{model,kit,setKit,grid,traces:[],fields:[],events:[],zombies:[],hp:PLAYER_HP,maxHp:PLAYER_HP,down:0,cooldown:0,reloadTime:0,throwCooldown:0,sinceShot:9,sinceHurt:9,dive:null,diveCool:0,alert:false,wave:-1,seed:1,held:null});
+ constructor(model,{kit,setKit,grid}){Object.assign(this,{model,kit,setKit,grid,traces:[],fields:[],events:[],zombies:[],hp:PLAYER_HP,maxHp:PLAYER_HP,down:0,cooldown:0,reloadTime:0,throwCooldown:0,sinceShot:9,sinceHurt:9,dive:null,diveCool:0,alert:false,wave:-1,seed:1,held:null,grab:0,gore:true});
   this.drill={bots:this.zombies,holdout:false,downed:false};this.flow=new Flow();}
  // Sets the street up for where the kit says you are: the cop waiting at the cruiser, the second wave coming, or nothing.
- start(){const k=this.kit();this.snapshot=k;this.hp=PLAYER_HP;this.down=0;this.dive=null;this.diveCool=0;this.alert=false;this.traces=[];this.reloadTime=0;this.cooldown=0;this.held=k.held;this.zombies.length=0;
+ start(){const k=this.kit();this.snapshot=k;this.hp=PLAYER_HP;this.down=0;this.dive=null;this.grab=0;this.diveCool=0;this.alert=false;this.traces=[];this.reloadTime=0;this.cooldown=0;this.held=k.held;this.zombies.length=0;
   if(k.street==='start')this.spawn(0);else if(k.street==='looted'){this.spawn(1);this.alert=true;}else{this.wave=-1;this.zombies.length=0;this.zombies.push(...this.roamers());}}
  // The ones you already put down stay where they fell when the next wave comes.
- spawn(i){this.wave=i;const fell=i>0?this.zombies.filter(z=>z.roam===undefined&&z.hp<=0):[];this.zombies.length=0;this.zombies.push(...fell);for(const s of WAVES[i]){const hp=ZOMBIE.hp[s.look]||60;this.zombies.push({kind:'shambler',look:s.look,x:s.x,y:s.y,sx:s.x,sy:s.y,direction:s.direction??4,frame:0,phase:0,hp,max:hp,idle:!!s.idle,delay:s.delay||0,state:'chase',t:0,vx:0,vy:0,stagger:0,tell:0,cool:0,flash:0,groan:1+this.rand()*2});}
+ spawn(i){this.wave=i;const fell=i>0?this.zombies.filter(z=>z.roam===undefined&&z.hp<=0):[];this.zombies.length=0;this.zombies.push(...fell);for(const s of WAVES[i]){const crawl=s.kind==='crawler',hp=crawl?CRAWLER.hp:ZOMBIE.hp[s.look]||60;this.zombies.push({kind:crawl?'crawler':'shambler',look:s.look,x:s.x,y:s.y,sx:s.x,sy:s.y,direction:s.direction??4,frame:0,phase:0,hp,max:hp,idle:!!s.idle,delay:s.delay||0,state:'chase',t:0,vx:0,vy:0,stagger:0,tell:0,cool:0,flash:0,groan:1+this.rand()*2});}
   this.zombies.push(...this.roamers());}
  // The wanderers, back where they started; the ones you put down stay down for the night.
  roamers(){this.fallen??=new Set();const R=this.roamList??=ROAMERS.map((s,i)=>({i,s,z:null}));
@@ -44,7 +50,7 @@ export class Fight{
  emit(type,o={}){this.events.push({type,...o});}
  drain(){return this.events.splice(0);}
  // A zombie is out once it is past its delay; until then it is somewhere off in the dark.
- out(z){return z.hp>0&&!(z.delay>0&&!z.idle);}
+ out(z){return z.hp>0&&!(z.delay>0&&!z.idle)&&!(z.hatch>0);}
  // The ones the street's story counts: the waves, not the wanderers.
  get live(){return this.zombies.filter(z=>z.roam===undefined&&z.hp>0);}
  // What is coming for you right now and close enough to matter: the waves once they are awake, and wanderers that have seen you.
@@ -79,20 +85,28 @@ export class Fight{
  hit(z,dmg,dx,dy){const s=SHOVE[this.gunId]||SHOVE['light-pistol'],m=this.model;z.hp=Math.max(0,z.hp-dmg);z.flash=.07;
   const push=s.push*(this.gun?.pellets&&Math.hypot(z.x-m.x,z.y-m.y)<SHOVE.close.range?SHOVE.close.push:1)*(z.hp<=0?SHOVE.kill:1);z.vx+=dx*push;z.vy+=dy*push;z.stagger=Math.max(z.stagger,s.stagger);z.idle=false;if(z.roam!==undefined)z.hunt=true;
   if(z.state==='windup'&&this.gun?.pellets){z.state='chase';z.tell=0;z.cool=.5;}
-  if(z.hp<=0){if(z.roam!==undefined)this.fallen.add(z.roam);z.state='dead';z.tell=0;z.frame=0;z._popped=true;z.fall=dx>=0?1:-1;this.emit('kill',{z,dx,dy});this.check();}else this.emit('hit',{z,dx,dy});}
+  if(z.hp<=0){if(z.roam!==undefined)this.fallen.add(z.roam);z.state='dead';z.tell=0;z.frame=0;z._popped=true;z.fall=dx>=0?1:-1;
+   const gore=z.gore=this.goreOf(z),crawler=gore==='half'&&this.rand()<GORE_KILL.crawl?this.crawler(z,dx,dy):null;this.emit('kill',{z,dx,dy,gore,crawler});this.check();}else this.emit('hit',{z,dx,dy});}
+ // What a killing hit does to the body: nothing more, 'half' (in two at the waist) or 'head' (the head comes off).
+ goreOf(z){if(!this.gore||z.kind==='crawler')return null;const m=this.model,d=Math.hypot(z.x-m.x,z.y-m.y),G=GORE_KILL;
+  if(this.gun?.pellets)return d<G.near||d<G.far&&this.rand()<G.chance?'half':null;return this.rand()<G.head?'head':null;}
+ // The top half lands a little way along the shot and starts to crawl. It counts as one of the wave it came from.
+ crawler(z,dx,dy){let x=z.x,y=z.y;for(const t of [28,20,12])if(!this.blockedZ(z,z.x+dx*t,z.y+dy*t*.7)){x=z.x+dx*t;y=z.y+dy*t*.7;break;}
+  const c={kind:'crawler',look:z.look,x,y,sx:x,sy:y,from:{x:z.x,y:z.y},direction:facing(-dx,-dy),frame:0,phase:0,hp:CRAWLER.hp,max:CRAWLER.hp,idle:false,delay:0,hatch:CRAWLER.rise,state:'chase',t:0,vx:0,vy:0,stagger:0,tell:0,cool:.4,flash:0,groan:1.5,
+   ...(z.roam!==undefined?{roam:-1,hunt:true,acc:0,sx:x,sy:y,wt:0,wx:x,wy:y}:{})};this.zombies.push(c);return c;}
  // In the air in a dive: bites miss.
  get air(){return !!this.dive&&this.dive.t<DIVE.time;}
  // Starts a dive the way you are moving, or the way you aim standing still. Too little stamina and you stumble instead.
  diveFrom(input){const m=this.model,st=m.stamina;if(this.down||this.dive||this.diveCool>0)return false;if(st&&st.value<DIVE.cost*.5){this.emit('winded');return false;}
   let x=Number(input.x)||0,y=Number(input.y)||0,d=Math.hypot(x,y);if(d<.12){const a=this.aimAngle??m.aim??m.direction*Math.PI/4;x=Math.cos(a);y=Math.sin(a);d=1;}
-  if(st){st.value=Math.max(0,st.value-DIVE.cost);st.rest=0;}this.dive={t:0,dx:x/d,dy:y/d,landed:false};this.emit('dive',{dx:x/d,dy:y/d});return true;}
+  if(st){st.value=Math.max(0,st.value-DIVE.cost);st.rest=0;}if(this.grab){this.grab=0;this.emit('free');}this.dive={t:0,dx:x/d,dy:y/d,landed:false};this.emit('dive',{dx:x/d,dy:y/d});return true;}
  // Flying, landing, getting up. You face the way you dived and your feet stop answering the stick until you are up.
  diving(dt){const v=this.dive,m=this.model,T=DIVE.time;v.t+=dt;const a=Math.atan2(v.dy,v.dx);m.aim=a;m.direction=m.legDir=facing(v.dx,v.dy);m.frame=0;m.moving=false;
   if(v.t<T){const sp=DIVE.speed*Math.pow(1-v.t/T,1.1),step=sp*dt,n=Math.max(1,Math.ceil(step/4));for(let i=0;i<n;i++){const sx=v.dx*step/n,sy=v.dy*step/n;if(!m.blocked(m.x+sx,m.y))m.x+=sx;if(!m.blocked(m.x,m.y+sy))m.y+=sy;}}
   if(!v.landed&&v.t>=T*.55){v.landed=true;this.emit('land',{x:m.x,y:m.y,dx:v.dx,dy:v.dy});}
   if(v.t>=T+DIVE.rise){this.dive=null;this.diveCool=DIVE.cool;}}
  // You, bitten.
- hurt(n,from){if(this.down)return;this.dive=null;this.hp=Math.max(0,this.hp-n);this.sinceHurt=0;const m=this.model,dx=m.x-from.x,dy=m.y-from.y,d=Math.hypot(dx,dy)||1;this.shove={x:dx/d*ZOMBIE.bite.shove,y:dy/d*ZOMBIE.bite.shove};
+ hurt(n,from,shove=true){if(this.down)return;this.dive=null;this.hp=Math.max(0,this.hp-n);this.sinceHurt=0;const m=this.model,dx=m.x-from.x,dy=m.y-from.y,d=Math.hypot(dx,dy)||1;if(shove)this.shove={x:dx/d*ZOMBIE.bite.shove,y:dy/d*ZOMBIE.bite.shove};
   this.emit('hurt',{n,hp:this.hp});if(!this.hp){this.down=3;this.reloadTime=0;this.drill.downed=true;this.emit('down');}}
  // The cop turns round and the others come out of the dark.
  wake(){this.alert=true;for(const z of this.zombies)if(z.idle){z.idle=false;this.emit('groan',{z,loud:true});}}
@@ -119,7 +133,7 @@ export class Fight{
   // Back on your feet slowly once nothing has touched you for a while.
   if(!this.down&&this.sinceHurt>5)this.hp=Math.min(PLAYER_HP,this.hp+5*dt);
   // You slow down while reloading and for a moment after each shot, so where you stand to shoot matters.
-  m.slow=this.dive?0:this.reloadTime?SLOW.reload:this.sinceShot<SLOW.after?SLOW.shot:1;
+  this.grab=Math.max(0,this.grab-dt);m.slow=this.dive?0:this.grab?CRAWLER.slow:this.reloadTime?SLOW.reload:this.sinceShot<SLOW.after?SLOW.shot:1;
   if(this.shove){const k=Math.min(1,dt*10);const sx=this.shove.x*k,sy=this.shove.y*k;if(!m.blocked(m.x+sx,m.y))m.x+=sx;if(!m.blocked(m.x,m.y+sy))m.y+=sy;this.shove.x-=sx;this.shove.y-=sy;if(Math.hypot(this.shove.x,this.shove.y)<1)this.shove=null;}
   this.aimAngle=!this.down&&Number.isFinite(input.aimX)&&Number.isFinite(input.aimY)&&Math.hypot(input.aimX,input.aimY)>.1?Math.atan2(input.aimY,input.aimX):null;
   this.diveCool=Math.max(0,this.diveCool-dt);if(input.dive)this.diveFrom(input);if(this.dive)this.diving(dt);
@@ -137,6 +151,7 @@ export class Fight{
   if(z.vx||z.vy){const k=Math.exp((z.hp>0?-9:-7)*dt),mx=z.vx*dt,my=z.vy*dt;if(!this.blockedZ(z,z.x+mx,z.y))z.x+=mx;else z.vx*=-.2;if(!this.blockedZ(z,z.x,z.y+my))z.y+=my;else z.vy*=-.2;z.vx*=k;z.vy*=k;if(Math.hypot(z.vx,z.vy)<2)z.vx=z.vy=0;}
   if(z.hp<=0)return;
   if(z.delay>0&&!z.idle){if(this.alert)z.delay-=dt;if(z.delay>0)return;this.emit('groan',{z});}
+  if(z.kind==='crawler')return this.crawl(z,dt);
   z.cool=Math.max(0,z.cool-dt);if(z.stagger>0){z.stagger-=dt;z.frame=0;return;}
   if(z.idle){z.frame=0;return;}
   const dx=m.x-z.x,dy=m.y-z.y,d=Math.hypot(dx,dy)||1;
@@ -155,6 +170,14 @@ export class Fight{
   if(z.detour>0){z.detour-=dt;const s=z.side;[ax,ay]=[-ay*s*.9+ax*.1,ax*s*.9+ay*.1];}
   const moved=go?this.step(z,ax,ay,go):0;if(go&&!moved){z.stuck=(z.stuck||0)+dt;if(z.stuck>.35){z.stuck=0;z.side=z.side===1?-1:1;z.detour=.9;}}else z.stuck=0;
   if(moved){z.phase=(z.phase+moved/40)%1;z.frame=1+Math.floor(z.phase*8);}else{z.frame=0;z.phase=0;}}
+ // A crawler drags itself at you, round what is in the way, and reaches for your ankle.
+ crawl(z,dt){const m=this.model,C=CRAWLER;if(z.hatch>0){z.hatch-=dt;return;}z.cool=Math.max(0,z.cool-dt);if(z.stagger>0){z.stagger-=dt;return;}
+  const dx=m.x-z.x,dy=m.y-z.y,d=Math.hypot(dx,dy)||1;if(d>ROAM.lose||this.down){z.frame=0;return;}if(z.roam!==undefined)z.hunt=true;z.direction=facing(dx,dy);
+  z.groan-=dt;if(z.groan<=0){z.groan=3+this.rand()*3;if(d<ROAM.hear)this.emit('groan',{z});}
+  if(z.state==='windup'){z.t-=dt;z.tell=Math.max(0,z.t);if(z.t<=0){z.state='chase';z.cool=C.cool;z.tell=0;if(d<C.reach+10&&!this.air){this.hurt(C.damage,z,false);if(!this.down){this.grab=C.hold;this.emit('grab',{z});}}else this.emit('miss',{z});}return;}
+  if(d<C.reach+4&&!z.cool){z.state='windup';z.t=C.windup;z.tell=C.windup;this.emit('windup',{z});return;}
+  let ax=dx/d,ay=dy/d;if(d>28){z.seeT=(z.seeT||0)-dt;if(z.seeT<=0){z.seeT=.25;z.clear=clearLine(z.x,z.y,m.x,m.y);}if(!z.clear){const w=this.flow.way(z.x,z.y);if(w){ax=w.x;ay=w.y;}}}
+  const go=Math.min(Math.max(0,d-C.reach),C.speed*dt),moved=go?this.step(z,ax,ay,go):0;if(moved){z.phase=(z.phase+moved/14)%1;z.frame=Math.floor(z.phase*4);}}
  // Not seen you yet: stand a while, shuffle somewhere nearby, stand again. Bumping into something just ends the walk.
  wander(z,dt){z.wt-=dt;if(z.wt<=0){const S=ROAM.stroll;z.wx=z.sx+(this.rand()*2-1)*S.x;z.wy=z.sy+(this.rand()*2-1)*S.y;z.wt=4+this.rand()*5;}
   const dx=z.wx-z.x,dy=z.wy-z.y,d=Math.hypot(dx,dy);if(d<4){z.frame=0;z.phase=0;return;}

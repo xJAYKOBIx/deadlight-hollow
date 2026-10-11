@@ -7,7 +7,7 @@ export class StreetModel extends StudyModel{
  constructor(){super();this.reset();}
  reset(){Object.assign(this,{x:START.x,y:START.y,direction:START.direction,phase:0,frame:0,moving:false,running:false,slow:1});this.face?.(null,null);}
  blocked(x,y){const r=this.radius;if(x-r<WALK.left||x+r>WALK.right||y-r*.6<WALK.top||y+r*.4>WALK.bottom)return true;
-  if(this.zombies?.some(z=>{if(z.hp<=0||Math.abs(x-z.x)>40||Math.abs(y-z.y)>40||(z.delay>0&&!z.idle))return false;const d=Math.hypot(x-z.x,(y-z.y)*1.4);return d<r+4&&d<Math.hypot(this.x-z.x,(this.y-z.y)*1.4);}))return true;
+  if(this.zombies?.some(z=>{if(z.hp<=0||Math.abs(x-z.x)>40||Math.abs(y-z.y)>40||(z.delay>0&&!z.idle)||z.hatch>0)return false;const d=Math.hypot(x-z.x,(y-z.y)*1.4);return d<r+4&&d<Math.hypot(this.x-z.x,(this.y-z.y)*1.4);}))return true;
   return !!solidAt(x,y,r*.85);}
  // The closest thing within reach, preferring what you are facing. ok says which targets can be used right now.
  target(ok=()=>true){let best=null,score=Infinity;const a=this.direction*Math.PI/4,fx=Math.cos(a),fy=Math.sin(a);

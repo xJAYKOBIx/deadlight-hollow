@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-const {Fight,ZOMBIE,PLAYER_HP,ROAM,SLOW,DIVE,SHOVE}=await import('../dist/street/fight.js');const {StreetModel}=await import('../dist/street/model.js');
+const {Fight,ZOMBIE,PLAYER_HP,ROAM,SLOW,DIVE,SHOVE,GORE_KILL,CRAWLER}=await import('../dist/street/fight.js');const {StreetModel}=await import('../dist/street/model.js');
 const {normalizeHome,take,goal,useLines,loot,TRUNK}=await import('../dist/home/kit.js');const {count}=await import('../dist/home/bag.js');const {carrying}=await import('../dist/mc/assets/gear/bags.js');
 const {STREET,START,WAVES,COP,NOTICE,HEAR,PROPS,BLOCKS,HOUSES,OBJECTS,ROAMERS,solidAt,coverAt,COLS,ROWS}=await import('../dist/street/data.js');
 const grid=carrying({}),armed=(guns=['light-pistol','pump-shotgun'])=>guns.reduce((k,g)=>take(k,g,grid),{...normalizeHome(null),woke:true});
@@ -74,3 +74,12 @@ test('the dive: a burst along the way you move that costs stamina, dodges a bite
  m.stamina.value=2;run(f,m,DIVE.cool+.05);run(f,m,1/60,()=>({x:1,y:0,dive:true}));assert.equal(f.dive,null);});
 test('a killing shot throws the body back, and it slides to a stop',()=>{const {m,f}=setup(),z=f.zombies[0];Object.assign(m,{x:z.x-60,y:z.y});f.wake();z.hp=1;f.aimAngle=0;
  const x0=z.x;assert.ok(f.fire());run(f,m,1,()=>({}));assert.equal(z.hp,0);assert.ok(z.x>x0+20,'slid back: '+(z.x-x0));assert.equal(z.vx,0,'and stopped');});
+test('gore: a close shotgun kill cuts one in two and the top half crawls on, grabs your ankle and holds you until you dive free',()=>{const {box,m,f}=setup(),z=f.zombies[0];f.rand=()=>0;
+ Object.assign(m,{x:z.x-GORE_KILL.near+20,y:z.y});f.wake();f.hit(z,999,1,0);const e=f.drain().find(e=>e.type==='kill');assert.equal(e.gore,'half');const c=e.crawler;assert.ok(c&&c.kind==='crawler');
+ assert.equal(f.out(c),false,'the top half is still landing');assert.ok(f.live.includes(c),'it counts as one of the wave');run(f,m,CRAWLER.rise+.05);assert.ok(f.out(c));
+ const hp=f.hp;run(f,m,6);assert.ok(f.hp<=hp-CRAWLER.damage,'it grabbed you');assert.ok(f.grab>0||f.hp<hp);
+ Object.assign(c,{x:m.x+CRAWLER.reach,y:m.y,state:'windup',t:.01,cool:0});run(f,m,.05);assert.ok(f.grab>0);assert.equal(m.slow,CRAWLER.slow,'held nearly still');
+ m.stamina&&(m.stamina.value=100);f.update(1/60,{dive:true,x:-1,y:0});assert.equal(f.grab,0,'a dive tears you free');});
+test('gore: a pistol kill sometimes takes the head, and with gore reduced nothing comes apart',()=>{const k=armed();const {box,m,f}=setup({...k,held:'light-pistol'}),z=f.zombies[0];f.rand=()=>0;f.hit(z,999,1,0);
+ assert.equal(f.drain().find(e=>e.type==='kill').gore,'head');const g=setup(),z2=g.f.zombies[0];g.f.gore=false;g.f.rand=()=>0;Object.assign(g.m,{x:z2.x-30,y:z2.y});g.f.hit(z2,999,1,0);
+ const e=g.f.drain().find(e=>e.type==='kill');assert.equal(e.gore,null);assert.equal(e.crawler,null);});
