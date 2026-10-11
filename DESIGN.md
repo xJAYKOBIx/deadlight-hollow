@@ -523,6 +523,16 @@ Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack),
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
 
+## v0.55.0 — Turning all the way round
+
+Jaykobi (2026-10-11): animations should be 360 degrees; the body and face still snapped between eight facings while the gun turned at 64. Chose full 64 for the body and face.
+
+**64 angles for the body and head** (Master Creator `characters/turn.js`, `layers.js`). With something in your hands (a gun or the flashlight) the body and head layers now come at the same 64 angles as the arms and gun. The eight drawn facings are the anchors; the angles between are filled in by turning the nearest facing a little: each row is treated as a slice of a cylinder as wide as that row, the outline stays as drawn and everything inside (eyes, nose, collar, straps) slides round it. A held body does not change with the walk except to bob, so one turned frame per angle rides the bob; the sheets stay under phone texture limits (body 1792 × 1196, head 768 × 1116).
+
+**You face the stick's own angle.** Walking without aiming, you face the exact way the stick points rather than the nearest of eight, and you keep pointing where you were when you let go (`study/model.js`).
+
+**The house draws you in layers once you hold the flashlight**, as the street does, so your body, face and the light in your hands turn with the beam. Empty-handed (and on the couch) it is the walking sheet as before.
+
 ## v0.54.0 — Cutscenes with a camera
 
 Jaykobi (2026-10-11): the cutscenes felt low effort and strangely paced.

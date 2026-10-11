@@ -204,7 +204,7 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
  // You: the layers in the pose the model is in. A shot kicks your arms and head back along the shot for a moment, and the gun
  // cycles (the pistol's slide snaps back as it fires; the shotgun's pump is worked a moment later). A dive swaps the layers for
  // the dive's own frames: the leap, the slide along the ground and the rise.
- placeActor(){const p=pose(model),gun=armed(this.look),down=!!this.fight.down,K=this.kick,v=this.fight.dive,half=n=>Math.round(n*2)/2,f=this.fight;
+ placeActor(){const gun=armed(this.look),p=pose(model,gun),down=!!this.fight.down,K=this.kick,v=this.fight.dive,half=n=>Math.round(n*2)/2,f=this.fight;
   // Gone: what is left of him is one of the dead now (the fight's body), so you are not drawn at all.
   if(f.dead){this.diveImg.setVisible(false);for(const k of ORDER)this.parts[k].setVisible(false);return;}
   let kx=0,ky=0;if(K){const k=Math.max(0,1-K.t/K.dur);kx=-Math.cos(K.a)*K.n*k*k;ky=-Math.sin(K.a)*K.n*k*k*.6;}
@@ -214,7 +214,7 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   this.diveImg.setVisible(false);for(const k of ORDER)this.parts[k].setVisible(true);
   // Going over a fence, all of you is lifted by the hop.
   const lift=f.vault?f.vault.h||0:0;
-  for(const k of ORDER){const s=this.parts[k],ride=(k==='arms'||k==='head')&&!down,body=k==='body';s.setFrame(p[k]);
+  for(const k of ORDER){const s=this.parts[k],ride=p.rides.includes(k)&&!down,body=k==='body'&&!ride;s.setFrame(p[k]);
    s.setPosition(half(model.x+(ride?p.dx+kx:body?kx*.35:0)),half(model.y-lift+(ride?p.dy+ky:body?ky*.35:0)));s.setAlpha(down?.5:1);}
   const y=model.y;this.parts.legs.setDepth(y);this.parts.body.setDepth(y+.01);this.parts.arms.setDepth(y+.02).setVisible(gun);this.parts.head.setDepth(y+.03);}
  // A zombie's sprite while it is near the screen, taken from a pool and handed back when it is not, so a whole neighbourhood of the

@@ -46,8 +46,8 @@ export function makeStudyScene(model,bridge){return class CharacterRoom extends 
  setAppearance(look){const gear=this.practice.loadout;this.look={...look,...gear,paint:PAINT[gear.gun]};const ctx={};for(const k of ORDER)ctx[k]=this.layers[k].context;paintLayers(ctx,this.look);for(const k of ORDER)this.layers[k].refresh();}
  // The character creator's preview, stacked from the same layers you play with.
  portrait(c,direction,frame,x,y,scale){const ctx={};for(const k of ORDER)ctx[k]=this.layers[k].context;drawLayers(c,ctx,{direction,frame,legDir:direction,aim:direction*Math.PI/4},x,y,scale,armed(this.look));}
- placeActor(){const p=pose(model),gun=armed(this.look),down=!!this.practice.drill.downed;
-  for(const k of ORDER){const s=this.parts[k],ride=k==='arms'||k==='head';s.setFrame(p[k]);s.setPosition(model.x+(ride&&!down?p.dx:0),model.y+(ride&&!down?p.dy:0));}
+ placeActor(){const gun=armed(this.look),p=pose(model,gun),down=!!this.practice.drill.downed;
+  for(const k of ORDER){const s=this.parts[k],ride=p.rides.includes(k);s.setFrame(p[k]);s.setPosition(model.x+(ride&&!down?p.dx:0),model.y+(ride&&!down?p.dy:0));}
   // The gun sits between the coat and the head; arms and head ride the body's bob. Layer depths stay a hair apart at your feet.
   const y=model.y;this.parts.legs.setDepth(y);this.parts.body.setDepth(y+.01);this.parts.arms.setDepth(y+.02).setVisible(gun);this.parts.head.setDepth(y+.03);}
  // Paint that lands on cover is drawn into that prop's own canvas, so it sits on the right face and behind whatever is in front.

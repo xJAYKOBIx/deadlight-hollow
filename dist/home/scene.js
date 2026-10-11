@@ -7,7 +7,7 @@ import {iconArt,ICON,ICONS} from '../camp/art.js';
 import {PET_FRAME,PET_FRAME_COUNT,paintPetSheet} from '../companion/pet.js';
 import {drawHearts} from '../companion/sprite.js';
 import {HousePet} from '../companion/house.js';
-import {Wake,COUCH,CRASH} from './wake.js';import {CineCam} from '../study/camera.js';import {lightAt} from '../study/equipment.js';
+import {Wake,COUCH,CRASH} from './wake.js';import {LAYERS,ORDER,origin,sheetSize,paintLayers,pose,armed} from '../study/layers.js';import {CineCam} from '../study/camera.js';import {lightAt} from '../study/equipment.js';
 // The flashlight: how far its beam reaches, how wide it is, how fast it swings round to where you face, the pool round your feet,
 // and its warm white. DARK: how much of the moonlight and candle you see, before the flashlight and after (your eyes adjust).
 const TORCH={len:200,half:24*Math.PI/180,turn:12,pool:30,col:[255,244,220]},DARK={before:.6,after:.7};
@@ -85,7 +85,14 @@ export function makeHomeScene(model,bridge){return class Home extends Phaser.Sce
  skipWake(){this.wake?.skip();}
  // The flashlight is on: sirens, and the police car down the street (wake.js CRASH), where you stand.
  crash(){if(this.wake)return;const [dog,cat]=this.pets.map(p=>p.pet);this.wake=new Wake({dog,cat,you:model,beats:CRASH});}
- setPlayerLook(look){const t=this.textures.get('survivor-01'),c=t.context;c.clearRect(0,0,FRAME.w*8,FRAME.h*FRAME_COUNT);c.imageSmoothingEnabled=false;for(let f=0;f<FRAME_COUNT;f++)for(let d=0;d<8;d++){c.save();c.translate(d*FRAME.w,f*FRAME.h);c.scale(2,2);survivor(c,d,f,true,{...look,zombie:0,gun:bridge.held?.()||'none',grenade:null,light:!!bridge.kit?.()?.light});c.restore();}t.refresh();}
+ setPlayerLook(look){const t=this.textures.get('survivor-01'),c=t.context;c.clearRect(0,0,FRAME.w*8,FRAME.h*FRAME_COUNT);c.imageSmoothingEnabled=false;for(let f=0;f<FRAME_COUNT;f++)for(let d=0;d<8;d++){c.save();c.translate(d*FRAME.w,f*FRAME.h);c.scale(2,2);survivor(c,d,f,true,{...look,zombie:0,gun:bridge.held?.()||'none',grenade:null,light:!!bridge.kit?.()?.light});c.restore();}t.refresh();this.layered(look);}
+ // Holding something (the flashlight, then a gun) you are drawn in layers as on the street, so your body, face and the light in your
+ // hands turn with the beam at 64 angles; empty-handed, the walking sheet above. Painted once per thing held.
+ layered(look){const kit=bridge.kit?.(),L={...look,zombie:0,gun:bridge.held?.()||'none',grenade:null,light:!!kit?.light};if(!armed(L)){this.lay=null;return;}
+  const key=JSON.stringify(L),all=this.laySheets??={};let sh=all[key];
+  if(!sh){sh={};const n=Object.keys(all).length;for(const k of ORDER){const Y=LAYERS[k],t=this.textures.createCanvas(`hm-${n}-${k}`,...sheetSize(Y));for(let i=0;i<Y.count;i++)t.add(i,0,(i%Y.cols)*Y.w,Math.floor(i/Y.cols)*Y.h,Y.w,Y.h);sh[k]=t;}
+   const ctx={};for(const k of ORDER)ctx[k]=sh[k].context;paintLayers(ctx,L);for(const k of ORDER)sh[k].refresh();all[key]=sh;}
+  this.lay=sh;const P=this.parts??={};for(const k of ORDER){if(!P[k])P[k]=this.add.image(model.x,model.y,sh[k].key,0).setOrigin(...origin(LAYERS[k])).setScale(.5).setVisible(false);else P[k].setTexture(sh[k].key,0);}}
  setPetLook(){}
  // Never show past the yard: on a wide screen the camera zooms in until the house and yard fill it.
  zoom(){const s=this.scale;return Math.max(bridge.zoom(),s.width/HOME.w,s.height/HOME.h);}
@@ -98,6 +105,9 @@ export function makeHomeScene(model,bridge){return class Home extends Phaser.Sce
   else if(!paused)model.update(dt,bridge.input());bridge.step?.(dt);
   this.actor.setPosition(model.x,model.y).setDepth(model.y).setFrame(model.direction+model.frame*8);
   if(w?.onCouch){this.actor.setDepth(COUCH.depth).setCrop(0,0,FRAME.w,Math.max(0,(COUCH.cut-(w.y-FRAME.footY))*2));}else if(this.actor.isCropped)this.actor.setCrop();
+  // In layers: the parts in your pose, the body, face and hands turned to where the light points.
+  const lay=!!this.lay&&!w?.onCouch;this.actor.setVisible(!lay);for(const k of ORDER)this.parts?.[k]?.setVisible(lay);
+  if(lay){const p=pose({...model,aim:this.beamA??model.direction*Math.PI/4},true);ORDER.forEach((k,i)=>{const r=p.rides.includes(k);this.parts[k].setFrame(p[k]).setPosition(model.x+(r?p.dx:0),model.y+(r?p.dy:0)).setDepth(model.y+i*.01);});}
   this.fade.setVisible(!!w&&w.fade>0).setAlpha(w?.fade||0);
   // Asleep: three small z's drift up off the couch.
   const z=this.zzz;z.clear();if(w?.zzz)for(let k=0;k<3;k++){const a=((now/1400)+k/3)%1,x=w.x+8+a*12+Math.sin(a*6)*2,y=162-a*26,s=2+a*2;z.fillStyle(0xe8e0d1,.9*(1-a));z.fillRect(x,y,s*2,.5);z.fillRect(x,y+s*2-.5,s*2,.5);for(let i=0;i<4;i++)z.fillRect(x+s*2-(i+1)*s/2,y+i*s/2,.5+s/4,.5);}
@@ -112,7 +122,7 @@ export function makeHomeScene(model,bridge){return class Home extends Phaser.Sce
   // The light bar: during the pass it runs along the front of the house; parked, it turns at the east end of the street.
   const kit=bridge.kit?.(),pm=w?w.police:kit?.light?'parked':null;
   // The flashlight swings round to where you face, and goes where you go.
-  if(kit?.light){const want=model.direction*Math.PI/4;if(this.beamA===null)this.beamA=want;let d=want-this.beamA;d=Math.atan2(Math.sin(d),Math.cos(d));this.beamA+=d*Math.min(1,dt*TORCH.turn);}else this.beamA=null;
+  if(kit?.light){const want=w?model.direction*Math.PI/4:model.aim??model.direction*Math.PI/4;if(this.beamA===null)this.beamA=want;let d=want-this.beamA;d=Math.atan2(Math.sin(d),Math.cos(d));this.beamA+=d*Math.min(1,dt*TORCH.turn);}else this.beamA=null;
   this.paintLight(kit?.light&&!w?.onCouch?{x:model.x,y:model.y,a:this.beamA,held:bridge.held?.()||'flashlight',direction:model.direction}:null);
   if(pm!==this.pm){this.pm=pm;this.passT=0;}if(!paused)this.passT+=dt;
   this.police.forEach((img,i)=>{if(!pm){img.setVisible(false);return;}const on=Math.floor(now/(pm==='pass'?90:260))%2===i;
