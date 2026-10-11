@@ -4,7 +4,7 @@
 // are well past, and each prop is painted while any chunk its picture touches is held. The fight is street/fight.js; this draws it.
 import {bake,unbake,worthBaking} from '../study/memory.js';import {drawLaser} from '../study/aimstick.js';import {muzzle} from '../study/equipment.js';
 import {survivor,FRAME} from '../study/character.js';
-import {LAYERS,ORDER,origin,sheetSize,paintLayers,pose,armed} from '../study/layers.js';
+import {LAYERS,ORDER,origin,sheetSize,paintLayers,paintRacked,paintDive,DIVE as DIVE_ART,pose,armed} from '../study/layers.js';
 import {DEFAULT_APPEARANCE,UNIFORMS} from '../study/appearance.js';
 import {Juice} from '../study/juice.js';
 import {iconArt,ICON,ICONS} from '../camp/art.js';
@@ -41,6 +41,8 @@ export const STEP=1/60,MAX_STEPS=4;
 // and the view jolts away from the shot, and how many casings stay on the ground.
 export const KICK={'light-pistol':{light:.06,glow:3,arms:2,cam:2.4,flash:7},'pump-shotgun':{light:.09,glow:4.6,arms:4,cam:6,flash:12}};
 export const BRASS={keep:60,pump:.38};
+// How the dead take a hit: a flinch for a moment, and a topple onto the ground (the hips drop this far as they go over).
+export const TOPPLE={time:.32,hips:26.4,flinch:.14};
 const step6=f=>Math.min(1,Math.round(f*6)/6);
 function beamArt(c){const w=c.canvas.width,h=c.canvas.height,img=c.createImageData(w,h),d=img.data,L=BEAM.len/LIGHT_SCALE,[R,G,B]=BEAM.col;
  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const dx=x+.5,dy=y+.5-h/2,r=Math.hypot(dx,dy),a=Math.abs(Math.atan2(dy,dx)),i=(y*w+x)*4;if(r>=L||a>=BEAM.half)continue;
@@ -126,22 +128,29 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
  // Your layers, painted once for each gun you hold, so swapping does not repaint.
  setPlayerLook(look){const gun=bridge.held?.()||'none',key=JSON.stringify(look)+gun;this.look={...look,zombie:0,gun,grenade:null};
   if(!this.gunSheets[key]){const sheets={};for(const k of ORDER){const L=LAYERS[k],t=this.textures.createCanvas(`st-${Object.keys(this.gunSheets).length}-${k}`,...sheetSize(L));for(let i=0;i<L.count;i++)t.add(i,0,(i%L.cols)*L.w,Math.floor(i/L.cols)*L.h,L.w,L.h);sheets[k]=t;}
-   const ctx={};for(const k of ORDER)ctx[k]=sheets[k].context;paintLayers(ctx,this.look);for(const k of ORDER)sheets[k].refresh();this.gunSheets[key]=sheets;}
-  const sheets=this.gunSheets[key];for(const k of ORDER){const L=LAYERS[k];if(!this.parts[k])this.parts[k]=this.add.image(model.x,model.y,sheets[k].key,0).setOrigin(...origin(L)).setScale(.5);else this.parts[k].setTexture(sheets[k].key,0);}}
+   const ctx={};for(const k of ORDER)ctx[k]=sheets[k].context;paintLayers(ctx,this.look);for(const k of ORDER)sheets[k].refresh();
+   // The gun mid-action (the arms layer with the slide or pump back) and the dive, both from the same layers.
+   const n=Object.keys(this.gunSheets).length,A=LAYERS.arms,rk=this.textures.createCanvas(`st-${n}-racked`,...sheetSize(A));for(let i=0;i<A.count;i++)rk.add(i,0,(i%A.cols)*A.w,Math.floor(i/A.cols)*A.h,A.w,A.h);paintRacked(rk.context,this.look);rk.refresh();sheets.racked=rk;
+   const D=DIVE_ART,dv=this.textures.createCanvas(`st-${n}-dive`,...sheetSize(D));for(let i=0;i<D.count;i++)dv.add(i,0,(i%D.cols)*D.w,Math.floor(i/D.cols)*D.h,D.w,D.h);paintDive(dv.context,ctx,this.look);dv.refresh();sheets.dive=dv;
+   this.gunSheets[key]=sheets;}
+  const sheets=this.gunSheets[key];this.sheets=sheets;this.racked=false;for(const k of ORDER){const L=LAYERS[k];if(!this.parts[k])this.parts[k]=this.add.image(model.x,model.y,sheets[k].key,0).setOrigin(...origin(L)).setScale(.5);else this.parts[k].setTexture(sheets[k].key,0);}
+  if(!this.diveImg)this.diveImg=this.add.image(0,0,sheets.dive.key,0).setOrigin(DIVE_ART.x/DIVE_ART.w,DIVE_ART.y/DIVE_ART.h).setScale(.5).setVisible(false);else this.diveImg.setTexture(sheets.dive.key,0);}
  zoom(){const s=this.scale;return Math.max(bridge.zoom(),s.width/MAP.w,s.height/MAP.h);}
- // You: the layers in the pose the model is in. A shot kicks your arms and head back along the shot for a moment; a dive tips you
- // over the way you went (onto your side, a little flatter going up or down the screen) and back up as you rise.
- placeActor(){const p=pose(model),gun=armed(this.look),down=!!this.fight.down,K=this.kick,v=this.fight.dive,half=n=>Math.round(n*2)/2;
+ // You: the layers in the pose the model is in. A shot kicks your arms and head back along the shot for a moment, and the gun
+ // cycles (the pistol's slide snaps back as it fires; the shotgun's pump is worked a moment later). A dive swaps the layers for
+ // the dive's own frames: the leap, the slide along the ground and the rise.
+ placeActor(){const p=pose(model),gun=armed(this.look),down=!!this.fight.down,K=this.kick,v=this.fight.dive,half=n=>Math.round(n*2)/2,f=this.fight;
   let kx=0,ky=0;if(K){const k=Math.max(0,1-K.t/K.dur);kx=-Math.cos(K.a)*K.n*k*k;ky=-Math.sin(K.a)*K.n*k*k*.6;}
-  let lean=0,flat=1,hop=0;if(v){const T=DIVE.time,k=v.t<T?Math.min(1,v.t/.07):Math.max(0,1-(v.t-T)/DIVE.rise),side=Math.abs(v.dx)>.4?Math.sign(v.dx):0;
-   lean=(side||(v.dy>0?-1:1))*(side?80:65)*k;flat=side?1:1-.2*k;hop=v.t<T*.55?Math.sin(v.t/(T*.55)*Math.PI)*6:0;}
-  for(const k of ORDER){const s=this.parts[k],ride=(k==='arms'||k==='head')&&!down&&!v,body=k==='body'&&!v;s.setFrame(p[k]);
-   s.setPosition(half(model.x+(ride?p.dx+kx:body?kx*.35:0)),half(model.y-hop+(ride?p.dy+ky:body?ky*.35:0)));s.setAlpha(down?.5:1);
-   if(v||this.leaned)s.setAngle(lean).setScale(.5,.5*flat);}this.leaned=!!v;
+  const t=f.sinceShot,rk=gun&&!v&&(f.gunId==='pump-shotgun'?t>.22&&t<.5:t<.06);if(rk!==this.racked){this.racked=rk;this.parts.arms.setTexture((rk?this.sheets.racked:this.sheets.arms).key,p.arms);}
+  if(v){const T=DIVE.time,ph=v.t<.1?0:v.t<T?1:2,hop=v.t<T*.55?Math.sin(v.t/(T*.55)*Math.PI)*5:0,d=(Math.round(Math.atan2(v.dy,v.dx)/(Math.PI/4))+8)%8;
+   this.diveImg.setVisible(true).setFrame(d+ph*8).setPosition(half(model.x),half(model.y-hop)).setDepth(model.y+.02).setAlpha(down?.5:1);for(const k of ORDER)this.parts[k].setVisible(false);return;}
+  this.diveImg.setVisible(false);for(const k of ORDER)this.parts[k].setVisible(true);
+  for(const k of ORDER){const s=this.parts[k],ride=(k==='arms'||k==='head')&&!down,body=k==='body';s.setFrame(p[k]);
+   s.setPosition(half(model.x+(ride?p.dx+kx:body?kx*.35:0)),half(model.y+(ride?p.dy+ky:body?ky*.35:0)));s.setAlpha(down?.5:1);}
   const y=model.y;this.parts.legs.setDepth(y);this.parts.body.setDepth(y+.01);this.parts.arms.setDepth(y+.02).setVisible(gun);this.parts.head.setDepth(y+.03);}
  // A zombie's sprite while it is near the screen, taken from a pool and handed back when it is not, so a whole neighbourhood of the
  // dead only ever needs as many as you can see.
- sprite(z){let s=this.zs.get(z);if(!s){s=this.pool.pop()||this.add.image(0,0,'street-z-cop',0).setScale(.5);s.setTexture('street-z-'+(SHEET_OF[z.look]||z.look),0).setOrigin((FRAME.w/2-ZF.x)/ZF.w,(FRAME.footY*2-ZF.y)/ZF.h).setAngle(0).clearTint().setAlpha(1).setVisible(true);s.laid=false;s.white=false;this.zs.set(z,s);}return s;}
+ sprite(z){let s=this.zs.get(z);if(!s){s=this.pool.pop()||this.add.image(0,0,'street-z-cop',0).setScale(.5);s.setTexture('street-z-'+(SHEET_OF[z.look]||z.look),0).setOrigin((FRAME.w/2-ZF.x)/ZF.w,(FRAME.footY*2-ZF.y)/ZF.h).setAngle(0).clearTint().setAlpha(1).setVisible(true);s.laid=false;s.white=false;s.grey=false;this.zs.set(z,s);}return s;}
  free(z){const s=this.zs.get(z);if(!s)return;s.setVisible(false);this.pool.push(s);this.zs.delete(z);}
  splat(x,y,n,seed){this.blood.push({x,y,n,seed});if(this.blood.length>160)this.blood.shift();const g=this.bloodG;g.clear();
   for(const b of this.blood)for(let i=0;i<b.n;i++){const a=((b.seed*(i*37+11))%97)/97*Math.PI*2,r=((b.seed*(i*53+7))%89)/89*b.n*1.6,s=1+((b.seed+i)%3)*.5;g.fillStyle(i%3?0x4a0c0c:0x6a1412,.9).fillRect(Math.round((b.x+Math.cos(a)*r)*2)/2,Math.round((b.y+Math.sin(a)*r*.6)*2)/2,s,s*.6);}}
@@ -157,7 +166,7 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   // A hit: blood thrown out the far side along the shot, and a splash on the ground beyond. A kill throws more, holds the game for
   // an instant, and leaves a pool where the body comes to rest.
   else if(e.type==='hit'||e.type==='kill'){const a=Math.atan2(e.dy,e.dx),kill=e.type==='kill';j.bits(kill?18:8,z.x,z.y,{dir:a,spread:kill?.9:.7,speed:kill?150:105,lift:45,z:28,col:0x8a1a16,life:.55,kind:'drop'});
-   j.bits(kill?6:3,z.x,z.y,{dir:a,spread:.5,speed:60,lift:20,z:30,col:0x5a0e0c,life:.35,kind:'mist'});this.splat(z.x+e.dx*16,z.y+e.dy*10,kill?7:3,(this.blood.length*31+7)|0);
+   j.bits(kill?6:3,z.x,z.y,{dir:a,spread:.5,speed:60,lift:20,z:30,col:0x5a0e0c,life:.35,kind:'mist'});if(!kill){z.flinch=TOPPLE.flinch;z.flinchX=e.dx;}this.splat(z.x+e.dx*16,z.y+e.dy*10,kill?7:3,(this.blood.length*31+7)|0);
    if(kill){j.hold(now,.05);j.shake('down');this.splat(z.x+e.dx*30,z.y+e.dy*18,5,(this.blood.length*13+5)|0);z._pool=true;}}
   else if(e.type==='land'){j.puff(e.x,e.y-2,.9,0x6a6458,.6,-4);j.bits(5,e.x,e.y,{dir:Math.atan2(e.dy,e.dx),spread:1.6,speed:50,lift:30,z:0,col:0x6a6458,life:.4,kind:'debris'});}
   else if(e.type==='hurt')j.shake('hurt');
@@ -186,15 +195,21 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   while(this.pumps.length&&now>=this.pumps[0]){this.pumps.shift();this.eject(this.shotA??0,true);}
   if(this.kick&&(this.kick.t+=dt)>this.kick.dur)this.kick=null;const jk=Math.exp(-dt*16);this.jolt.x*=jk;this.jolt.y*=jk;
   this.brassStep(dt);
+  // Dust kicked up along the ground as you slide.
+  const dv=f.dive;if(dv&&dv.t>.1&&dv.t<DIVE.time){this.dustT=(this.dustT||0)-dt;if(this.dustT<=0){this.dustT=.05;this.juice.puff(model.x-dv.dx*6,model.y-1,.45,0x6a6458,.45,-3);}}
   this.placeActor();this.stream();this.light();
   // The dead near the screen: walking, winding up, or lying where they fell.
   const V=grow(this.view(),120);for(const z of this.zs.keys())if(!f.zombies.includes(z))this.free(z);
   for(const z of f.zombies){if(z.delay>0&&!z.idle||z.x<V.x||z.x>V.x+V.w||z.y<V.y||z.y>V.y+V.h+100){this.free(z);continue;}const s=this.sprite(z);
-   // Hit: a white flash for a few frames. Down: laid on its side, and still sliding from the shot that dropped it.
-   const white=z.flash>0;if(white!==!!s.white){s.white=white;if(white)s.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);else if(s.laid)s.clearTint().setTint(0x9a8a8a);else s.clearTint();}
-   if(z.hp<=0){if(!s.laid){s.laid=true;s.setFrame(z.direction).setAngle(90*z.fall).setOrigin(.5,.62);if(!white)s.setTint(0x9a8a8a);}s.setPosition(Math.round(z.x*2)/2,Math.round((z.y-6)*2)/2).setDepth(z.y-10);
-    if(z._pool&&!z.vx&&!z.vy){z._pool=false;this.splat(z.x,z.y+2,9,(this.blood.length*17+3)|0);}continue;}
-   s.setPosition(z.x,z.y).setDepth(z.y).setFrame(z.direction+z.frame*8);}
+   // Hit: a white flash for a few frames, and a flinch back away from the shot. Down: it topples over (pivoting at the hips as
+   // they drop), still sliding from the shot that dropped it, and greys once it lands.
+   const white=z.flash>0,half=n=>Math.round(n*2)/2;if(white!==!!s.white){s.white=white;if(white)s.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);else if(s.grey)s.clearTint().setTint(0x9a8a8a);else s.clearTint();}
+   if(z.hp<=0){if(!s.laid){s.laid=true;s.setFrame(z.direction).setOrigin(.5,.62);}z.fallT=Math.min(1,(z.fallT||0)+dt/TOPPLE.time);const k=z.fallT*z.fallT;
+    s.setAngle(90*z.fall*k).setPosition(half(z.x),half(z.y-TOPPLE.hips+(TOPPLE.hips-6)*k)).setDepth(z.y-10*k);
+    if(k>=1&&!s.grey){s.grey=true;if(!white)s.setTint(0x9a8a8a);if(!z.thud){z.thud=true;this.juice.puff(z.x+z.fall*14,z.y-2,.6,0x6a6458,.5,-4);}}
+    if(z._pool&&!z.vx&&!z.vy&&k>=1){z._pool=false;this.splat(z.x,z.y+2,9,(this.blood.length*17+3)|0);}continue;}
+   const fl=z.flinch>0?z.flinch/TOPPLE.flinch:0;if(fl)z.flinch-=dt;s.setAngle(fl?Math.sign(z.flinchX||1)*7*fl:0);
+   s.setPosition(half(z.x+(z.flinchX||0)*1.5*fl),z.y).setDepth(z.y).setFrame(z.direction+z.frame*8);}
   // The light bar turns; the cruiser's own lamps swap with it.
   const on=Math.floor(now/260)%2,tex=`street-cruiser-${on+1}-${this.trunk?1:0}`,cr=this.held.get(CRUISER_I)?.img;if(cr&&cr.texture.key!==tex)cr.setTexture(tex);
   // Houses, trees and sheds you walk behind go see-through, so you never lose yourself or what is chasing you.

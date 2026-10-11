@@ -523,6 +523,18 @@ Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack),
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
 
+## v0.41.0 — Combat polish
+
+From Jaykobi (2026-10-11): polish things like the dive animation; the right stick should only shoot when pushed all the way, with a setting so each player can choose.
+
+**Fire at a full push.** The touch fire stick now shoots only when pushed all the way to the edge of its ring (`AIM.fireAt` 1, was 0.85). The menu has a "Stick fires at" slider (touch only), 50% to 100% in steps of 5, kept on the device (`deadlight-fire-at-v1`); a controller can change it with left and right while it is focused.
+
+**Drawn dive frames.** The dive no longer tips the standing sprite over: it has its own frames, built in the Master Creator from the survivor's layers so every look and gun gets them (`paintDive`, `DIVE` in `assets/characters/layers.js`; a "Survivor dive" entry in the library). Three phases for each of eight directions: the leap (tipping forward mid-stride), the slide (flat out along the ground, going over onto your side left and right, lying along the line up and down the screen, foreshortened) and the rise (pushing back up), each with a shadow on the ground. Dust kicks up along the slide.
+
+**Guns that cycle.** The pistol's slide snaps back over a brass case for a moment as it fires, and the shotgun's pump is pulled back (with the hand on it) a moment after each shot, in time with the pump sound and the hull coming out. New Master Creator art: guns take an `act` (0 at rest, 1 racked), and `paintRacked` draws the arms layer racked at all 64 angles. Existing art is unchanged (parity checked).
+
+**Hits and deaths.** A hit zombie flinches back away from the shot for a moment as well as flashing white. A killed one topples over, pivoting at the hips as they drop to the ground, then greys, puffs dust where it lands, and leaves its pool where it stops sliding.
+
 ## v0.40.0 — Combat feel, first pass
 
 From Jaykobi (2026-10-10): the fight "just works, but it doesn't feel like a solid twin stick shooter. We gotta get that down here in the tutorial." The numbers live at the top of `dist/street/fight.js` and `dist/street/scene.js` so they can be tuned by feel.

@@ -12,3 +12,6 @@ test('the pull: a zombie on the line takes the aim, one outside the cone or out 
  assert.equal(assist(0,[{x:100,y:Math.tan(20*deg)*100}]),0);assert.equal(assist(0,[{x:400,y:0.1}]),0);
  const s=new AimStick();s.down(0);s.set(40,0,40);const r=run(s,.5,[{x:150,y:Math.tan(3*deg)*150}]);assert.ok(r.a>1.5*deg&&r.a<3.1*deg,String(r.a/deg));assert.equal(r.fire,true);});
 test('letting go stops aiming',()=>{const s=new AimStick();s.down(0);s.set(40,0,40);s.up();const r=s.step(1/60,[]);assert.equal(r.a,null);assert.equal(r.fire,false);});
+test('the fire stick shoots only at a full push by default, and as early as the menu says otherwise',()=>{assert.equal(AIM.fireAt,1);
+ const s=new AimStick();s.down(0);s.set(36,0,40);assert.equal(run(s,.3).fire,false,'nine tenths of the way is not enough');s.set(40,0,40);assert.equal(run(s,.1).fire,true);
+ const e=new AimStick({...AIM,fireAt:.5});e.down(0);e.set(22,0,40);assert.equal(run(e,.1).fire,true,'set to half, half a push fires');});

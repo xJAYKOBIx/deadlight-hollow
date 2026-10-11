@@ -374,6 +374,9 @@ dialog .icon:hover,dialog .icon:focus-visible{border-color:var(--ember-hi);color
 .pause-grid button::before{content:'';flex:none;width:22px;height:22px;background:currentColor;opacity:.85;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
 .pause-grid button:not(.primary):hover,.pause-grid button:not(.primary):focus-visible{background:linear-gradient(#352e27,#231e1a);border-color:var(--ember);box-shadow:inset 3px 0 0 var(--ember),inset 0 1px 0 #ffffff10,0 2px 0 #0009;outline:none}
 .pause-grid button:active{transform:translateY(1px);box-shadow:inset 0 1px 0 #ffffff08}
+/* A setting with a slider: how far the touch fire stick has to be pushed before it shoots. */
+.pause-grid .setting{display:flex;align-items:center;gap:12px;min-height:52px;padding:0 14px 0 12px;font:700 15px/1.1 var(--ui);letter-spacing:.08em;text-transform:uppercase;background:linear-gradient(#2a2621,#1d1a17);border:1px solid var(--plate-edge);border-radius:3px;box-shadow:inset 0 1px 0 #ffffff10,0 2px 0 #0009}
+.pause-grid .setting span{flex:none}.pause-grid .setting input{flex:1;min-width:0;accent-color:var(--ember)}.pause-grid .setting output{flex:none;min-width:3.2em;text-align:right;font-variant-numeric:tabular-nums;color:var(--ember-hi)}
 .pause-grid .primary{justify-content:center;font-size:17px;letter-spacing:.14em;background:linear-gradient(#f08a45,#c9581d);color:var(--ember-ink);border:0;clip-path:var(--notch);box-shadow:none;text-shadow:0 1px 0 #ffffff40}
 .pause-grid .primary:hover,.pause-grid .primary:focus-visible{background:linear-gradient(#ffa060,#dd6f2c);outline:none}
 .pause-grid .primary kbd{margin-left:0}
