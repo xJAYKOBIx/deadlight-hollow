@@ -7,9 +7,10 @@ import {STREET,TOWN,BLOCKS,ROADS,CROSSES,CROSS,FRONT,WALL_T,SIDEWALK_N,BACK,BLOC
 export {propArt,PROP_PAD} from '../mc/assets/props/street.js';
 const cut=(a,R)=>{const x=Math.max(a.x,R.x),y=Math.max(a.y,R.y),x1=Math.min(a.x+a.w,R.x+R.w),y1=Math.min(a.y+a.h,R.y+R.h);return x1>x&&y1>y?{x,y,w:x1-x,h:y1-y}:null;};
 const SIDE={top:TOWN.y,bottom:ROADS[ROADS.length-1].ss+20};
-// One chunk of ground, R in world units, painted onto a canvas twice R's size. Every pattern is tied to world position, so chunks
+// One chunk of ground, R in world units, painted onto a canvas twice R's size. wreck false leaves off the skid marks and glass (the
+// intro paints those as the cruiser makes them). Every pattern is tied to world position, so chunks
 // painted separately meet without a seam. S, a strip of R, paints only that part, so a chunk can be painted over a few frames.
-export function groundArt(c,R,S=R){c.save();c.scale(2,2);c.translate(-R.x,-R.y);if(S!==R){c.beginPath();c.rect(S.x,S.y,S.w,S.h);c.clip();}R=S;const g=painter(c),{r,l}=g,W=STREET.w,H=STREET.h;
+export function groundArt(c,R,S=R,wreck=true){c.save();c.scale(2,2);c.translate(-R.x,-R.y);if(S!==R){c.beginPath();c.rect(S.x,S.y,S.w,S.h);c.clip();}R=S;const g=painter(c),{r,l}=g,W=STREET.w,H=STREET.h;
  const F=(kind,a)=>{const q=cut(a,R);if(q)floorArt(g,{kind,...q});},Q=(x,y,w,h,col)=>{if(cut({x,y,w,h},R))r(x,y,w,h,col);};
  // A worn patch: dirt in a rough oval, a half-unit row at a time, its edge broken up so it fades into the grass.
  const worn=(x,y,w,h)=>{if(!cut({x,y,w,h},R))return;const cx=x+w/2,cy=y+h/2;for(let yy=y;yy<y+h;yy+=.5){const k=1-((yy+.25-cy)/(h/2))**2;if(k<=0)continue;const half=w/2*Math.sqrt(k),j=(hash(yy*2|0,x|0)-.5)*6;F('dirt',{x:Math.round((cx-half+j)*2)/2,y:yy,w:Math.max(0,Math.round((half*2-j*1.5)*2)/2),h:.5});}};
@@ -34,7 +35,7 @@ export function groundArt(c,R,S=R){c.save();c.scale(2,2);c.translate(-R.x,-R.y);
  for(const rd of ROADS){const cy=rd.y+rd.h/2;if(cut({x:0,y:cy-1,w:W,h:2},R))for(let x=Math.floor((R.x-10)/48)*48+10;x<R.x+R.w;x+=48)if(!inCross(x))r(x,cy-1,24,1.5,'#8a7f4a');}
  for(const cr of CROSSES){const cx=cr.x+CROSS/2;if(cut({x:cx-1,y:0,w:2,h:H},R))for(let y=Math.floor((R.y-10)/48)*48+10;y<R.y+R.h;y+=48)if(!inRoad(y))r(cx-.75,y,1.5,24,'#8a7f4a');}
  // The cruiser's skid marks: two dark arcs from the middle of the road up onto the curb, and glass on the sidewalk by the pole.
- if(cut({x:HOME.x+740,y:HOME.y+220,w:760,h:150},R)){for(const off of [0,15]){let px=HOME.x+760,py=HOME.y+346-off*.4;for(let i=1;i<=60;i++){const k=i/60,x=HOME.x+760+k*560,y=HOME.y+346-off*.4-k*k*(96-off*.6),a=Math.min(.55,.15+k*.6);l(px,py,x,y,2.5,`rgba(8,8,10,${a})`);px=x;py=y;}}
+ if(wreck&&cut({x:HOME.x+740,y:HOME.y+220,w:760,h:150},R)){for(const off of [0,15]){let px=HOME.x+760,py=HOME.y+346-off*.4;for(let i=1;i<=60;i++){const k=i/60,x=HOME.x+760+k*560,y=HOME.y+346-off*.4-k*k*(96-off*.6),a=Math.min(.55,.15+k*.6);l(px,py,x,y,2.5,`rgba(8,8,10,${a})`);px=x;py=y;}}
   for(let i=0;i<40;i++){const x=HOME.x+1430+hash(i,5)*50,y=HOME.y+232+hash(7,i)*36;r(x,y,hash(i,9)>.5?1:.5,.5,i%3?'#a9c0cc':'#e2eef4');}}
  c.restore();}
 // Night with the power out: the moon in patches, a candle in a window here and there and one headlight still on. One chunk at a time,

@@ -1,4 +1,4 @@
-// The intro's timeline, steps 1 and 2: the set wakes and lands on the Marrow ad, the viewer flips to MRN's archive of the live trial,
+// The intro's timeline, steps 1 and 2: the set wakes and lands on the Marrow ad, the viewer flips to MTNN's archive of the live trial,
 // then to Channel 6's report on the queues, which the breaking news cuts into. The studio goes live to St. Agnes and the feed breaks up
 // into NO SIGNAL. Each segment draws its own picture at its local time; the set's effects (flips, breakup, the channel number) are laid
 // over the top. Everything is a function of t, so the clip plays the same every time and ?t= shows any frame.
@@ -8,16 +8,16 @@ import {PW,PH,studio,fire,wall,anchor,desk,field} from './news.js';
 import {logo,osd,breakup,flip,noSignal} from './tv.js';
 import {ad,AD} from './ad.js';import {trial,TRIAL} from './trial.js';import {montage,MONTAGE} from './montage.js';
 // Segments in order. A flip (the viewer changing channel) runs FLIP seconds before a segment starts; the news follows the sting directly.
-const FLIP=.1,NEWS_DUR=8.6;
-export const SEGMENTS=(()=>{const list=[['ad',AD.dur,2,'',true],['trial',TRIAL.dur,9,'MRN',true],['montage',MONTAGE.dur,6,'CH6 NEWS',true],['news',NEWS_DUR,6,'',false]];let t=2.95;
+const FLIP=.1,NEWS_DUR=13;
+export const SEGMENTS=(()=>{const list=[['ad',AD.dur,2,'',true],['trial',TRIAL.dur,9,'MTNN',true],['montage',MONTAGE.dur,6,'CH6 NEWS',true],['news',NEWS_DUR,6,'',false]];let t=2.95;
  return list.map(([id,dur,ch,name,flips])=>{if(flips&&id!=='ad')t+=FLIP;const seg={id,start:t,dur,ch,name,flips};t+=dur;return seg;});})();
 const seg=id=>SEGMENTS.find(s=>s.id===id),NEWS_AT=seg('news').start,LIVE_AT=NEWS_AT+NEWS_DUR;
 export const T={click:.45,back:.5,logoIn:.8,logoOut:2.4,flip:2.85,first:2.95,news:NEWS_AT,live:LIVE_AT,crack:LIVE_AT+.4,lost:LIVE_AT+.95,end:LIVE_AT+3.45};
 // Channel 6: captions roll up two lines at a time; speech spans drive the mouth and the voice.
 export const NEWS={
- captions:[[.5,'...PATIENTS FROM THE FIRST WEEKS'],[1.3,'OF THE LZ-6 PROGRAM, ADMITTED'],[2.1,'THIS MORNING WITH A SUDDEN FEVER,'],[2.9,'DIED TONIGHT. AND THEY HAVE...'],[3.9,'...GOTTEN BACK UP.'],
-  [5.3,"WE'RE NOW HEARING REPORTS OF"],[6.1,'ATTACKS. OF BITES.'],[7.2,"WE'RE GOING LIVE TO ALEX PARK"],[7.9,'AT ST. AGNES.']],
- speech:[[.5,4.5],[5.3,6.8],[7.2,8.4]],worry:3.9,ear:[4.6,5.3],turn:8.1,swap:6.3,live:7.2,
+ captions:[[.6,'...PATIENTS FROM THE FIRST WEEKS'],[1.8,'OF THE LZ-6 PROGRAM, ADMITTED'],[3,'THIS MORNING WITH A SUDDEN FEVER,'],[4.2,'DIED TONIGHT. AND THEY HAVE...'],[5.8,'...GOTTEN BACK UP.'],
+  [7.8,"WE'RE NOW HEARING REPORTS OF"],[9,'ATTACKS. OF BITES.'],[10.6,"WE'RE GOING LIVE TO ALEX PARK"],[11.6,'AT ST. AGNES.']],
+ speech:[[.6,5.2],[7.8,9.8],[10.6,12.2]],worry:5.8,ear:[6.5,7.6],turn:12.2,swap:9.3,live:10.6,
  headlines:['THE SAVED: MIRACLE OR WARNING?','ATTACKS REPORTED AT 3 HOSPITALS'],
  ticker:'HOSPITALS REPORT LZ-6 PATIENTS LEAVING WARDS · POLICE URGE CALM · DO NOT APPROACH THE SAVED · CLINICS CLOSED UNTIL FURTHER NOTICE · '};
 export const SYLLABLES=(()=>{const r=rng(11),out=[];for(const [a,b] of NEWS.speech){let t=a;while(t<b-.06){const words=1+(r()*3|0);for(let i=0;i<words&&t<b-.06;i++){const d=.07+r()*.08;out.push([t,d,.3+r()*.7]);t+=d+.015;}t+=.04+r()*.06;}}return out;})();

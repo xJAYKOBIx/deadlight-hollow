@@ -3,8 +3,8 @@
 import {R,hash,clamp,ease,canvas} from './kit.js';
 import {text,width} from './font.js';
 import {captions} from './overlay.js';
-export const AD={dur:6,shots:[2.3,3.9],captions:[[.3,'WHAT IF GOODBYE'],[1.2,"DIDN'T HAVE TO BE FOREVER?"],[4.6,'BE SAVED.']],
- speech:[[.3,2.1],[4.6,5.2]],fine:'SIDE EFFECTS MAY INCLUDE HEADACHE, NAUSEA, FEVER, CHANGES IN APPETITE, CONFUSION AND AGGRESSION. ASK YOUR DOCTOR IF LZ-6 IS RIGHT FOR YOU. '};
+export const AD={dur:9,shots:[3.8,6.1],captions:[[.5,'WHAT IF GOODBYE'],[1.8,"DIDN'T HAVE TO BE FOREVER?"],[7.1,'BE SAVED.']],
+ speech:[[.5,3.3],[7.1,7.8]],fine:'SIDE EFFECTS MAY INCLUDE HEADACHE, NAUSEA, FEVER, CHANGES IN APPETITE, CONFUSION AND AGGRESSION. ASK YOUR DOCTOR IF LZ-6 IS RIGHT FOR YOU. '};
 // Text at twice the size, crisp: drawn small, then scaled up whole pixels.
 const big=canvas(240,8);export function bigText(c,s,x,y,col,scale=2){const b=big.getContext('2d');b.clearRect(0,0,240,8);text(b,s,0,0,col);c.imageSmoothingEnabled=false;c.drawImage(big,0,0,width(s),7,Math.round(x),Math.round(y),width(s)*scale,7*scale);}
 const ell=(c,cx,cy,rx,ry,col)=>{for(let y=-ry;y<=ry;y++){const w=Math.round(rx*Math.sqrt(Math.max(0,1-(y/ry)**2)));R(c,cx-w,cy+y,w*2+1,1,col);}};

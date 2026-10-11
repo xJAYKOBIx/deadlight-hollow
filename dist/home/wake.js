@@ -26,10 +26,16 @@ export const BEATS=[
  {t:2.2,cue:'car-crash',police:'parked',shake:true,say:'Brakes. Then a crash, a few houses down.'},
  {t:2.8,say:'The siren chokes off. Red and blue light keeps turning on the ceiling.'},
  {t:3,say:'Find something to protect yourself with. Then go and look.'}];
+// After the intro you have already seen the cruiser hit the pole, so the night opens on what it left: its light turning on the ceiling
+// from the start, the dog woken by the crash, and no second crash.
+export const AFTER_INTRO=[{...BEATS[0],police:'parked'},BEATS[1],BEATS[2],BEATS[3],{...BEATS[4],say:'"Hey, you. What woke you up?"'},...BEATS.slice(5,10),
+ {t:3,dir:2,say:'Red and blue light keeps turning on the ceiling. Something crashed out there, a few houses down.'},BEATS[BEATS.length-1]];
 export class Wake{
  // pets: {dog, cat} as HousePets. you: the survivor's model, moved to where the scene ends.
  constructor({dog,cat,you}){Object.assign(this,{dog,cat,you,i:-1,t:0,done:false,cues:[],police:null,shook:0,x:COUCH.x,y:COUCH.lie,direction:6,frame:0,phase:0,fade:1,zzz:true,say:'',pose:'lie',path:[]});this.next();}
- get beat(){return BEATS[this.i];}
+ get beat(){return (this.beats||BEATS)[this.i];}
+ // Switch to the after-the-intro version, if the night has not started yet.
+ afterIntro(){if(this.i===0&&this.t===0){this.beats=AFTER_INTRO;this.i=-1;this.police=null;this.next();}}
  next(){this.i++;this.t=0;const b=this.beat;if(!b){this.finish();return;}if(b.say!==undefined)this.say=b.say;if(b.dir!==undefined)this.direction=b.dir;if(b.walk)this.path=b.walk.map(([x,y])=>({x,y}));if(b.cue)this.cues.push(b.cue);if(b.police)this.police=b.police;if(b.shake)this.shook++;b.start?.(this);}
  update(dt){if(this.done)return;dt=Math.max(0,Math.min(.05,dt||0));this.t+=dt;const b=this.beat,k=Math.min(1,this.t/(b.rise?.6:b.t));
   this.fade=b.fade?b.fade[0]+(b.fade[1]-b.fade[0])*k:0;this.zzz=!!b.zzz;

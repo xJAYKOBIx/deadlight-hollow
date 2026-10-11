@@ -4,7 +4,7 @@ import {R,hash,clamp,ease} from './kit.js';
 import {text,width} from './font.js';
 import {captions,lowerThird,ticker,bug} from './overlay.js';
 import {bigText} from './ad.js';
-export const MONTAGE={dur:6.6,shots:[2,4],sting:6,captions:[[2.3,"I'M NEVER DYING. EVER."]],speech:[[2.3,3.2]],
+export const MONTAGE={dur:9.4,shots:[3.1,5.9],sting:8.6,captions:[[3.5,"I'M NEVER DYING. EVER."]],speech:[[3.5,4.6]],
  ticker:'MARROW STOCK UP 900% · CLINICS OPEN 24 HOURS · WAITS OF UP TO THREE DAYS · 48 MILLION DOSES AND COUNTING · '};
 function rain(c,lt,a=.35){c.globalAlpha=a;for(let i=0;i<70;i++){const x=(hash(i*17)*260+lt*40)%260-10,y=(hash(i*29)*150+lt*260)%150-10;R(c,x,y,1,4,'#c8d4e8');}c.globalAlpha=1;}
 // Shot 1: the queue round the block, from the clinic's glowing door right up to the camera.

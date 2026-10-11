@@ -78,3 +78,10 @@ test('skipping the wake-up puts everyone where the scene ends',async()=>{
  const {Wake,WAKE_END,DOG_AT}=await import('../dist/home/wake.js');const you={x:0,y:0};
  const [dog,cat]=PETS.map(def=>new HousePet(def,{rooms:ROOMS,blocked,rand:seeded(9)}));const w=new Wake({dog,cat,you});for(let i=0;i<40;i++)w.update(.05);w.skip();
  assert.ok(w.done);assert.equal(you.x,WAKE_END.x);assert.equal(you.direction,WAKE_END.direction);assert.deepEqual({x:dog.x,y:dog.y},DOG_AT);assert.equal(cat.perched,false);});
+test('after the intro the wake-up skips the sirens and the crash it has just shown, and starts with the cruiser already there',async()=>{
+ const {Wake,WAKE_END,AFTER_INTRO}=await import('../dist/home/wake.js');const you={x:0,y:0},blk=(x,y,p,plan)=>blocked(x,y,p)||(!plan&&Math.hypot(x-you.x,(y-you.y)*1.4)<p.def.radius+9);
+ const [dog,cat]=PETS.map(def=>new HousePet(def,{rooms:ROOMS,blocked:blk,rand:seeded(5)}));const w=new Wake({dog,cat,you});w.afterIntro();assert.equal(w.police,'parked');let t=0,said=new Set();
+ while(!w.done&&t<60){you.x=w.x;you.y=w.y;w.update(.05);dog.update(.05,you);cat.update(.05,you);t+=.05;if(w.say)said.add(w.say);}
+ assert.ok(w.done,`it ends (${t.toFixed(1)} s)`);assert.deepEqual(w.cues,[]);assert.equal(said.size,AFTER_INTRO.filter(b=>b.say).length,'every line is shown');assert.ok([...said].some(s=>/Red and blue/.test(s)));
+ assert.deepEqual({x:you.x,y:you.y},{x:WAKE_END.x,y:WAKE_END.y});
+ const late=new Wake({dog,cat,you});late.update(.05);late.afterIntro();assert.equal(late.beats,undefined,'once the night has started it is left alone');});

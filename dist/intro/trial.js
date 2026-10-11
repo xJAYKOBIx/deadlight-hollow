@@ -1,10 +1,10 @@
-// CH 9, MRN: archive footage of the live Lazarus trial, nine weeks ago. A dying volunteer on a studio stage flatlines, Dr. Varga gives
+// CH 9, MTNN: archive footage of the live Lazarus trial, nine weeks ago. A dying volunteer on a studio stage flatlines, Dr. Varga gives
 // him LZ-6, the monitor starts beeping again and he sits up as the audience leaps to its feet. Archive footage is faded and grainy.
 import {R,hash,clamp,ease} from './kit.js';
 import {text,width} from './font.js';
 import {captions,lowerThird,bug} from './overlay.js';
-export const TRIAL={dur:7,inject:[1.6,2.8],beat:3.8,sit:4.6,cheer:5.3,
- captions:[[.3,'HIS HEART HAS STOPPED.'],[1.4,'DR. VARGA IS ADMINISTERING'],[2.0,'LZ-6 NOW...'],[3.0,'[FLATLINE]'],[3.9,'[MONITOR BEEPING]'],[5.3,'[CHEERING]']],speech:[[.3,1.2],[1.4,2.7]]};
+export const TRIAL={dur:10,inject:[2.3,4],beat:5.5,sit:6.6,cheer:7.5,
+ captions:[[.4,'HIS HEART HAS STOPPED.'],[1.9,'DR. VARGA IS ADMINISTERING'],[2.9,'LZ-6 NOW...'],[4.3,'[FLATLINE]'],[5.6,'[MONITOR BEEPING]'],[7.5,'[CHEERING]']],speech:[[.4,1.6],[1.9,3.8]]};
 // When the heart beats: nothing until the injection takes, then faster and faster.
 export const BEATS=(()=>{const out=[];let t=TRIAL.beat,gap=.62;while(t<TRIAL.dur){out.push(t);t+=gap;gap=Math.max(.32,gap*.9);}return out;})();
 function stage(c,lt){R(c,0,0,240,135,'#0c0c12');
@@ -35,5 +35,5 @@ function archive(c,lt){const img=c.getImageData(0,0,240,135),d=img.data,fr=Math.
   d[i]=Math.min(255,l*.55+d[i]*.45+14+g);d[i+1]=Math.min(255,l*.6+d[i+1]*.4+6+g);d[i+2]=Math.min(255,l*.6+d[i+2]*.4-6+g);}c.putImageData(img,0,0);
  const band=((lt*30)%170)-20;c.globalAlpha=.06;R(c,0,band,240,6,'#ffffff');c.globalAlpha=1;}
 export function trial(c,lt){stage(c,lt);monitor(c,lt);bed(c,lt);varga(c,lt);audience(c,lt);archive(c,lt);
- R(c,6,5,width('NINE WEEKS AGO')+6,9,'#f2c200');text(c,'NINE WEEKS AGO',9,6,'#05070d');bug(c,'LIVE ON MRN',240-6-width('LIVE ON MRN')-6,5,'#8a2a2a');
+ R(c,6,5,width('NINE WEEKS AGO')+6,9,'#f2c200');text(c,'NINE WEEKS AGO',9,6,'#05070d');bug(c,'LIVE ON MTNN',240-6-width('LIVE ON MTNN')-6,5,'#8a2a2a');
  lowerThird(c,{tag:'ARCHIVE',tagColor:'#5a6274',headline:'THE LAZARUS TRIAL',y:99});captions(c,TRIAL.captions,lt,17);}
