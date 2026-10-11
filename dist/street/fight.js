@@ -13,7 +13,7 @@ import {Flow,clearLine} from './paths.js';
 import {Jobs,CARRY} from './jobs.js';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),facing=(dx,dy)=>(Math.round(Math.atan2(dy,dx)/(Math.PI/4))+8)%8;
 // Wanderers: how far they stroll from where they started and how slowly, when they give up on you, and how far off they stop
-// being thought about every frame. Groans only carry so far.
+// being thought about every frame. Groans only carry so far. A horde (which comes from further off) gives up half as far again away.
 // Bodies left in the street: past keep of them, the oldest fade out over fade seconds and are gone, so a long fight does not keep
 // every body it ever made (each one is drawn and walked past every frame).
 export const BODIES={keep:40,fade:1.5};
@@ -24,9 +24,9 @@ export const BULLET_SPEED=1600,PLAYER_HP=100;
 // The dead: how much they take, how fast they shamble and lurch, and their bite.
 export const ZOMBIE={hp:{cop:80,neighbour:60,jogger:55,robe:60,worker:70,neighbour2:60},walk:48,lurch:100,lurchAt:110,reach:24,bite:{windup:.36,damage:22,range:32,cooldown:.9,shove:70}};
 // A bite that lands takes hold: you are held nearly still for hold seconds and it bites again chew seconds later, until you shove it off,
-// put a round in it, or pull free when the hold runs out. A runner's leap that lands pins you the same way, for pin seconds. While one
-// has you, the others' bites do not throw you clear of it.
-export const GRAB={hold:1.1,slow:.15,chew:.6,pin:.8};
+// put a round in it, or pull free when the hold runs out. A runner's leap that lands pins you (RUNNER). While one has you, the
+// others' bites do not throw you clear of it.
+export const GRAB={hold:1.1,slow:.15,chew:.6};
 // How hard each gun shoves what it hits (per pellet for the shotgun), and for how long a hit stops a zombie in its tracks. A
 // killing hit throws the body further, and a shotgun blast from close up hits harder still.
 export const SHOVE={'light-pistol':{push:80,stagger:.22},'pump-shotgun':{push:58,stagger:.4},kill:1.8,close:{range:70,push:1.6}};
@@ -51,15 +51,18 @@ export const SEARCH={time:1.1,alarm:900,pick:18};
 // patrols at each level. Extra dead are capped, and the ones well away that have not seen you are let go.
 export const HEAT={shot:{'light-pistol':3,'pump-shotgun':6},kill:1,alarm:30,quiet:8,fall:2.5,levels:[0,25,50,80],names:['Quiet','Stirring','Hunted','Swarming'],
  patrol:[90,50,30,20],size:[3,5],horde:{every:45,size:[10,14]},after:40,cap:40,spawn:{near:620,far:820},gone:1500,walk:26};
-const LOOKS=['neighbour','jogger','robe','worker','neighbour2'];
+const LOOKS=['neighbour','jogger','robe','worker','neighbour2'],SPECIALS=new Set(['runner','brute','screamer','bloater','spitter']);
 // Runners: fast and frail. Once they have you they sprint; close in, with a clear line, they crouch for an instant (the tell) and
-// leap. Step aside: a leap that misses leaves them sprawled for a moment, and one that lands pins you (GRAB). A shotgun blast or a
-// shove breaks the crouch. Nearly as fast as you can run, so you cannot simply leave one behind.
-export const RUNNER={hp:40,speed:200,walk:30,lunge:{at:115,tell:.3,speed:380,time:.26,damage:22,range:28,recover:.9,cool:1.4}};
+// leap. Step aside: a leap that misses leaves them sprawled for a moment, and one that lands pins you to the ground and mauls you
+// every so often until you shove it off or shoot it off; it never lets go on its own. A shotgun blast or a shove breaks the crouch.
+// Nearly as fast as you can run, so you cannot simply leave one behind.
+export const RUNNER={hp:40,speed:200,walk:30,lunge:{at:115,tell:.3,speed:380,time:.26,damage:22,range:28,recover:.9,cool:1.4,maul:{every:.45,damage:5}}};
 // Brutes: big, slow and hard to put down, and a shotgun barely moves one. With a clear run at you from a distance it sets its feet
-// (the tell) and charges in a straight line, faster than you run: get out of its line. If it runs into something solid it is stunned and takes half as
-// much again from every hit. Close in it swings, slowly and hard; both throw you back.
-export const BRUTE={hp:420,speed:40,shove:.2,scale:1.45,tellY:116,charge:{min:110,max:330,tell:.6,speed:250,time:1.4,damage:38,knock:220,stun:1.8,cool:4,weak:1.5},swing:{tell:.75,damage:36,range:38,knock:180,cool:1.6}};
+// (the tell) and charges in a straight line, faster than you run: get out of its line. A charge that catches you carries you along
+// in front of it (carry ahead), and slams you into whatever it reaches (slam, and you are dazed a moment), or drops you when it runs
+// out. If it runs into something solid it is stunned and takes half as much again from every hit. Close in it swings, slowly and
+// hard, and throws you back.
+export const BRUTE={hp:420,speed:40,shove:.2,scale:1.45,tellY:116,charge:{min:110,max:330,tell:.6,speed:250,time:1.4,damage:28,slam:24,daze:.7,carry:18,knock:220,stun:1.8,cool:4,weak:1.5},swing:{tell:.75,damage:36,range:38,knock:180,cool:1.6}};
 // Climbing: push into a low fence (a picket, a wooden or chain-link fence round a yard) for a moment and you go over it, in a hop
 // you cannot shoot from but bites miss. The farm fence round the edge of town is too high. The dead cannot climb; they go round.
 export const VAULT={kinds:['picket','woodfence','woodfenceV','chainlink'],push:.18,time:.45,lift:.55};
@@ -73,16 +76,26 @@ export const JOB={power:{noise:45,horde:5},evac:{hold:60,every:13,heat:85,drive:
 // through the fence, crawlers up out of the drain, a crowd out of the gym.
 // The shot's own pull, for every way of aiming: a miss by less than this bends onto the zombie.
 export const MAGNET={cone:5*Math.PI/180};
-export const BREACH={at:[3,13,24,33],every:11,warn:3,packs:{'gap-e':[['runner',2],['shambler',3]],drain:[['crawler',5]],gym:[['shambler',6],['runner',1]],'gap-w':[['shambler',4],['runner',2]]}};
+// A 'special' in a pack is one of the special dead if the director has room for one (SPECIAL.cap), and an ordinary one if not.
+export const BREACH={at:[3,13,24,33],every:11,warn:3,packs:{'gap-e':[['shambler',4],['special',1]],drain:[['crawler',5]],gym:[['shambler',7]],'gap-w':[['shambler',5],['special',1]]},specials:{runner:2,spitter:1,bloater:1}};
+// The special dead, the Left 4 Dead way: few of them, each one a problem you have to deal with now. Patrols and hordes are only the
+// ordinary dead; a director lets one special in on its own every gap seconds or so (sooner the hotter the street is, first after
+// first seconds out), from the edge of the dark and already after you, and never while cap of them are after you already. Which one
+// is picked by weight (no brute while the street is quiet). Each calls out as it comes and every few seconds while it hunts you,
+// each its own sound, so you hear what it is before you see it.
+export const SPECIAL={kinds:['runner','brute','screamer','bloater','spitter'],cap:[1,2,2,3],gap:[55,40,30,22],first:25,retry:6,pick:{runner:3,brute:1,screamer:1.5,bloater:2,spitter:2},call:{every:[3.5,6],far:700}};
 // Screamers: frail, and they keep their distance. One that sees you with a clear line stops, throws its head back and screams (the
-// tell): if it finishes, the heat jumps and a horde comes, already hunting. Any hit breaks the scream for a moment; kill it first.
-export const SCREAMER={hp:45,speed:34,keep:230,scream:{tell:1.5,heat:30,cool:16,range:520,again:4}};
+// tell): if it finishes, the heat jumps, every wanderer in range comes, and a horde comes up the road from behind it (behind it,
+// horde of them), already hunting. Any hit breaks the scream for a moment; kill it first.
+export const SCREAMER={hp:45,speed:34,keep:230,scream:{tell:1.5,heat:30,cool:16,range:520,again:4,behind:180,horde:[8,11]}};
 // Bloaters: slow and swollen. Close to you it swells (the tell) and bursts; shot dead it bursts too. The burst throws you back and
 // hurts, and leaves a cloud of gas that hangs a while and hurts anything in it, the dead included: shoot one when it is among others.
-export const BLOATER={hp:110,speed:26,scale:1.12,tellY:68,swell:{at:36,tell:.8},burst:{radius:64,damage:14,knock:150,dead:30,time:7,every:.5,gas:12,hurt:4}};
+// Caught in the burst, you are covered: you can hardly see for blind seconds, the dead within call of you smell it and come, and a
+// small horde follows. Shoot it before it reaches you.
+export const BLOATER={hp:110,speed:26,scale:1.12,tellY:68,swell:{at:36,tell:.8},burst:{radius:64,damage:14,knock:150,dead:30,time:7,every:.5,gas:12,hurt:4,blind:5,call:700,horde:[6,9]}};
 // Spitters: they keep their distance and lob acid at where you are going, over fences and cars. Where it will land is marked on
-// the ground while it flies: be out of the mark when it lands. The pool it leaves burns for a while.
-export const SPITTER={hp:55,speed:36,keep:[150,280],spit:{tell:.55,flight:.95,cool:3.4,damage:12,radius:22,lead:.55,pool:{time:5,radius:24,every:.5,hurt:6}}};
+// the ground while it flies: be out of the mark when it lands. The pool it leaves burns for a while and drags at your feet.
+export const SPITTER={hp:55,speed:36,keep:[150,280],spit:{tell:.55,flight:.95,cool:3.4,damage:12,radius:22,lead:.55,pool:{time:7,radius:24,every:.5,hurt:8,slow:.6}}};
 // The end of the tutorial. In the hold-out the man you started as cannot make it: a while into it the truck is held up and the dead
 // come from every side at once (the overrun), their bites land harder, and if he is somehow still standing at the end of it, one of
 // them gets him. Going down in the hold-out is the end of him, with no checkpoint. Then, as seen from a window across the street
@@ -94,10 +107,10 @@ export const DEATH={overrun:38,ring:[170,300],shamblers:14,runners:4,hurt:1.5,do
 export const RISEN={hp:150,notice:230,search:2};
 export const CRAWLER={hp:25,speed:22,reach:16,windup:.55,damage:11,hold:.9,slow:.3,rise:.6,cool:1.4};
 export class Fight{
- constructor(model,{kit,setKit,grid}){Object.assign(this,{model,kit,setKit,grid,traces:[],fields:[],events:[],zombies:[],hp:PLAYER_HP,maxHp:PLAYER_HP,down:0,cooldown:0,reloadTime:0,throwCooldown:0,sinceShot:9,sinceHurt:9,bash:null,bashCool:0,alert:false,wave:-1,seed:1,held:null,grab:0,grabber:null,grabSlow:1,gore:true,searching:null,drops:[],heat:0,quiet:99,level:0,patrolT:30,hordeT:0,vault:null,push:0,evac:null,powerT:0,globs:[],pools:[],clouds:[],burnT:0,pv:{x:0,y:0},stats:{kills:0,shots:0,found:0,downs:0,time:0}});
+ constructor(model,{kit,setKit,grid}){Object.assign(this,{model,kit,setKit,grid,traces:[],fields:[],events:[],zombies:[],hp:PLAYER_HP,maxHp:PLAYER_HP,down:0,cooldown:0,reloadTime:0,throwCooldown:0,sinceShot:9,sinceHurt:9,bash:null,bashCool:0,alert:false,wave:-1,seed:1,held:null,grab:0,grabber:null,grabSlow:1,carried:null,daze:0,blind:0,inAcid:false,specialT:SPECIAL.first,gore:true,searching:null,drops:[],heat:0,quiet:99,level:0,patrolT:30,hordeT:0,vault:null,push:0,evac:null,powerT:0,globs:[],pools:[],clouds:[],burnT:0,pv:{x:0,y:0},stats:{kills:0,shots:0,found:0,downs:0,time:0}});
   this.drill={bots:this.zombies,holdout:false,downed:false};this.flow=new Flow();this.jobs=new Jobs(this);}
  // Sets the street up for where the kit says you are: the cop waiting at the cruiser, the second wave coming, or nothing.
- start(){const k=this.kit();this.snapshot=k;this.hp=PLAYER_HP;this.down=0;this.bash=null;this.grab=0;this.grabber=null;this.searching=null;this.drops=[];this.heat=0;this.quiet=99;this.level=0;this.patrolT=30;this.hordeT=0;this.vault=null;this.push=0;this.evac=null;this.powerT=0;this.globs=[];this.pools=[];this.clouds=[];this.burnT=0;MOVING.length=0;this.bashCool=0;this.alert=false;this.traces=[];this.reloadTime=0;this.cooldown=0;this.held=k.held;this.zombies.length=0;
+ start(){const k=this.kit();this.snapshot=k;this.hp=PLAYER_HP;this.down=0;this.bash=null;this.grab=0;this.grabber=null;this.carried=null;this.daze=0;this.blind=0;this.inAcid=false;this.specialT=SPECIAL.first;this.searching=null;this.drops=[];this.heat=0;this.quiet=99;this.level=0;this.patrolT=30;this.hordeT=0;this.vault=null;this.push=0;this.evac=null;this.powerT=0;this.globs=[];this.pools=[];this.clouds=[];this.burnT=0;MOVING.length=0;this.bashCool=0;this.alert=false;this.traces=[];this.reloadTime=0;this.cooldown=0;this.held=k.held;this.zombies.length=0;
   this.overrun=null;this.dead=null;this.remains=null;this.warn=null;this.opened=new Set(k.phase==='own'?BREACHES.map(b=>b.prop).filter(Boolean):[]);this.torch=k.phase==='own'&&k.corpse&&!k.corpse.taken?this.torch:null;this.model.spawn=k.phase==='own'?this.model.spawn:null;
   this.jobs.start();if(k.phase==='own'){this.own(k);return;}
   if(k.street==='start')this.spawn(0);else if(k.street==='looted'){this.spawn(1);this.alert=true;}else{this.wave=-1;this.zombies.length=0;this.zombies.push(...this.roamers());}}
@@ -139,7 +152,7 @@ export class Fight{
  loaded(){const g=this.gun,k=this.kit(),a=ammoOf(this.gunId);
   if(g.shells){if(!count(k.bag,a))return;this.setAmmo(this.ammo+1,remove(k.bag,a,1));this.emit('shell');if(this.ammo<this.mag&&this.spare)this.reloadTime=this.reloadFull;return;}
   const need=this.mag-this.ammo,n=a?Math.min(need,count(k.bag,a)):need;this.setAmmo(this.ammo+n,a?remove(k.bag,a,n):null);this.emit('loaded');}
- fire(){const g=this.gun,m=this.model;if(!g||this.down||this.bash||this.vault||this.cooldown>0)return false;
+ fire(){const g=this.gun,m=this.model;if(!g||this.down||this.bash||this.vault||this.carried||this.cooldown>0)return false;
   if(this.reloadTime>0){if(!g.shells||!this.ammo)return false;this.reloadTime=0;}
   if(!this.ammo){this.cooldown=.3;this.emit('empty');this.reload();return false;}
   // A gun that takes both hands: whatever you were carrying goes down first.
@@ -212,7 +225,7 @@ export class Fight{
   if(v.bt>=at-B.warn&&this.warn?.b!==b){this.warn={b,at,t:0};this.emit('breaching',{b});}if(this.warn)this.warn.t+=dt;if(v.bt>=at){v.bi=i+1;this.breach(b);}}
  // One gives way: it is painted open, and what was behind it comes for you, already hunting (out of the drain, crawling up first).
  breach(b){if(b.prop)this.opened.add(b.prop);const m=this.model;let k=0;
-  for(const [kind,n] of BREACH.packs[b.id]||[])for(let j=0;j<n;j++,k++){const x=b.x+(this.rand()-.5)*(kind==='crawler'?10:50),y=b.y+(this.rand()-.5)*(kind==='crawler'?6:24),look=kind==='shambler'||kind==='crawler'?LOOKS[Math.floor(this.rand()*LOOKS.length)]:vary(kind,this.rand()),hp=this.hpOf(kind,look);
+  for(const [pk,n] of BREACH.packs[b.id]||[])for(let j=0;j<n;j++,k++){const kind=pk!=='special'?pk:this.specialsOn()<SPECIAL.cap[this.level]?this.pickSpecial(BREACH.specials):'shambler',x=b.x+(this.rand()-.5)*(kind==='crawler'?10:50),y=b.y+(this.rand()-.5)*(kind==='crawler'?6:24),look=kind==='shambler'||kind==='crawler'?LOOKS[Math.floor(this.rand()*LOOKS.length)]:vary(kind,this.rand()),hp=this.hpOf(kind,look);
    this.zombies.push({kind,extra:true,roam:-1,look,x,y,sx:x,sy:y,direction:facing(m.x-x,m.y-y),frame:0,phase:0,hp,max:hp,idle:false,delay:k*.45,...(kind==='crawler'?{hatch:CRAWLER.rise}:{}),state:'chase',hunt:true,t:0,vx:0,vy:0,stagger:0,tell:0,cool:0,flash:0,groan:.5+this.rand()*2,wt:0,wx:x,wy:y,acc:0});}
   this.emit('breach',{b,n:k});}
  // The overrun: the dead out of the dark on every side at once, already coming for you, a few of them running.
@@ -222,7 +235,7 @@ export class Fight{
    this.zombies.push({kind,extra:true,roam:-1,look,x,y,sx:x,sy:y,direction:facing(m.x-x,m.y-y),frame:0,phase:0,hp,max:hp,idle:false,delay:i*.12,state:'chase',hunt:true,t:0,vx:0,vy:0,stagger:0,tell:0,cool:0,flash:0,groan:.5+this.rand()*2,wt:0,wx:x,wy:y,acc:0});}
   for(const b of BREACHES)if(b.prop)this.opened.add(b.prop);this.warn=null;this.emit('overrun',{n});}
  // He goes down for the last time. His body stays where he fell; the nearest of the dead come to it, the rest wander off.
- die(){const m=this.model;this.down=1e9;this.reloadTime=0;this.bash=null;this.vault=null;this.free();this.shove=null;if(this.searching){this.searching=null;this.emit('searchstop');}
+ die(){const m=this.model;this.down=1e9;this.reloadTime=0;this.bash=null;this.vault=null;this.free();this.carried=null;this.shove=null;if(this.searching){this.searching=null;this.emit('searchstop');}
   const b=this.risenAt(m.x,m.y);b.fall=this.rand()<.5?1:-1;b._pool=true;this.zombies.push(b);
   const a=this.aimAngle??m.aim??m.direction*Math.PI/4;this.torch={x:m.x+Math.cos(a)*10,y:m.y+3,a:a+(this.rand()-.5)*.8};
   // The one watching: whoever is behind the nearest neighbour's door, across the street from him if there is one.
@@ -270,9 +283,10 @@ export class Fight{
  get air(){return !!this.vault;}
  // Taken hold of by z for t seconds, held to slow; let go when it ends (free), when z goes down or is staggered, or when you shove.
  hold(z,t,slow=GRAB.slow){if(this.down)return;this.grab=t;this.grabber=z;this.grabSlow=slow;this.emit('grab',{z});}
- free(){if(!this.grab&&!this.grabber)return;this.grab=0;this.grabber=null;this.emit('free');}
- // A shove the way you aim, or the way you move, or the way you face. Too little stamina and nothing happens but a gasp.
- shoveOut(input){const m=this.model,st=m.stamina,B=BASH;if(this.down||this.bash||this.vault||this.bashCool>0)return false;if(st&&st.value<B.cost*.5){this.emit('winded');return false;}
+ free(){if(!this.grab&&!this.grabber)return;const g=this.grabber;if(g?.state==='pin'){g.state='chase';g.cool=RUNNER.lunge.cool;}this.grab=0;this.grabber=null;this.emit('free');}
+ // A shove the way you aim, or the way you move, or the way you face. Too little stamina and nothing happens but a gasp, unless
+ // something has hold of you: getting it off you always works.
+ shoveOut(input){const m=this.model,st=m.stamina,B=BASH;if(this.down||this.bash||this.vault||this.bashCool>0)return false;if(st&&st.value<B.cost*.5&&!this.grabber){this.emit('winded');return false;}
   // Which way: where you aim; else at whatever has hold of you; else the way you move; else at the nearest one in reach; else ahead.
   let x=Number(input.x)||0,y=Number(input.y)||0,a=this.aimAngle;const G=this.grabber,near=()=>{let b=null,bd=B.range+12;for(const z of this.zombies){if(z.hp<=0||!this.out(z))continue;const d=Math.hypot(z.x-m.x,z.y-m.y);if(d<bd){bd=d;b=z;}}return b;};
   if(a==null&&G)a=Math.atan2(G.y-m.y,G.x-m.x);if(a==null&&Math.hypot(x,y)>.12)a=Math.atan2(y,x);if(a==null){const n=near();a=n?Math.atan2(n.y-m.y,n.x-m.x):m.aim??m.direction*Math.PI/4;}x=Math.cos(a);y=Math.sin(a);
@@ -295,7 +309,7 @@ export class Fight{
   v.k=k;v.h=Math.sin(k*Math.PI)*v.z*VAULT.lift;m.moving=false;if(k>=1){this.vault=null;this.emit('over',{x:m.x,y:m.y});}}
  // You, bitten.
  hurt(n,from,shove=true,kind='bite'){if(this.down||this.dead)return;if(this.overrun)n*=DEATH.hurt;if(this.grab)shove=false;this.jobs.bitten();if(this.searching){this.searching=null;this.emit('searchstop');}this.hp=Math.max(0,this.hp-n);this.sinceHurt=0;const m=this.model,dx=m.x-from.x,dy=m.y-from.y,d=Math.hypot(dx,dy)||1;if(shove)this.shove={x:dx/d*ZOMBIE.bite.shove,y:dy/d*ZOMBIE.bite.shove};
-  this.emit('hurt',{n,hp:this.hp,kind});if(!this.hp){if(this.kit().phase!=='own'&&this.evac){this.die();return;}this.down=3;this.reloadTime=0;this.free();this.drill.downed=true;this.emit('down');}}
+  this.emit('hurt',{n,hp:this.hp,kind});if(!this.hp){if(this.kit().phase!=='own'&&this.evac){this.die();return;}this.down=3;this.reloadTime=0;this.free();this.carried=null;this.daze=0;this.drill.downed=true;this.emit('down');}}
  // The cop turns round and the others come out of the dark.
  wake(){this.alert=true;for(const z of this.zombies)if(z.idle){z.idle=false;this.emit('groan',{z,loud:true});}}
  // A shot: the cop wakes if it is near enough to hear, and so does every wanderer in earshot.
@@ -312,6 +326,8 @@ export class Fight{
  blockedZ(z,x,y){if(x<WALK.left||x>WALK.right||y<WALK.top||y>WALK.bottom)return true;return !!solidAt(x,y,6);}
  // Moves a zombie, sliding round what is in the way: straight at you if it can, otherwise a little to either side.
  step(z,ax,ay,dist){if(!dist)return 0;for(const turn of [0,.6,-.6,1.2,-1.2]){const c=Math.cos(turn),s=Math.sin(turn),dx=(ax*c-ay*s)*dist,dy=(ax*s+ay*c)*dist,nx=z.x+dx,ny=z.y+dy;if(!this.blockedZ(z,nx,ny)&&!this.touchingPlayer(nx,ny)){z.x=nx;z.y=ny;return dist;}}return 0;}
+ // Whether you would fit at x, y (the edge of the map and anything solid; the dead do not count).
+ walled(x,y){const r=this.model.radius;return x-r<WALK.left||x+r>WALK.right||y-r*.6<WALK.top||y+r*.4>WALK.bottom||!!solidAt(x,y,r*.85);}
  touchingPlayer(x,y){const m=this.model;return Math.hypot(x-m.x,(y-m.y)*1.4)<14;}
  update(dt,input={}){dt=clamp(Number(dt)||0,0,.05);const m=this.model,g=this.gun;if(dt){this.pv={x:(m.x-(this.px??m.x))/dt,y:(m.y-(this.py??m.y))/dt};}this.px=m.x;this.py=m.y;
   if(this.held!==this.gunId){this.held=this.gunId;this.reloadTime=0;this.cooldown=Math.max(this.cooldown,.35);this.emit('swap');}
@@ -323,7 +339,10 @@ export class Fight{
   // Back on your feet slowly once nothing has touched you for a while (a few minutes from nearly gone).
   if(!this.down&&this.sinceHurt>8)this.hp=Math.min(PLAYER_HP,this.hp+2*dt);
   // You slow down while reloading and for a moment after each shot, so where you stand to shoot matters.
-  if(this.grab&&(this.grab=Math.max(0,this.grab-dt))===0)this.free();if(this.grabber&&(this.grabber.hp<=0||this.grabber.stagger>0))this.free();m.slow=(this.vault?0:this.grab?this.grabSlow:this.reloadTime?SLOW.reload:this.sinceShot<SLOW.after?SLOW.shot:1)*(this.jobs.carry?CARRY.slow:1);
+  if(this.grab&&(this.grab=Math.max(0,this.grab-dt))===0)this.free();if(this.grabber&&(this.grabber.hp<=0||this.grabber.stagger>0))this.free();
+  // Carried by a brute's charge, or dazed from the slam: you go where it takes you. Bile in your eyes wears off.
+  if(this.carried&&(this.carried.hp<=0||this.carried.state!=='charge'))this.carried=null;this.daze=Math.max(0,this.daze-dt);if(this.blind&&!(this.blind=Math.max(0,this.blind-dt)))this.emit('sight');
+  m.slow=(this.vault||this.carried||this.daze?0:this.grab?this.grabSlow:this.reloadTime?SLOW.reload:this.sinceShot<SLOW.after?SLOW.shot:1)*(this.jobs.carry?CARRY.slow:1)*(this.inAcid?SPITTER.spit.pool.slow:1);
   if(this.shove&&!this.vault){const k=Math.min(1,dt*10);const sx=this.shove.x*k,sy=this.shove.y*k;if(!m.blocked(m.x+sx,m.y))m.x+=sx;if(!m.blocked(m.x,m.y+sy))m.y+=sy;this.shove.x-=sx;this.shove.y-=sy;if(Math.hypot(this.shove.x,this.shove.y)<1)this.shove=null;}
   this.aimAngle=!this.down&&Number.isFinite(input.aimX)&&Number.isFinite(input.aimY)&&Math.hypot(input.aimX,input.aimY)>.1?Math.atan2(input.aimY,input.aimX):null;
   this.bashCool=Math.max(0,this.bashCool-dt);if(this.bash&&(this.bash.t+=dt)>=BASH.time)this.bash=null;if(input.shove)this.shoveOut(input);
@@ -342,7 +361,7 @@ export class Fight{
   this.hazards(dt);
   // The job: the clock, the generator's horde, the hold-out and the truck.
   const K=this.kit();if(K.street==='done'&&!K.mission?.out){this.stats.time+=dt;if(this.powerT>0&&(this.powerT-=dt)<=0&&!this.down)this.patrol(true);if(this.evac&&!this.down)this.holding(dt);}
-  if(this.kit().street==='done'&&!this.down&&!this.kit().mission?.out&&!(this.evac?.state==='hold'&&!this.evac.paused)){if((this.patrolT-=dt)<=0){this.patrolT=HEAT.patrol[this.level]*(.8+this.rand()*.4);this.patrol(false);}if(this.level===3&&!sw&&(this.hordeT-=dt)<=0){this.hordeT=HEAT.horde.every;this.patrol(true);}}
+  if(this.kit().street==='done'&&!this.down&&!this.kit().mission?.out&&!(this.evac?.state==='hold'&&!this.evac.paused)){if((this.patrolT-=dt)<=0){this.patrolT=HEAT.patrol[this.level]*(.8+this.rand()*.4);this.patrol(false);}if((this.specialT-=dt)<=0)this.specialT=this.lone()?SPECIAL.gap[this.level]*(.8+this.rand()*.4):SPECIAL.retry;if(this.level===3&&!sw&&(this.hordeT-=dt)<=0){this.hordeT=HEAT.horde.every;this.patrol(true);}}
   // Extra dead well away from you that are not after you are let go, and so are their bodies.
   if(this.zombies.some(z=>z.extra&&(z.hp<=0||!z.hunt)&&Math.hypot(z.x-m.x,z.y-m.y)>HEAT.gone)){const keep=this.zombies.filter(z=>!(z.extra&&(z.hp<=0||!z.hunt)&&Math.hypot(z.x-m.x,z.y-m.y)>HEAT.gone));this.zombies.length=0;this.zombies.push(...keep);}
   this.bodies(dt);
@@ -373,9 +392,10 @@ export class Fight{
   const dx=m.x-z.x,dy=m.y-z.y,d=Math.hypot(dx,dy)||1;
   // Him, standing where he got up, swaying, until you come close or put a round in him.
   if(z.lurk){if(d<RISEN.notice||z.hp<z.max){z.lurk=false;this.emit('groan',{z,loud:true});this.emit('lurch',{z});}else{z.frame=0;return;}}
-  z.groan-=dt;if(z.groan<=0){z.groan=2.5+this.rand()*3;if(d<ROAM.hear)this.emit('groan',{z});}
+  z.groan-=dt;if(z.groan<=0){const C=SPECIAL.call;if(SPECIALS.has(z.kind)&&(z.hunt||z.roam===undefined&&this.alert)){z.groan=C.every[0]+this.rand()*(C.every[1]-C.every[0]);if(d<C.far&&!z.tell)this.emit('call',{z});}
+   else{z.groan=2.5+this.rand()*3;if(d<ROAM.hear)this.emit('groan',{z});}}
   if(z.roam!==undefined&&!z.hunt){if(!this.down&&(d<NOTICE||this.lit(z,d)))this.notice(z);else{this.wander(z,dt);return;}}
-  if(z.roam!==undefined&&d>ROAM.lose){z.hunt=false;z.state='wander';z.sx=z.x;z.sy=z.y;z.wt=0;return;}
+  if(z.roam!==undefined&&d>ROAM.lose*(z.swarm?1.6:1)){z.hunt=false;z.state='wander';z.sx=z.x;z.sy=z.y;z.wt=0;return;}
   z.direction=facing(dx,dy);
   if(this.down){z.frame=0;return;}
   if(z.kind==='brute')return this.brute(z,dt,d,dx,dy);
@@ -399,19 +419,26 @@ export class Fight{
   if(moved){z.phase=(z.phase+moved/stride)%1;z.frame=1+Math.floor(z.phase*8);}else{z.frame=0;z.phase=0;}return moved;}
  // A runner: the crouch, the leap, and the sprawl after a miss. Returns true while it is busy with one.
  runner(z,dt,d,dx,dy){const L=RUNNER.lunge,m=this.model;
+  // On you: on top of you, clawing, until it is shoved or shot off you (and then it sprawls a moment).
+  if(z.state==='pin'){if(this.grabber!==z){z.state='chase';z.cool=L.cool;z.stagger=Math.max(z.stagger,L.recover*.5);return true;}
+   const px=m.x-z.lx*10,py=m.y-z.ly*7;if(!this.blockedZ(z,px,py)){z.x+=(px-z.x)*Math.min(1,dt*20);z.y+=(py-z.y)*Math.min(1,dt*20);}z.direction=facing(z.lx,z.ly);z.frame=Math.floor((z.t/L.maul.every)*2)%2?3:7;
+   if((z.t-=dt)<=0){z.t=L.maul.every;this.hurt(L.maul.damage,z,false,'maul');}return true;}
   if(z.state==='crouch'){z.t-=dt;z.tell=Math.max(0,z.t);z.frame=0;if(z.t<=0){z.state='leap';z.t=L.time;z.tell=0;z.hitDone=false;this.emit('lunge',{z});}return true;}
   if(z.state==='leap'){z.t-=dt;const s=L.speed*dt;for(let i=0;i<3;i++){const nx=z.x+z.lx*s/3,ny=z.y+z.ly*s/3;if(this.blockedZ(z,nx,ny))break;z.x=nx;z.y=ny;}z.frame=3;z.direction=facing(z.lx,z.ly);
-   if(!z.hitDone&&Math.hypot(m.x-z.x,(m.y-z.y)*1.2)<L.range&&!this.air){z.hitDone=true;const mine=!this.grabber;this.hurt(L.damage,z,!mine);if(mine&&!this.down)this.hold(z,GRAB.pin);}
+   if(!z.hitDone&&Math.hypot(m.x-z.x,(m.y-z.y)*1.2)<L.range&&!this.air&&!this.carried){z.hitDone=true;const mine=!this.grabber;this.hurt(L.damage,z,!mine);if(mine&&!this.down){this.hold(z,Infinity,0);z.state='pin';z.t=L.maul.every;this.emit('pinned',{z});return true;}}
    if(z.t<=0){z.state='chase';z.cool=L.cool;if(!z.hitDone){z.stagger=L.recover;this.emit('miss',{z});}}return true;}
   if((z.hunt||z.roam===undefined)&&d<L.at&&d>26&&!z.cool&&clearLine(z.x,z.y,m.x,m.y)){z.state='crouch';z.t=L.tell;z.tell=L.tell;z.lx=dx/d;z.ly=dy/d;this.emit('windup',{z});return true;}
   return false;}
  // A brute: setting its feet and charging, stunned against a wall, the slow swing, and the plod in between.
  brute(z,dt,d,dx,dy){const B=BRUTE,C=B.charge,S=B.swing,m=this.model;z.stagger=0;if(z.stun>0){z.stun-=dt;z.frame=0;return;}z.ccool=Math.max(0,(z.ccool||0)-dt);
   if(z.state==='set'){z.t-=dt;z.tell=Math.max(0,z.t);z.frame=0;if(z.t<=0){z.state='charge';z.t=C.time;z.tell=0;z.hitDone=false;this.emit('charge',{z});}return;}
-  if(z.state==='charge'){z.t-=dt;const s=C.speed*dt;let wall=false;for(let i=0;i<4;i++){const nx=z.x+z.cx*s/4,ny=z.y+z.cy*s/4;if(this.blockedZ(z,nx,ny)){wall=true;break;}z.x=nx;z.y=ny;}
+  if(z.state==='charge'){z.t-=dt;const s=C.speed*dt,mine=this.carried===z;let wall=false;
+   // You, if it has you, go just ahead of it; you hit the wall first.
+   for(let i=0;i<4;i++){const nx=z.x+z.cx*s/4,ny=z.y+z.cy*s/4;if(this.blockedZ(z,nx,ny)){wall=true;break;}if(mine){const px=nx+z.cx*C.carry,py=ny+z.cy*C.carry*.7;if(this.walled(px,py)){wall=true;break;}m.x=px;m.y=py;}z.x=nx;z.y=ny;}
    z.direction=facing(z.cx,z.cy);z.phase=(z.phase+s/60)%1;z.frame=1+Math.floor(z.phase*8);
-   if(!z.hitDone&&Math.hypot(m.x-z.x,(m.y-z.y)*1.2)<28&&!this.air){z.hitDone=true;this.hurt(C.damage,z);this.knock(z,C.knock);}
-   if(wall){z.state='chase';z.stun=C.stun;z.ccool=C.cool;this.emit('stun',{z});}else if(z.t<=0){z.state='chase';z.ccool=C.cool;}return;}
+   if(!z.hitDone&&Math.hypot(m.x-z.x,(m.y-z.y)*1.2)<28&&!this.air){z.hitDone=true;this.hurt(C.damage,z,false,'charge');if(!this.down&&!this.grabber&&!this.carried){this.carried=z;this.shove=null;this.emit('carried',{z});}else this.knock(z,C.knock);}
+   if(wall){if(this.carried===z){this.carried=null;this.hurt(C.slam,z,false,'slam');this.daze=this.down?0:C.daze;this.emit('slam',{z,x:m.x,y:m.y});}z.state='chase';z.stun=C.stun;z.ccool=C.cool;this.emit('stun',{z});}
+   else if(z.t<=0){if(this.carried===z){this.carried=null;this.shove={x:z.cx*C.knock*.5,y:z.cy*C.knock*.5};this.emit('dropped',{z});}z.state='chase';z.ccool=C.cool;}return;}
   if(z.state==='windup'){z.t-=dt;z.tell=Math.max(0,z.t);z.frame=0;if(z.t<=0){z.state='chase';z.cool=S.cool;z.tell=0;if(d<S.range+8&&!this.air){this.hurt(S.damage,z);this.knock(z,S.knock);}else this.emit('miss',{z});}return;}
   if(!z.ccool&&d>C.min&&d<C.max&&clearLine(z.x,z.y,m.x,m.y)){z.state='set';z.t=C.tell;z.tell=C.tell;z.cx=dx/d;z.cy=dy/d;this.emit('windup',{z,big:true});return;}
   if(d<S.range&&!z.cool){z.state='windup';z.t=S.tell;z.tell=S.tell;this.emit('windup',{z,big:true});return;}
@@ -423,7 +450,8 @@ export class Fight{
   if(!z.scool&&d<C.range&&(z.hunt||z.roam===undefined)&&clearLine(z.x,z.y,m.x,m.y)){z.state='scream';z.t=C.tell;z.tell=C.tell;this.emit('scream',{z});return true;}
   this.keep(z,dt,d,dx,dy,S.keep-30,S.keep+60,S.speed);return true;}
  // The scream lands: the heat jumps, everything near it comes, and a horde is on its way (unless one is already on you).
- screamed(z){this.noise(SCREAMER.scream.heat);for(const o of this.zombies)if(o.roam!==undefined&&o.hp>0&&!o.hunt&&Math.hypot(o.x-z.x,o.y-z.y)<HEAR*1.4)this.notice(o);this.emit('screamed',{z});if(this.kit().street==='done'&&!this.swarmLeft())this.patrol(true);}
+ screamed(z){const C=SCREAMER.scream,m=this.model,dx=z.x-m.x,dy=z.y-m.y,d=Math.hypot(dx,dy)||1;this.noise(C.heat);for(const o of this.zombies)if(o.roam!==undefined&&o.hp>0&&!o.hunt&&Math.hypot(o.x-z.x,o.y-z.y)<C.range)this.notice(o);this.emit('screamed',{z});
+  if(this.kit().street==='done'&&!this.evac&&!this.swarmLeft())this.patrol(true,{size:C.horde,from:{x:z.x+dx/d*C.behind,y:z.y+dy/d*C.behind}});}
  // A spitter: winding up, lobbing, and keeping its distance.
  spitter(z,dt,d,dx,dy){const S=SPITTER,P=S.spit;
   if(z.state==='spit'){z.t-=dt;z.tell=Math.max(0,z.t);z.frame=9;if(z.t<=0){z.state='chase';z.tell=0;z.cool=P.cool;this.lob(z);}return true;}
@@ -443,8 +471,11 @@ export class Fight{
  // A bloater bursts: you are thrown back and hurt if you are close and on your feet, the dead round it are hurt too (and any other
  // bloater caught in it goes off), and its gas hangs where it was.
  pop(z){const B=BLOATER.burst,m=this.model;this.clouds.push({x:z.x,y:z.y-2,t:0,T:B.time,tick:B.every,seed:Math.floor(this.rand()*1e4)});this.emit('burst',{z,x:z.x,y:z.y});
-  if(Math.hypot(m.x-z.x,(m.y-z.y)*1.3)<B.radius&&!this.air&&!this.down){this.hurt(B.damage,z,false,'burst');this.knock(z,B.knock);}
+  if(Math.hypot(m.x-z.x,(m.y-z.y)*1.3)<B.radius&&!this.air&&!this.down){this.hurt(B.damage,z,false,'burst');this.knock(z,B.knock);if(!this.down)this.bile();}
   this.gassing=true;for(const o of this.zombies)if(o!==z&&o.hp>0&&this.out(o)&&Math.hypot(o.x-z.x,(o.y-z.y)*1.3)<B.radius)this.hit(o,B.dead,(o.x-z.x)/(Math.hypot(o.x-z.x,o.y-z.y)||1)*.4,(o.y-z.y)/(Math.hypot(o.x-z.x,o.y-z.y)||1)*.4);this.gassing=false;}
+ // Covered in a bloater: half blind for a while, everything near comes, and a small horde (out on the job, if none is on you yet and you are not holding the bus lot).
+ bile(){const B=BLOATER.burst,m=this.model;this.blind=B.blind;this.noise(15);for(const o of this.zombies)if(o.roam!==undefined&&o.hp>0&&!o.hunt&&Math.hypot(o.x-m.x,o.y-m.y)<B.call)this.notice(o);
+  this.emit('blind',{t:B.blind});if(this.kit().street==='done'&&!this.evac&&!this.swarmLeft())this.patrol(true,{size:B.horde});}
  // Acid in the air and on the ground, and gas hanging: globs land, pools and clouds burn what stands in them and fade.
  hazards(dt){const m=this.model,P=SPITTER.spit,B=BLOATER.burst;
   for(const g of this.globs){g.t+=dt;const k=Math.min(1,g.t/g.T);g.x=g.x0+(g.x1-g.x0)*k;g.y=g.y0+(g.y1-g.y0)*k;g.h=Math.sin(Math.PI*k)*g.arc+(1-k)*24;
@@ -454,7 +485,7 @@ export class Fight{
   for(const c of this.clouds){c.t+=dt;if((c.tick-=dt)<=0){c.tick=B.every;const r=B.radius*Math.min(1,.7+c.t*.3);this.gassing=true;for(const o of this.zombies)if(o.hp>0&&this.out(o)&&o.kind!=='bloater'&&Math.hypot(o.x-c.x,(o.y-c.y)*1.3)<r)this.hit(o,B.gas,0,0);this.gassing=false;}}
   if(this.clouds.some(c=>c.t>=c.T))this.clouds=this.clouds.filter(c=>c.t<c.T);
   // Standing in acid or gas: a burn every so often, unless you are in the air.
-  const inPool=this.pools.some(p=>p.t<p.T-.6&&Math.hypot(m.x-p.x,(m.y-p.y)*1.6)<P.pool.radius),inGas=this.clouds.some(c=>c.t<c.T-.8&&Math.hypot(m.x-c.x,(m.y-c.y)*1.3)<B.radius*.85);
+  const inPool=this.inAcid=!this.air&&this.pools.some(p=>p.t<p.T-.6&&Math.hypot(m.x-p.x,(m.y-p.y)*1.6)<P.pool.radius),inGas=this.clouds.some(c=>c.t<c.T-.8&&Math.hypot(m.x-c.x,(m.y-c.y)*1.3)<B.radius*.85);
   if((inPool||inGas)&&!this.air&&!this.down){if((this.burnT-=dt)<=0){this.burnT=P.pool.every;this.hurt(inPool?P.pool.hurt:B.hurt,{x:m.x,y:m.y+1},false,inPool?'acid':'gas');this.emit('burn',{acid:inPool});}}else this.burnT=Math.min(this.burnT,.15);}
  // Thrown back from a heavy hit.
  knock(z,n){const m=this.model,dx=m.x-z.x,dy=m.y-z.y,d=Math.hypot(dx,dy)||1;this.shove={x:dx/d*n,y:dy/d*n};}
@@ -468,16 +499,24 @@ export class Fight{
   const go=Math.min(Math.max(0,d-C.reach),C.speed*dt),moved=go?this.step(z,ax,ay,go):0;if(moved){z.phase=(z.phase+moved/14)%1;z.frame=Math.floor(z.phase*4);}}
  // A patrol: a few of the dead come down a street from somewhere out of sight, heading to where you are now, and pick up on you
  // as wanderers do. A horde is bigger, comes from one side and already knows where you are.
- patrol(horde){const m=this.model,H=HEAT,live=this.zombies.filter(z=>z.extra&&z.hp>0).length,[a,b]=horde?H.horde.size:H.size,n=Math.min(a+Math.floor(this.rand()*(b-a+1)),H.cap-live);if(n<=0)return false;
-  let at=null;for(let t=0;t<30&&!at;t++){const ang=this.rand()*Math.PI*2,d=H.spawn.near+this.rand()*(H.spawn.far-H.spawn.near),px=m.x+Math.cos(ang)*d,py=m.y+Math.sin(ang)*d;
-   // Onto the nearest street or side street, so they come down a road.
-   const p=roadNear(px,py);
-   if(p.x>WALK.left+40&&p.x<WALK.right-40&&p.y>WALK.top+40&&p.y<WALK.bottom-40&&Math.hypot(p.x-m.x,p.y-m.y)>H.spawn.near*.9&&!solidAt(p.x,p.y,10))at=p;}
-  if(!at)return false;const goal={x:m.x+(this.rand()-.5)*160,y:m.y+(this.rand()-.5)*100},pts=[at.along==='x'?{x:goal.x,y:at.y}:{x:at.x,y:goal.y},goal];
-  const lv=this.level,brute=horde&&lv===3||!horde&&lv>=2&&this.rand()<.15?Math.floor(this.rand()*n):-1;
-  // Now and then one of the special dead comes along: more of them the hotter it is, and one of each in most hordes.
-  const kinds=Array.from({length:n},(_,i)=>i===brute?'brute':this.rand()<[0,.12,.2,.25][lv]?'runner':'shambler');
-  for(const [kind,p] of horde?[['bloater',.5],['spitter',.4],['screamer',.2]]:[['screamer',[.04,.1,.14,.16][lv]],['spitter',[0,.08,.14,.18][lv]],['bloater',[.03,.08,.12,.15][lv]]])if(this.rand()<p){const i=Math.floor(this.rand()*n);if(kinds[i]!=='brute')kinds[i]=kind;}
+ // A place at the edge of the dark to come from: on the nearest street or side street to a point out of sight, so they come down a
+ // road, and near enough that the ones after you do not give up on the way. from: near there instead (the road behind a screamer),
+ // if it will do.
+ edge(from){const m=this.model,H=HEAT,ok=p=>p.x>WALK.left+40&&p.x<WALK.right-40&&p.y>WALK.top+40&&p.y<WALK.bottom-40&&!solidAt(p.x,p.y,10);
+  if(from){const p=roadNear(from.x,from.y);if(ok(p)&&Math.hypot(p.x-m.x,p.y-m.y)<H.spawn.far)return p;}
+  for(let t=0;t<30;t++){const ang=this.rand()*Math.PI*2,d=H.spawn.near+this.rand()*(H.spawn.far-H.spawn.near),p=roadNear(m.x+Math.cos(ang)*d,m.y+Math.sin(ang)*d);const e=Math.hypot(p.x-m.x,p.y-m.y);if(ok(p)&&e>H.spawn.near*.9&&e<ROAM.lose-60)return p;}return null;}
+ // The special dead after you now (or waiting for you in the first fight), and one picked by weight.
+ specialsOn(){let n=0;for(const z of this.zombies)if(SPECIALS.has(z.kind)&&z.hp>0&&(z.hunt||z.roam===undefined&&this.alert))n++;return n;}
+ pickSpecial(w){const ks=Object.keys(w).filter(k=>k!=='brute'||this.level>=1),sum=ks.reduce((a,k)=>a+w[k],0);let r=this.rand()*sum;for(const k of ks)if((r-=w[k])<0)return k;return ks[0];}
+ // The director lets one in: from the edge of the dark, already after you, calling out as it comes.
+ lone(){if(this.specialsOn()>=SPECIAL.cap[this.level])return false;const at=this.edge();if(!at)return false;const m=this.model,kind=this.pickSpecial(SPECIAL.pick),look=vary(kind,this.rand()),hp=this.hpOf(kind,look);
+  const z={kind,...(kind==='brute'?{tellY:BRUTE.tellY}:kind==='bloater'?{tellY:BLOATER.tellY}:{}),extra:true,roam:-1,look,x:at.x,y:at.y,sx:at.x,sy:at.y,direction:facing(m.x-at.x,m.y-at.y),frame:0,phase:0,hp,max:hp,idle:false,delay:0,state:'chase',hunt:true,t:0,vx:0,vy:0,stagger:0,tell:0,cool:0,flash:0,groan:SPECIAL.call.every[0],wt:0,wx:at.x,wy:at.y,acc:0};
+  this.zombies.push(z);this.emit('special',{z});this.emit('call',{z,first:true});return true;}
+ // A patrol, or a horde: only the ordinary dead (the specials come on their own, above), with a brute in a horde at the top if there
+ // is room for one. size and from: a horde called up by a screamer or a bloater.
+ patrol(horde,o={}){const m=this.model,H=HEAT,live=this.zombies.filter(z=>z.extra&&z.hp>0).length,[a,b]=o.size||(horde?H.horde.size:H.size),n=Math.min(a+Math.floor(this.rand()*(b-a+1)),H.cap-live);if(n<=0)return false;
+  const at=this.edge(o.from);if(!at)return false;const goal={x:m.x+(this.rand()-.5)*160,y:m.y+(this.rand()-.5)*100},pts=[at.along==='x'?{x:goal.x,y:at.y}:{x:at.x,y:goal.y},goal];
+  const brute=horde&&!o.size&&this.level===3&&this.specialsOn()<SPECIAL.cap[3]?Math.floor(this.rand()*n):-1,kinds=Array.from({length:n},(_,i)=>i===brute?'brute':'shambler');
   for(let i=0;i<n;i++){const kind=kinds[i],look=kind==='shambler'?LOOKS[Math.floor(this.rand()*LOOKS.length)]:vary(kind,this.rand()),hp=this.hpOf(kind,look),sp=horde?90:30,x=at.x+(this.rand()-.5)*sp+(at.along==='x'?(i%3)*14:0),y=at.y+(this.rand()-.5)*sp*.7+(at.along==='y'?(i%3)*14:0);
    this.zombies.push({kind,...(kind==='brute'?{tellY:BRUTE.tellY}:kind==='bloater'?{tellY:BLOATER.tellY}:{}),extra:true,roam:-1,look,x,y,sx:x,sy:y,direction:facing(goal.x-x,goal.y-y),frame:0,phase:0,hp,max:hp,idle:false,delay:i*.35,state:horde?'chase':'wander',hunt:horde,swarm:horde,t:0,vx:0,vy:0,stagger:0,tell:0,cool:0,flash:0,groan:1+this.rand()*4,wt:0,wx:x,wy:y,acc:0,
     route:horde?null:pts.map(p=>({x:p.x+(this.rand()-.5)*24,y:p.y+(this.rand()-.5)*16}))});}

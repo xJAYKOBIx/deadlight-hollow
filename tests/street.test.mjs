@@ -233,6 +233,41 @@ test('screamers keep their distance and scream when they see you: a hit breaks i
  run(f,m,2.2);assert.equal(z.state,'scream','it stops and screams');assert.ok(Math.hypot(z.x-m.x,z.y-m.y)>SCREAMER.keep-40,'from a distance');
  f.aimAngle=Math.atan2(z.y-m.y,z.x-m.x);f.kit().held;box.k={...box.k,held:'light-pistol'};f.held=f.gunId;f.hit(z,5,1,0);assert.equal(z.state,'chase','a hit breaks it');f.drain();
  const heat=f.heat;run(f,m,C.again+C.tell+.3);const ev=f.drain();assert.ok(ev.some(e=>e.type==='screamed'),'it tries again and finishes');assert.ok(ev.some(e=>e.type==='horde'),'the horde is coming');assert.ok(f.heat>=heat+C.heat-3);});
+test('the special dead come one at a time: patrols and hordes are the ordinary dead, and a director lets one special in now and then, never past the cap',async()=>{const {SPECIAL,HEAT}=await import('../dist/street/fight.js');
+ const {box,m,f}=setup({...armed(),street:'done'});Object.assign(m,{x:5300,y:1990});f.zombies.length=0;f.patrolT=999;
+ for(let i=0;i<6;i++){f.patrol(false);f.patrol(true);}assert.ok(f.zombies.length>20);assert.ok(f.zombies.every(z=>z.kind==='shambler'),'only the ordinary dead in patrols and hordes');
+ f.zombies.length=0;f.drain();run(f,m,SPECIAL.first+.1,()=>{f.hp=PLAYER_HP;return {};});let ev=f.drain();const sp=ev.filter(e=>e.type==='special');assert.equal(sp.length,1,'one comes on its own');const z=sp[0].z;
+ assert.ok(SPECIAL.kinds.includes(z.kind)&&z.kind!=='brute','a special, and no brute on a quiet street');assert.ok(z.hunt,'already after you');assert.ok(Math.hypot(z.x-m.x,z.y-m.y)>HEAT.spawn.near*.85,'from out of sight');
+ assert.ok(ev.some(e=>e.type==='call'&&e.z===z&&e.first),'calling out as it comes');assert.ok(f.specialT>=SPECIAL.gap[f.level]*.8-.1,'and the next is a while off');
+ // At the cap, nobody else comes until one is down.
+ assert.equal(f.specialsOn(),SPECIAL.cap[0]);assert.equal(f.lone(),false);z.hp=0;assert.equal(f.lone(),true);
+ // While it hunts you it calls every few seconds, in place of a groan.
+ f.zombies.length=0;const r=special(f,'runner',m.x+400,m.y);r.groan=0;f.drain();run(f,m,SPECIAL.call.every[1]*2+.1,()=>{f.hp=PLAYER_HP;r.x=m.x+400;r.state='chase';return {};});ev=f.drain();
+ assert.ok(ev.filter(e=>e.type==='call'&&e.z===r).length>=2);assert.ok(!ev.some(e=>e.type==='groan'&&e.z===r));});
+test('a runner that lands its leap stays on you, clawing, until you shove it or shoot it off, even winded',async()=>{const {RUNNER}=await import('../dist/street/fight.js');const {Stamina}=await import('../dist/camp/fishing.js');const {m,f}=setup();
+ m.stamina=new Stamina();const z=f.zombies[0];Object.assign(z,{kind:'runner',hp:RUNNER.hp,max:RUNNER.hp,idle:false});f.wake();f.zombies.slice(1).forEach(q=>q.delay=99);Object.assign(m,{x:z.x-RUNNER.lunge.at+10,y:z.y});
+ run(f,m,.05+RUNNER.lunge.tell+RUNNER.lunge.time);assert.equal(f.grabber,z,'pinned');assert.equal(z.state,'pin');const hp=f.hp;
+ run(f,m,3);assert.equal(f.grabber,z,'it does not let go on its own');assert.ok(f.hp<=hp-5*RUNNER.lunge.maul.damage,'and keeps clawing');assert.equal(m.slow,0,'you cannot move');
+ m.stamina.value=0;assert.ok(f.shoveOut({}),'a shove gets it off even winded');assert.equal(f.grabber,null);run(f,m,.1);assert.notEqual(z.state,'pin');
+ // A round in it does too.
+ const g=setup();const r=g.f.zombies[0];Object.assign(r,{kind:'runner',hp:RUNNER.hp,max:RUNNER.hp,idle:false});g.f.wake();g.f.zombies.slice(1).forEach(q=>q.delay=99);Object.assign(g.m,{x:r.x-RUNNER.lunge.at+10,y:r.y});
+ run(g.f,g.m,.05+RUNNER.lunge.tell+RUNNER.lunge.time);assert.equal(g.f.grabber,r);g.f.hit(r,10,1,0);run(g.f,g.m,.05);assert.equal(g.f.grabber,null,'shot off');});
+test('a brute charge that catches you carries you along and slams you into what it reaches, and is stunned there; in the open it drops you',async()=>{const {BRUTE}=await import('../dist/street/fight.js');const C=BRUTE.charge;
+ const {m,f}=setup();const z=f.zombies[0];Object.assign(z,{kind:'brute',hp:BRUTE.hp,max:BRUTE.hp,idle:false,x:5600,y:1990});Object.assign(m,{x:5400,y:1990});f.wake();f.zombies.slice(1).forEach(q=>q.delay=99);
+ run(f,m,.05+C.tell+.05);assert.equal(z.state,'charge');let ev=[];for(let t=0;t<C.time&&!f.carried;t+=1/60){m.update(1/60,{});f.update(1/60,{});ev.push(...f.drain());}
+ assert.equal(f.carried,z,'it has you');assert.equal(f.hp,PLAYER_HP-C.damage);assert.equal(f.fire(),false,'you cannot shoot while it carries you');const x0=m.x;
+ run(f,m,C.time);ev.push(...f.drain());assert.ok(m.x<x0-60,'carried along');assert.equal(f.carried,null);assert.ok(ev.some(e=>e.type==='dropped'||e.type==='slam'));
+ // Into a fence: slammed, dazed, and the brute is stunned.
+ const fence=PROPS.find(o=>o.id==='rear-y'),g=setup(),b=g.f.zombies[0],px=fence.x+200,py=fence.y+fence.h+30;Object.assign(g.m,{x:px,y:py});Object.assign(b,{kind:'brute',hp:BRUTE.hp,max:BRUTE.hp,idle:false,x:px,y:py+120,stun:0,ccool:0});g.f.wake();g.f.zombies.slice(1).forEach(q=>q.delay=99);
+ ev=[];for(let t=0;t<C.tell+C.time+.3&&!ev.some(e=>e.type==='slam');t+=1/60){g.m.update(1/60,{});g.f.update(1/60,{});ev.push(...g.f.drain());}
+ assert.ok(ev.some(e=>e.type==='carried'),'carried');assert.ok(ev.some(e=>e.type==='slam'),'slammed into the fence');assert.equal(g.f.hp,PLAYER_HP-C.damage-C.slam);assert.ok(g.f.daze>0,'dazed');assert.ok(b.stun>0,'it is stunned');
+ assert.equal(g.m.blocked(g.m.x,g.m.y)&&!!solidAt(g.m.x,g.m.y,g.m.radius*.85),false,'you are not left inside the fence');});
+test('a bloater bursting on you covers you in bile: half blind a while, the dead near come, and a small horde follows',async()=>{const {BLOATER}=await import('../dist/street/fight.js');const {box,m,f}=setup({...armed(),street:'done'});
+ Object.assign(m,{x:5300,y:1990});f.zombies.length=0;f.patrolT=999;f.specialT=999;const b=special(f,'bloater',5340,1990),w=special(f,'shambler',5300+BLOATER.burst.call-100,1990);w.hunt=false;w.look='worker';w.state='wander';f.drain();
+ f.hit(b,999,1,0);const ev=f.drain();assert.ok(ev.some(e=>e.type==='blind'));assert.equal(f.blind,BLOATER.burst.blind);assert.ok(w.hunt,'the dead near smell it');assert.ok(ev.some(e=>e.type==='horde'),'and a horde follows');
+ run(f,m,BLOATER.burst.blind+.1,()=>{f.hp=PLAYER_HP;return {};});assert.equal(f.blind,0);assert.ok(f.drain().some(e=>e.type==='sight'),'it wears off');
+ // Shot from well away, it does not reach you.
+ const g=setup({...armed(),street:'done'});Object.assign(g.m,{x:5000,y:1990});g.f.zombies.length=0;const b2=special(g.f,'bloater',5300,1990);g.f.hit(b2,999,1,0);assert.equal(g.f.blind,0);});
 test('bloaters swell and burst close to you, throwing you back; the gas hangs and kills the dead caught in it',async()=>{const {BLOATER}=await import('../dist/street/fight.js');const {box,m,f}=setup({...armed(),street:'done'});
  Object.assign(m,{x:5300,y:1990});f.zombies.length=0;f.patrolT=999;const b=special(f,'bloater',5380,1990),B=BLOATER.burst;
  for(let t=0;t<5&&b.state!=='swell';t+=1/60){m.update(1/60,{});f.update(1/60,{});}assert.equal(b.state,'swell','close in, it swells');f.drain();run(f,m,BLOATER.swell.tell+.05);const ev=f.drain();assert.ok(ev.some(e=>e.type==='burst'));assert.equal(b.hp,0);assert.ok(f.hp<=PLAYER_HP-B.damage,'the burst hurts');assert.ok(f.shove,'and throws you back');
@@ -244,7 +279,7 @@ test('spitters lob acid where you are going: stand there and it lands on you, mo
  Object.assign(m,{x:5300,y:1990});f.zombies.length=0;f.patrolT=999;const z=special(f,'spitter',5520,1990),P=SPITTER.spit;
  run(f,m,P.tell+.1);assert.equal(f.globs.length,1,'it spits');const g=f.globs[0];assert.ok(Math.hypot(g.x1-m.x,g.y1-m.y)<5,'at where you stand');run(f,m,P.flight+.05);assert.ok(f.hp<=PLAYER_HP-P.damage,'and it lands on you');assert.equal(f.pools.length,1);
  // Stand in the pool and it burns.
- const hp=f.hp;run(f,m,1.1);assert.ok(f.hp<hp,'the pool burns');
+ const hp=f.hp;run(f,m,1.1);assert.ok(f.hp<hp,'the pool burns');assert.equal(m.slow,P.pool.slow,'and drags at your feet');
  // Walk away from the next one and it misses.
  Object.assign(m,{x:5300,y:2100});f.hp=PLAYER_HP;z.cool=0;run(f,m,P.tell+.05,()=>({x:-1,y:0}));assert.equal(f.globs.length,1);run(f,m,P.flight+.05,()=>({x:-1,y:0}));assert.equal(f.hp,PLAYER_HP,'it misses you on the move');
  assert.ok(Math.hypot(z.x-m.x,z.y-m.y)>SPITTER.keep[0]-20,'it keeps its distance');});

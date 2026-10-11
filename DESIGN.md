@@ -544,6 +544,23 @@ Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack),
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
 
+## v0.63.0 — The special dead, the Left 4 Dead way
+
+Before, specials were everywhere: runners in most breach packs and patrols, and a bloater, spitter or screamer in most hordes, so none of them felt like an event. Now the ordinary dead are the steady pressure and each special is a problem that has to be dealt with right away (`street/fight.js`).
+
+**The director.** Patrols and hordes are only ordinary dead now (`patrol`), apart from a brute in a horde at Swarming when there is room. Specials come on their own instead (`lone`, `SPECIAL`): the first about 25 s after you step out on a job, then one every 55 s while the street is Quiet, 40 at Stirring, 30 at Hunted and 22 at Swarming (each give or take a fifth). Each one comes from the edge of the dark, already after you. No more than 1 special can be after you at once while Quiet, 2 at Stirring or Hunted, and 3 at Swarming; when the cap is full the director waits. The pick is weighted: runner 3, bloater 2, spitter 2, screamer 1.5, brute 1, and no brute while the street is Quiet. In a five-minute run that comes to about five specials while Quiet and about thirteen at Swarming. The bus-lot breaches drop their runners: the fence gaps each have one 'special' place, filled by a runner, spitter or bloater only if the cap allows, and the gym is all shamblers. The ten specials placed round the neighbourhood stay where they were.
+
+**Their moves.**
+- Runner: a leap that lands pins you and does not let go on its own. It claws for 5 every .45 s and you cannot move until you shove it off or shoot it. A shove always works while something has you, even with no stamina left.
+- Brute: a charge that catches you (28) carries you along in front of it. If you reach something solid you are slammed into it (24 more) and dazed for .7 s, and the brute is stunned there, taking half as much again from every hit. In the open it drops you when the charge runs out. You cannot shoot while it carries you.
+- Bloater: caught in its burst, you are covered in bile. The view closes down to a smeared green hole for 5 s, every wanderer within 700 comes, and a small horde (6 to 9) follows when you are out on a job.
+- Screamer: a finished scream wakes every wanderer in its range, and its horde (8 to 11) comes up the road behind the screamer, so it arrives fast.
+- Spitter: pools now last 7 s (was 5), burn for 8 (was 6) and slow you to 60% while you stand in them.
+
+**Their calls.** Each special calls out in its own voice as it arrives (loud enough to hear from the edge of the dark), and again every 3.5 to 6 s while it hunts you, in place of a groan: the runner's rising shriek and hiss, the brute's footfalls and bellow, the screamer's sobbing wail, the bloater's wet gurgle, and the spitter's gargle and hack (Master Creator `sounds/library.js` `special-call`).
+
+**Also fixed.** A horde could spawn just past the distance at which the dead give up and wander off before reaching you. Spawn points are now kept inside that distance, and a horde gives up only at half as far again. The first carry and the first bile each show a one-line tip. Bile covers only the picture, never the touch controls under it.
+
 ## v0.62.0 — Special dead in three looks, a deadlier street, grabs and the shove
 
 **Looks.** Runners, brutes, screamers, bloaters and spitters each come in three looks now (Master Creator `characters/specials.js` `VARIANT_LOOKS`; look 0 is the one they always had, still pixel-identical). Runners: the old tank top, a burgundy hoodie with jeans, and a girl in a sky-blue tee with her ribs showing. Brutes: the old coat, a bald bouncer in black, and a rancher with a cowboy hat and a long beard. Screamers, bloaters and spitters get two more each the same way. They fight the same; only the clothes change. Each special that spawns (wanderers, breaches, waves, patrols) picks one with `vary()` in `street/data.js`; wanderers pick from their place in the list, so the seeded street is unchanged. The extra looks are painted a few milliseconds a frame after the street opens (`buildLooks` in `street/scene.js`), and anything spawning before its look is ready wears the base look until it is.

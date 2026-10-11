@@ -337,6 +337,10 @@ body.deck.touch:not(.pad) #weaponHud{left:calc(var(--vx) + var(--sl));right:auto
 .camp #drillHud{display:none!important}
 #hitFlash{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:0;box-shadow:inset 0 0 70px 14px #d0452ca6}
 #hitFlash.on{animation:hitflash .45s ease-out}
+/* A bloater's bile: green muck over the edges of the view, closing it down to a smeared hole in the middle, that clears as it wears off. */
+#bile{position:fixed;left:0;top:0;width:100%;height:100%;z-index:1;pointer-events:none;opacity:0;transition:opacity 1.6s ease-out;background:radial-gradient(14% 11% at 22% 30%,#9ad13ad0,#6f8a2a90 60%,transparent),radial-gradient(10% 9% at 74% 22%,#a8c246c0,transparent 70%),radial-gradient(16% 12% at 70% 74%,#6f8a2ad0,transparent 75%),radial-gradient(9% 8% at 34% 78%,#e4f08ca0,transparent 70%),radial-gradient(ellipse 46% 40% at 50% 54%,#3c4a1600 30%,#3c4a16b8 62%,#1c220ae8 100%)}
+body.blind #bile{opacity:1;transition:opacity .15s}
+.watching #bile{visibility:hidden}
 @keyframes hitflash{0%{opacity:1}100%{opacity:0}}
 @media(prefers-reduced-motion:reduce){#hitFlash.on{animation-duration:.2s}}
 /* The paint color of the gun you are holding. */
