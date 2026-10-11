@@ -43,6 +43,6 @@ test('the ride\'s art paints: the road, the gate\'s arm, the ramp, the lamps and
  const L=paint(Math.ceil(RIDE.w/LIGHT_SCALE),Math.ceil(RIDE.h/LIGHT_SCALE),lightArt),lum=(x,y)=>{const i=((y/LIGHT_SCALE|0)*L.w+(x/LIGHT_SCALE|0))*4;return L.d[i]+L.d[i+1]+L.d[i+2];};
  assert.ok(lum(INSIDE.x+INSIDE.w/2,INSIDE.y+INSIDE.h/2)>lum(INSIDE.x+INSIDE.w/2,ROAD.bottom+20)+80,'the truck is lit and the night is not');});
 test('the page boards the truck into the ride and the ride lets you off on the ground',()=>{
- const app=fs.readFileSync(new URL('../dist/study/app.js',import.meta.url),'utf8'),page=fs.readFileSync(new URL('../dist/index.html',import.meta.url),'utf8');
+ const app=fs.readFileSync(new URL('../dist/study/app.js',import.meta.url),'utf8'),page=fs.readFileSync(new URL('../dist/index.html',import.meta.url),'utf8'),progress=fs.readFileSync(new URL('../dist/base/progress.js',import.meta.url),'utf8');
  assert.match(app,/ROUTE 9 \/ \d+\.\d+\.\d+/);assert.match(app,/makeRideScene\(rideBridge\)/);assert.match(app,/baseScene\?\.leave\(\(\)=>travel\('ride'\)\)/);
- assert.match(app,/OP_STAGES=\[[^\]]*'boarded','arrived','op','done'\]/);assert.match(app,/arrived:\(\)=>\{setOp\(\{stage:'arrived'\}\);enterGround\(true\);\}/);assert.match(page,/<button id="cineAct"/);assert.match(app,/function rideAct\(\)/);});
+ assert.match(progress,/OP_STAGES=\[[^\]]*'boarded','arrived','op','done'\]/);assert.match(app,/arrived:\(\)=>\{setOp\(\{stage:'arrived'\}\);enterGround\(true\);\}/);assert.match(page,/<button id="cineAct"/);assert.match(app,/function rideAct\(\)/);});

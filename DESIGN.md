@@ -544,6 +544,20 @@ Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack),
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
 
+## v0.70.0 — Operation Bell Jar, part five: the title, after the operation
+
+The last part of the opening mission is the title screen around it. Marcus's night already lives on the menu as its own story (part one), so this part is about what the menu offers once you have played the operation.
+
+**Continue after the operation.** Once you are back aboard with the samples there is nothing to go on with until the rest of the operation is built, but Continue used to say "Operation Bell Jar · Both aboard · to be continued" and dropped you back on Juniper Lane from the truck. Now a finished operation is nothing to continue: Continue picks up Marcus's night if you have one going, or sits dimmed with nothing in progress, and New Game no longer asks before starting over a finished operation.
+
+**New Game, part by part.** The game now remembers the furthest you have got as well as where you are (`base/progress.js`, `reached` in the operation's save; a save from before this has reached its own stage). Once you have got on the truck, New Game opens Operation Bell Jar's parts: The briefing (Hangar 3, Harlan Field, 0300), The ride in (Route 9, eastbound, 0341) and Juniper Lane (on the ground with Aaron, 0412). Each starts from its own beginning; a part you have not reached yet is shown dimmed as "Not reached yet". If you have an operation going, picking a part asks first ("Start over", the operation you have going will be lost). Starting over keeps how far you got, so the parts stay open. Before you board, New Game is just the briefing, as before.
+
+**The line under New Game** says where you are with it: "from the briefing" at first, "from the start or a part you reached" once there are parts, and "is done. Play any part again" after the end card. Coming back to the title from the end card lands on New Game with that line.
+
+**Fixed:** dimmed menu choices (Continue with nothing going) were showing at full strength, because the menu's slide-in animation sets each button's opacity. The dimming is on the words now.
+
+**Under the hood.** `base/progress.js` holds the operation's save (`readOpSave`, `advance`, `opParts`, `newGameLine`, `OP_PARTS`); the parts' names are in `story/op.js` (`OP.parts`). The title takes `parts()`, `newLine()` and `onPart(id)`; app.js `enterPart` starts the briefing, the ride or the ground fresh. Each part played twice in one visit starts clean (checked in a browser). No Master Creator changes.
+
 ## v0.69.0 — Operation Bell Jar, part four: nobody gets left in there
 
 On the ride in Aaron says it: if he goes down you get him up, and if you go down he gets you up. Now that is how it plays.

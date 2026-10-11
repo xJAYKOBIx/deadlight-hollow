@@ -68,7 +68,10 @@ export const OP={
   down:['Six is down! I\'ve got you.','Hang on, Six! I\'m coming!'],revived:['Up you get. Stay on me.','You\'re all right. Back on it.','On your feet. I\'ve got your back.'],
   mdown:'I\'m down! Six, get me up!',mup:['Thanks. Back on it.','I owe you one.','Good. Let\'s finish this.']},
  // Where it ends, until the rest of the operation is built.
- end:['Operation Bell Jar','To be continued']};
+ end:['Operation Bell Jar','To be continued'],
+ // New Game's words once you are past the briefing (v0.70): the parts you can start from, each [name, where and when], and its line.
+ parts:{brief:['The briefing','Hangar 3, Harlan Field · 0300'],ride:['The ride in','Route 9, eastbound · 0341'],ground:['Juniper Lane','On the ground with Aaron · 0412'],
+  again:'Operation Bell Jar, from the start or a part you reached',done:'Operation Bell Jar is done. Play any part again'}};
 // The people in the hangar, and what each says when you walk up. lines rotate; a second visit gets the next one.
 export const OP_TALK={
  calloway:{gear:['Rifle first, Six. Okafor\'s at the armory.','Questions go through your partner. Your partner\'s on the truck.'],armed:['Your truck\'s on the apron. Ramp\'s down. Go.']},

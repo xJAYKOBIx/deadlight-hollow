@@ -1,7 +1,8 @@
 // The title screen: the first thing you see, and where Quit to title comes back to. Behind it is the real street at night (street/
 // scene.js showcase), the camera drifting down the road past the houses to the crashed cruiser and back, with rain falling over it and
-// now and then lightning a long way off. Over it, the name, and a menu: Continue (if there is a night to go back to), New Game,
-// Survivor (the creator), Settings and Credits, worked by touch, mouse, keys or a controller. The game wires what each one does.
+// now and then lightning a long way off. Over it, the name, and a menu: Continue (if there is something going to go back to), New
+// Game, Marcus's Night, Survivor (the creator), Settings and Credits, worked by touch, mouse, keys or a controller. The game wires
+// what each one does.
 import {bus} from '../mc/assets/sounds/kit.js';
 
 // The camera's path down the street, in world units, with how close it is (times the game's zoom) at each point: from up the road,
@@ -16,12 +17,15 @@ export function cameraAt(t,P=TITLE_PATH){const pts=P.pts,lens=[0];for(let i=1;i<
 
 const LETTERS='DEADLIGHT';
 // The menu, top to bottom. sub is the line under each; Continue's comes from the save, and Marcus's Night shows his night when one
-// is going. New Game is the operation from the briefing (v0.66); Marcus's night in the house is its own story now.
+// is going. New Game is the operation from the briefing (v0.66), or from any part of it you have reached (v0.70); Marcus's night in
+// the house is its own story now.
 const ITEMS=[['continue','Continue'],['new','New Game','Operation Bell Jar, from the briefing'],['marcus','Marcus\'s Night','The night it all went wrong'],['survivor','Survivor','Who you are out there'],['settings','Settings','Sound, effects, gore, camera'],['credits','Credits']];
 const CREDITS=[['Deadlight Hollow',''],['Created by','Jaykobi'],['Art, sound and code','Made in the Master Creator library, with Claude'],['Engine','Phaser'],['Type','Saira Stencil One, Barlow Condensed'],['Thanks for playing','Stay off the main roads.']];
 
 // o: version, audio (study/audio.js), device() ('touch', 'keys' or 'pad'), save() (null, or {label, detail} for Continue),
-// opSave() (the operation going, if any: New Game asks first), marcusSave() (his night going, if any), onContinue, onNew, onMarcus, onSurvivor, settings ([{label(), press()}]), controls() (the controls list's HTML), dialogOpen() (a game dialog
+// opSave() (the operation going, if any: New Game asks first), marcusSave() (his night going, if any), parts() (null, or the parts of
+// the operation New Game can start at, [{id, label, sub, off}]), newLine() (New Game's line, when not its own), onContinue, onNew,
+// onPart(id), onMarcus, onSurvivor, settings ([{label(), press()}]), controls() (the controls list's HTML), dialogOpen() (a game dialog
 // over the title takes the keys), buzz(ms).
 export function mountTitle(o){
  const el=document.createElement('div');el.id='title';el.hidden=true;el.setAttribute('role','dialog');el.setAttribute('aria-label','Deadlight Hollow');
@@ -31,7 +35,7 @@ export function mountTitle(o){
  <div class="ti-press" aria-live="polite"></div><nav class="ti-menu" aria-label="Main menu"></nav><section class="ti-panel" hidden></section></div>
  <footer class="ti-foot"><span class="ti-hints"></span><span class="ti-ver"></span></footer><div class="ti-black" aria-hidden="true"></div>`;
  document.body.append(el);const q=s=>el.querySelector(s),menu=q('.ti-menu'),panel=q('.ti-panel'),press=q('.ti-press');q('.ti-ver').textContent='v'+o.version;
- let state='off',shown=false,bed=null,bedT=0,raf=0,last=0,flashAt=0,stickAt=0,leaving=false,opened=0;
+ let state='off',from=null,shown=false,bed=null,bedT=0,raf=0,last=0,flashAt=0,stickAt=0,leaving=false,opened=0;
  const sound=id=>o.audio.play(id,{},.03);
  // The rain: a few hundred thin streaks falling on a slant, drawn at the screen's own size.
  const rain=q('.ti-rain'),rc=rain.getContext('2d');let drops=[];
@@ -55,7 +59,8 @@ export function mountTitle(o){
    b.addEventListener('click',()=>{if(!b.disabled&&!leaving)pick(r.id,b);});box.append(b);}
   const first=[...box.querySelectorAll('.ti-item')].find(b=>!b.disabled);first?.focus({preventScroll:true});}
  function showMenu(focus){state='menu';panel.hidden=true;menu.hidden=false;el.classList.add('ti-menuing');el.classList.remove('ti-paneled');const s=o.save();
-  const m=o.marcusSave?.();list(menu,ITEMS.map(([id,label,sub])=>id==='continue'?{id,label,sub:s?`${s.label} · ${s.detail}`:'Nothing in progress',off:!s}:id==='marcus'&&m?{id,label,sub:`${m.label} · ${m.detail}`}:{id,label,sub}),choose);
+  const m=o.marcusSave?.();list(menu,ITEMS.map(([id,label,sub])=>id==='continue'?{id,label,sub:s?`${s.label} · ${s.detail}`:'Nothing in progress',off:!s}:id==='marcus'&&m?{id,label,sub:`${m.label} · ${m.detail}`}:
+   id==='new'?{id,label,sub:o.newLine?.()||sub}:{id,label,sub}),choose);
   if(focus)menu.querySelector(`[data-id="${focus}"]`)?.focus({preventScroll:true});}
  function showPanel(kind,title,rows,pick,html=''){state=kind;menu.hidden=true;panel.hidden=false;el.classList.add('ti-menuing','ti-paneled');panel.innerHTML=`<h2>${title}</h2>${html}<div class="ti-list"></div>`;
   list(panel.querySelector('.ti-list'),rows,pick);}
@@ -64,13 +69,19 @@ export function mountTitle(o){
   if(focus)panel.querySelector(`[data-id="${focus}"]`)?.focus({preventScroll:true});}
  function controls(){showPanel('controls','Controls',[{id:'back',label:'Back'}],()=>{sound('menu-select');settings('controls');},`<div class="ti-scroll">${o.controls()}</div>`);}
  function credits(){showPanel('credits','Credits',[{id:'back',label:'Back'}],()=>{sound('menu-select');showMenu('credits');},`<dl class="ti-credits">${CREDITS.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join('')}</dl>`);}
- function confirmNew(){showPanel('confirm','Start over?',[{id:'yes',label:'Start the operation',sub:'The operation you have going will be lost'},{id:'back',label:'Back'}],id=>{sound('menu-select');if(id==='back')showMenu('new');else leave(o.onNew);});}
+ // New Game once you have got on the truck (v0.70): the operation from the start or from a part you have reached, asking first when
+ // that would lose an operation you have going.
+ function parts(focus){const P=o.parts?.();if(!P)return showMenu('new');showPanel('parts','Operation Bell Jar',[...P,{id:'back',label:'Back'}],id=>{sound('menu-select');if(id==='back')return showMenu('new');
+   const p=P.find(r=>r.id===id);if(o.opSave?.())confirmNew(p);else leave(()=>o.onPart(id));});if(focus)panel.querySelector(`[data-id="${focus}"]`)?.focus({preventScroll:true});}
+ function confirmNew(p=null){from=p;showPanel('confirm',p?p.label:'Start over?',[{id:'yes',label:p?'Start over':'Start the operation',sub:'The operation you have going will be lost'},{id:'back',label:'Back'}],
+  id=>{sound('menu-select');if(id==='back')return p?parts(p.id):showMenu('new');leave(p?()=>o.onPart(p.id):o.onNew);});}
  function choose(id){sound('menu-select');o.buzz?.(18);
-  if(id==='continue')return leave(o.onContinue);if(id==='new')return o.opSave?.()?confirmNew():leave(o.onNew);if(id==='marcus')return leave(o.onMarcus);
+  if(id==='continue')return leave(o.onContinue);if(id==='new')return o.parts?.()?parts():o.opSave?.()?confirmNew():leave(o.onNew);if(id==='marcus')return leave(o.onMarcus);
   if(id==='survivor')return o.onSurvivor();if(id==='settings')return settings();if(id==='credits')return credits();}
  // Going in: the menu goes, the screen goes black, the game is set up behind it, and the black lifts on the place.
  function leave(fn){leaving=true;state='leaving';el.classList.add('ti-leaving');hush();setTimeout(()=>{fn();setTimeout(close,250);},760);}
- function back(){if(state==='menu'||state==='splash'||state==='leaving')return;sound('menu-move');if(state==='controls')settings('controls');else showMenu(state==='confirm'?'new':state);}
+ function back(){if(state==='menu'||state==='splash'||state==='leaving')return;sound('menu-move');if(state==='controls')settings('controls');else if(state==='confirm'&&from)parts(from.id);
+  else showMenu(state==='confirm'||state==='parts'?'new':state);}
  // The first touch, click, key or button: the sound can start, the title hits, and the menu comes up.
  function wake(){if(state!=='splash')return;state='waking';setTimeout(()=>{sound('title-hit');o.buzz?.(40);el.classList.add('ti-lit');showMenu();},60);}
  function step(dir){const items=[...el.querySelectorAll(state==='menu'?'.ti-menu .ti-item':'.ti-panel .ti-item')].filter(b=>!b.disabled);if(!items.length)return;

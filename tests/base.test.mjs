@@ -5,6 +5,7 @@ import {Brief,BRIEF} from '../dist/base/brief.js';
 import {OP,OP_SPEAKERS,OP_TALK} from '../dist/story/op.js';
 import {groundArt,lightArt,dimArt,LIGHT_SCALE,propArt,PROP_PAD} from '../dist/base/art.js';
 import {normalizeAppearance} from '../dist/study/appearance.js';
+import {OP_KEY,OP_STAGES,OP_PARTS,readOpSave,advance,opParts,newGameLine} from '../dist/base/progress.js';
 const require=createRequire(import.meta.url);let createCanvas;try{({createCanvas}=require((process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES||'/opt/codex/runtimes/codex-primary-runtime/dependencies/node/node_modules')+'/@napi-rs/canvas'));}catch{}
 const overlap=(a,b)=>a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h;
 test('Hangar 3 holds its props inside the world, one chair to each of the unit and yours left empty beside an empty seat',()=>{
@@ -48,3 +49,17 @@ test('the page offers Harlan Field and the title offers the operation and Marcus
  const app=fs.readFileSync(new URL('../dist/study/app.js',import.meta.url),'utf8'),title=fs.readFileSync(new URL('../dist/title/title.js',import.meta.url),'utf8');
  assert.match(app,/HARLAN FIELD \/ \d+\.\d+\.\d+/);assert.match(app,/onNew:\(\)=>enterOp\(true\)/);assert.match(app,/onMarcus:/);
  for(const id of ['continue','new','marcus','survivor','settings','credits'])assert.match(title,new RegExp(`\\['${id}'`));});
+test('the operation remembers the furthest you got, and New Game offers each part you reached once you are past the briefing',()=>{
+ const store=v=>({getItem:k=>k===OP_KEY?v:null});assert.equal(readOpSave(store(null)),null);assert.equal(readOpSave(store('{"stage":"lost"}')),null);assert.equal(readOpSave(store('not json')),null);
+ assert.deepEqual(readOpSave(store('{"stage":"done"}')),{stage:'done',reached:'done'},'a save from before v0.70 has reached its own stage');
+ assert.deepEqual(readOpSave(store('{"stage":"op","reached":"gear"}')),{stage:'op',reached:'op'},'reached is never behind the stage');
+ let s=advance({stage:'brief'},{});for(const st of OP_STAGES){s=advance(s,{stage:st});assert.equal(s.reached,st);}
+ s=advance(s,{stage:'brief'});assert.deepEqual(s,{stage:'brief',reached:'done'},'starting over keeps how far you got');
+ for(const st of ['brief','gear','armed'])assert.equal(opParts({stage:st,reached:st}),null,`${st}: New Game is just the briefing`);
+ assert.deepEqual(OP_PARTS.map(p=>[p.id,p.stage]),[['brief','brief'],['ride','boarded'],['ground','arrived']]);
+ const open=r=>opParts({stage:'brief',reached:r}).map(p=>p.off?0:1).join('');assert.equal(open('boarded'),'110');assert.equal(open('arrived'),'111');assert.equal(open('done'),'111');
+ for(const p of opParts({stage:'done',reached:'done'}))assert.ok(p.label&&p.sub&&!p.off,p.id);assert.equal(opParts({reached:'boarded'})[2].sub,'Not reached yet');
+ assert.equal(newGameLine(null),null);assert.equal(newGameLine({stage:'gear',reached:'gear'}),null);assert.equal(newGameLine({stage:'op',reached:'op'}),OP.parts.again);assert.equal(newGameLine({stage:'done',reached:'done'}),OP.parts.done);
+ const app=fs.readFileSync(new URL('../dist/study/app.js',import.meta.url),'utf8'),title=fs.readFileSync(new URL('../dist/title/title.js',import.meta.url),'utf8');
+ assert.match(app,/op\.stage==='done'\)return null/,'a finished operation is nothing to continue');assert.match(app,/parts:\(\)=>opStarted\?opParts\(op\):null/);assert.match(app,/onPart:enterPart/);assert.match(app,/setOp\(patch\)\{op=advance\(op,patch\)/);
+ assert.match(title,/o\.parts\?\.\(\)\?parts\(\):o\.opSave\?\.\(\)\?confirmNew\(\):leave\(o\.onNew\)/,'New Game opens the parts once there are any');assert.match(title,/if\(o\.opSave\?\.\(\)\)confirmNew\(p\)/,'a part asks first when an operation is going');});
