@@ -544,6 +544,37 @@ Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack),
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
 
+## v0.69.0 — Operation Bell Jar, part four: nobody gets left in there
+
+On the ride in Aaron says it: if he goes down you get him up, and if you go down he gets you up. Now that is how it plays.
+
+**You go down** (`street/op.js`, `street/mate.js`). With Aaron on his feet you no longer go straight back to the truck. You tip over onto your side, the street goes grey, a red edge pulses and you hear your heart. Aaron says he has you and comes, running. He shoots anything on top of either of you first. Then he gets down on one knee behind you, rifle covering the street, while a ring on the ground round you fills over three seconds. You come up where you fell with 40 health, and nothing can touch you for a moment and a half. The readout says Aaron is coming, or that he is getting you up, with a bar: red and draining for how long you have left (thirty seconds), teal and filling once he is at it. The uplink holds where it was while you are down. Only if both of you go down (or the thirty seconds run out) are you back at the truck with what is done still done, as before.
+
+**Aaron goes down.** He has 150 health, and his plate carrier takes some of every bite. It closes up slowly once nothing has touched him for a while. At nothing he goes over onto his side and says so, and Gadget tells you to get to him. A mark and Help up (two and a half seconds standing still, on one knee) get him back on his feet with half his health and a full magazine. Being bitten stops you, as any search does. He does not bleed out (nobody gets left in there), but he does nothing while he is down, and the truck will not take you without him.
+
+**Who the dead go for.** The ordinary dead go for Aaron when he is clearly the nearer of you, and wanderers notice him as they notice you. The special dead still want you. With you down, the dead near him turn on him and the rest stand over you until he clears them.
+
+**Aaron in the fight.**
+- At the beacon he stands across it from you, so between you nothing comes in unseen, and he looks hardest at what is behind you.
+- He stays on one target until another is clearly worse, snaps onto anything right on top of him, and fires without a pause between bursts then.
+- With two of the dead on him, or one about to bite, he drives them back with the stock, as your shove does.
+- He calls out on the same radio strip as Gadget, a line at a time: each special as it comes into sight ("Brute! Everything you've got, and keep moving."), one close behind you that you are not looking at, his reload, being hurt, going down and getting up, and getting you up.
+
+**The uplink's special dead** come in order now, so Aaron can name each: a runner at 14 seconds, a spitter at 28 and a brute at 40.
+
+**Balance.** A bot plays the operation headless with perfect aim, with sloppy aim (wobble, slow to switch, missing some behind it) and with bad aim, 16 seeds each. Perfect aim almost never goes down. Sloppy and bad aim go down about once a run; Aaron gets them up 9 times in 10, and every run reaches the truck, in 81 to 85 seconds on the ground on average. Before Aaron's armor, target sticking and stock, the dead on him put him down in half of those revives.
+
+**On screen.**
+- Down is the same fall the dead take, every layer tipped over at the hips, with the rifle lying along you; getting up plays it back, eased.
+- Kneeling folds the legs and lowers the rest, for Aaron by you and for you by him.
+- Aaron gets a third row in the health panel, teal, amber when low and Down when he is.
+- The radio strip now sits under the readout on wider screens instead of over it.
+- The debrief counts every time you went down, how often Aaron got you up and how often you got him up.
+
+**Under the hood.** `tests/op.test.mjs` adds: Aaron getting you up where you fell with the link held; both down back at the truck; the dead going for him, his armor, and Help up; no boarding without him; the uplink's three specials in order with Aaron naming each; his callout behind you and his stock; and every new line. The play-through bot gets back to its route only when it was sent back to the truck.
+
+**Master Creator c3ba7f2.** Two sounds in the Operation group: a muffled heartbeat to play while you are down, and being hauled back onto your feet.
+
 ## v0.68.0 — Operation Bell Jar, part three: on the ground
 
 **Off the truck.** The ride no longer ends on a card. When the ramp comes down you are out on the street at the top of Juniper Lane (0412, Hollow Six), with Aaron beside you and Gadget on the radio. On the ground you carry the operation's own kit (`home/kit.js` `opKit`): the Tactical AR with thirty in it, three more magazines (90 rifle rounds) in a canvas daypack, the Light Pistol on your hip, and your helmet on. It saves on its own (`deadlight-opkit-v1`), so Marcus's night is never touched, and each step is saved as it is done. The operation's save gains two stages, op and done, and Continue's line names the step you are on. Going down puts you back at the truck with what is done still done. Start the operation over (in the menu) starts again from the ramp, and `?op` opens the ground part straight away.

@@ -135,6 +135,7 @@ const atRamp=(T,dx=0)=>({x:T.x-OP_APC.ramp-14+dx,y:T.y+OP_APC.h/2+6});
 export const OP_SPOTS=[{id:'op-samples',op:'samples',verb:'Recover',name:'The courier',role:'Marrow\'s samples, in the torn hold',x:OP_WRECK.x+34,y:OP_WRECK.y+OP_WRECK.h+16,mx:OP_WRECK.x+30,my:OP_WRECK.y-6,range:40,mark:'Samples'},
  {id:'op-plant',op:'beacon',verb:'Plant',name:'The crash',role:'The containment beacon goes here',x:OP_BEACON.x+40,y:OP_BEACON.y+OP_BEACON.h+8,mx:OP_BEACON.x+8,my:OP_BEACON.y-10,range:40,mark:'Beacon'},
  {id:'op-ammo',op:'ammo',verb:'Restock',name:'Ammo cans',role:'Spare magazines for the rifle',x:OP_CANS.x+OP_CANS.w/2,y:OP_CANS.y+OP_CANS.h+12,mx:OP_CANS.x+OP_CANS.w/2,my:OP_CANS.y-OP_CANS.z-6,range:34},
+ {id:'op-aaron',op:'revive',verb:'Help up',name:'Aaron',role:'Get him back on his feet',...AWAY,range:40,mark:'Aaron'},
  {id:'op-board',op:'board',verb:'Board',name:'Hollow Six\'s truck',role:'Up the ramp and home',...atRamp(OP_PICKUP),mx:OP_PICKUP.x-12,my:OP_PICKUP.y-OP_APC.z+10,range:48,mark:'Truck'}];
 export const opRamp=atRamp;
 // The big buildings' doors: shut tonight, every one.

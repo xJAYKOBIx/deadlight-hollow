@@ -234,7 +234,7 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   // Going over a fence, all of you is lifted by the hop.
   const lift=f.vault?f.vault.h||0:0;
   for(const k of ORDER){const s=this.parts[k],ride=p.rides.includes(k)&&!down,body=k==='body'&&!ride;s.setFrame(p[k]);
-   s.setPosition(half(model.x+(ride?p.dx+kx:body?kx*.35:0)),half(model.y-lift+(ride?p.dy+ky:body?ky*.35:0)));s.setAlpha(down?.5:1);}
+   s.setPosition(half(model.x+(ride?p.dx+kx:body?kx*.35:0)),half(model.y-lift+(ride?p.dy+ky:body?ky*.35:0)));s.setAlpha(down&&!this.op?.shown?.5:1);}
   const y=model.y;this.parts.legs.setDepth(y);this.parts.body.setDepth(y+.01);this.parts.arms.setDepth(y+.02).setVisible(gun);this.parts.head.setDepth(y+.03);}
  // One look's sheets, each as rows to paint and the frames to cut: standing and walking (or running) in eight facings, the act for the
  // special dead, and unless it never comes apart, its pieces (a row each, in the same crop) and its crawl (five facings, the rest mirrored, by four frames).
@@ -325,7 +325,7 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   // A shove: a scuff of dust at your feet and a puff where your hands land.
   else if(e.type==='shove'){const c=Math.cos(e.a),sn=Math.sin(e.a);j.puff(model.x-c*4,model.y-1,.4,0x6a6458,.35,-3);j.puff(model.x+c*22,model.y+sn*14-18,e.hit?.6:.4,0x8a8478,.3,-6);if(e.hit)j.shake('down');}
   else if(e.type==='hurt')j.shake('hurt');
-  else if(e.type==='down')j.shake('brute');
+  else if(e.type==='down'){j.shake('brute');if(this.op?.shown)this.op.react(now,e);}
   else if(e.type==='stage'&&e.stage==='looted')this.setTrunk(true);
   else if(e.type==='restart')this.enter();
   // Over a fence: a little dust where you land. The generator coughs into life in a cloud of smoke.
@@ -345,7 +345,7 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
    else if(b.id==='drain')j.puff(b.x,b.y-2,.8,0x4a4a48,.6,-6);}
   else if(e.type==='overrun'){for(const b of BREACHES)if(b.prop)this.repaint(b.prop);}
   else if(e.type==='sputter')j.puff(GEN.x+4,GEN.y-10,.6,0x6a6a66,.5,-10);
-  else if(this.op&&['mateshot','dropped','planted','truckstop','truckwait'].includes(e.type))this.op.react(now,e);
+  else if(this.op&&['mateshot','dropped','planted','truckstop','truckwait','matehurt','matedown','mateup','revived'].includes(e.type))this.op.react(now,e);
   else if(e.type==='fixmiss'&&e.kind==='wire')j.bits(5,model.x,model.y,{dir:-Math.PI/2,spread:2.6,speed:70,lift:40,z:20,col:0xfff1a8,life:.25,kind:'spark',len:2});
   bridge.event?.(e);}
  // A casing out of the right side of the gun: brass from the pistol and the rifles, a red hull from the shotgun; from you, or from

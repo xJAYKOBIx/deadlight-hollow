@@ -58,7 +58,15 @@ export const OP={
   truck:[['gadget','Ramp\'s down! In, in, in!']],
   aboard:[['aaron','Hollow Six, both aboard.'],['gadget','Hold on to something.']]},
  air:{quarter:'Uplink\'s a quarter of the way.',half:'Halfway. Keep them off the beacon.',most:'Three quarters. Nearly there.',away:'You\'re too far from the beacon. It\'s losing the link.',
-  ammo:'You\'re running low. Drone\'s dropping you a can.',coming:'Truck\'s two streets out.',more:'More of them coming. Big group.',down:'Six is down! Aaron, get them back to the truck.'},
+  ammo:'You\'re running low. Drone\'s dropping you a can.',coming:'Truck\'s two streets out.',more:'More of them coming. Big group.',down:'Six is down! Aaron, get them back to the truck.',
+  mdown:'Aaron\'s down! Six, get to him.',both:'You\'re both down. I\'m pulling you back to the truck.'},
+ // Aaron while you fight (v0.69, street/mate.js), over the same radio strip, a line at a time: each special as it comes into sight, one
+ // behind you, his own reload, being hurt, going down and getting up; and you going down and him getting you up. A list takes turns.
+ mate:{special:{runner:'Runner! Fast one, coming in!',spitter:'Spitter! Stay out of the green.',brute:'Brute! Everything you\'ve got, and keep moving.',
+   bloater:'Bloater. Don\'t let it pop next to you.',screamer:'Screamer! Drop it before it calls more.'},
+  behind:['Behind you!','On your six!','Behind you, Six!'],reload:['Reloading!','Changing mags!'],hurt:['They\'re on me!','I\'m hit. I\'m all right.'],
+  down:['Six is down! I\'ve got you.','Hang on, Six! I\'m coming!'],revived:['Up you get. Stay on me.','You\'re all right. Back on it.','On your feet. I\'ve got your back.'],
+  mdown:'I\'m down! Six, get me up!',mup:['Thanks. Back on it.','I owe you one.','Good. Let\'s finish this.']},
  // Where it ends, until the rest of the operation is built.
  end:['Operation Bell Jar','To be continued']};
 // The people in the hangar, and what each says when you walk up. lines rotate; a second visit gets the next one.

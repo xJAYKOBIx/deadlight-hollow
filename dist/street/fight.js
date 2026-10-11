@@ -115,7 +115,7 @@ export class Fight{
  constructor(model,{kit,setKit,grid}){Object.assign(this,{model,kit,setKit,grid,traces:[],fields:[],events:[],zombies:[],hp:PLAYER_HP,maxHp:PLAYER_HP,down:0,cooldown:0,reloadTime:0,throwCooldown:0,sinceShot:9,sinceHurt:9,bash:null,bashCool:0,alert:false,wave:-1,seed:1,held:null,grab:0,grabber:null,grabSlow:1,carried:null,daze:0,blind:0,inAcid:false,specialT:SPECIAL.first,gore:true,searching:null,drops:[],heat:0,quiet:99,level:0,patrolT:30,hordeT:0,vault:null,push:0,evac:null,powerT:0,globs:[],pools:[],clouds:[],burnT:0,pv:{x:0,y:0},stats:{kills:0,shots:0,found:0,downs:0,time:0}});
   this.drill={bots:this.zombies,holdout:false,downed:false};this.flow=new Flow();this.jobs=new Jobs(this);this.bell=new Bell(this);}
  // Sets the street up for where the kit says you are: the cop waiting at the cruiser, the second wave coming, or nothing.
- start(){const k=this.kit();this.snapshot=k;this.hp=PLAYER_HP;this.down=0;this.bash=null;this.grab=0;this.grabber=null;this.carried=null;this.daze=0;this.blind=0;this.inAcid=false;this.specialT=SPECIAL.first;this.searching=null;this.drops=[];this.heat=0;this.quiet=99;this.level=0;this.patrolT=30;this.hordeT=0;this.vault=null;this.push=0;this.evac=null;this.powerT=0;this.globs=[];this.pools=[];this.clouds=[];this.burnT=0;MOVING.length=0;this.bashCool=0;this.alert=false;this.traces=[];this.reloadTime=0;this.cooldown=0;this.held=k.held;this.zombies.length=0;
+ start(){const k=this.kit();this.snapshot=k;this.hp=PLAYER_HP;this.down=0;this.safe=0;this.bash=null;this.grab=0;this.grabber=null;this.carried=null;this.daze=0;this.blind=0;this.inAcid=false;this.specialT=SPECIAL.first;this.searching=null;this.drops=[];this.heat=0;this.quiet=99;this.level=0;this.patrolT=30;this.hordeT=0;this.vault=null;this.push=0;this.evac=null;this.powerT=0;this.globs=[];this.pools=[];this.clouds=[];this.burnT=0;MOVING.length=0;this.bashCool=0;this.alert=false;this.traces=[];this.reloadTime=0;this.cooldown=0;this.held=k.held;this.zombies.length=0;
   this.overrun=null;this.dead=null;this.remains=null;this.warn=null;this.opened=new Set(k.phase==='own'?BREACHES.map(b=>b.prop).filter(Boolean):[]);this.torch=k.phase==='own'&&k.corpse&&!k.corpse.taken?this.torch:null;const fromOp=!!this.model.spawn?.op;this.model.spawn=k.phase==='own'&&!fromOp?this.model.spawn:null;if(fromOp)this.model.reset();
   // A different night (or the operation) is a different street: the wanderers you put down are back on their feet.
   if(this.night!==k.phase){this.night=k.phase;this.fallen=new Set();this.roamList=null;}
@@ -316,8 +316,8 @@ export class Fight{
  vaulting(dt){const v=this.vault,m=this.model;v.t+=dt;const k=Math.min(1,v.t/VAULT.time),e=k<.5?2*k*k:1-2*(1-k)*(1-k);m.x=v.from.x+(v.to.x-v.from.x)*e;m.y=v.from.y+(v.to.y-v.from.y)*e;
   v.k=k;v.h=Math.sin(k*Math.PI)*v.z*VAULT.lift;m.moving=false;if(k>=1){this.vault=null;this.emit('over',{x:m.x,y:m.y});}}
  // You, bitten.
- hurt(n,from,shove=true,kind='bite'){if(this.down||this.dead)return;if(this.overrun)n*=DEATH.hurt;if(this.grab)shove=false;this.jobs.bitten();if(this.searching){this.searching=null;this.emit('searchstop');}this.hp=Math.max(0,this.hp-n);this.sinceHurt=0;const m=this.model,dx=m.x-from.x,dy=m.y-from.y,d=Math.hypot(dx,dy)||1;if(shove)this.shove={x:dx/d*ZOMBIE.bite.shove,y:dy/d*ZOMBIE.bite.shove};
-  this.emit('hurt',{n,hp:this.hp,kind});if(!this.hp){if(this.kit().phase!=='own'&&this.evac){this.die();return;}this.down=3;this.reloadTime=0;this.free();this.carried=null;this.daze=0;this.drill.downed=true;this.emit('down');}}
+ hurt(n,from,shove=true,kind='bite'){if(this.down||this.dead||this.safe>0)return;if(this.overrun)n*=DEATH.hurt;if(this.grab)shove=false;this.jobs.bitten();if(this.searching){this.searching=null;this.emit('searchstop');}this.hp=Math.max(0,this.hp-n);this.sinceHurt=0;const m=this.model,dx=m.x-from.x,dy=m.y-from.y,d=Math.hypot(dx,dy)||1;if(shove)this.shove={x:dx/d*ZOMBIE.bite.shove,y:dy/d*ZOMBIE.bite.shove};
+  this.emit('hurt',{n,hp:this.hp,kind});if(!this.hp){if(this.kit().phase!=='own'&&this.evac){this.die();return;}this.down=this.bell.downed()||3;this.reloadTime=0;this.free();this.carried=null;this.daze=0;this.drill.downed=true;this.emit('down',{bleed:!!this.bell.bleeding,both:this.bell.both()});}}
  // The cop turns round and the others come out of the dark.
  wake(){this.alert=true;for(const z of this.zombies)if(z.idle){z.idle=false;this.emit('groan',{z,loud:true});}}
  // A shot: the cop wakes if it is near enough to hear, and so does every wanderer in earshot.
@@ -339,7 +339,7 @@ export class Fight{
  touchingPlayer(x,y){const m=this.model;return Math.hypot(x-m.x,(y-m.y)*1.4)<14;}
  update(dt,input={}){dt=clamp(Number(dt)||0,0,.05);const m=this.model,g=this.gun;if(dt){this.pv={x:(m.x-(this.px??m.x))/dt,y:(m.y-(this.py??m.y))/dt};}this.px=m.x;this.py=m.y;
   if(this.held!==this.gunId){this.held=this.gunId;this.reloadTime=0;this.cooldown=Math.max(this.cooldown,.35);this.emit('swap');}
-  this.cooldown=Math.max(0,this.cooldown-dt);this.sinceShot+=dt;this.sinceHurt+=dt;
+  this.cooldown=Math.max(0,this.cooldown-dt);this.sinceShot+=dt;this.sinceHurt+=dt;if(this.safe)this.safe=Math.max(0,this.safe-dt);
   // He is gone: only his body and the dead near him move, until you have made the survivor who watched.
   if(this.dead){this.dying(dt);const b=this.dead.body;for(const z of this.zombies)if(z!==b&&Math.abs(z.x-b.x)+Math.abs(z.y-b.y)<900)this.think(z,dt);for(const t of this.traces){t.age+=dt;t.life-=dt;t.done=t.done||t.age>=t.dur;}this.traces=this.traces.filter(t=>t.life>0);return;}
   if(this.down){this.down=Math.max(0,this.down-dt);if(!this.down)this.restart();}
@@ -406,8 +406,9 @@ export class Fight{
   if(z.lurk){if(d<RISEN.notice||z.hp<z.max){z.lurk=false;this.emit('groan',{z,loud:true});this.emit('lurch',{z});}else{z.frame=0;return;}}
   z.groan-=dt;if(z.groan<=0){const C=SPECIAL.call;if(SPECIALS.has(z.kind)&&(z.hunt||z.roam===undefined&&this.alert)){z.groan=C.every[0]+this.rand()*(C.every[1]-C.every[0]);if(d<C.far&&!z.tell)this.emit('call',{z});}
    else{z.groan=2.5+this.rand()*3;if(d<ROAM.hear)this.emit('groan',{z});}}
-  if(z.roam!==undefined&&!z.hunt){if(!this.down&&!this.ghost&&(d<NOTICE||this.lit(z,d)))this.notice(z);else{this.wander(z,dt);return;}}
+  if(z.roam!==undefined&&!z.hunt){if(!this.down&&!this.ghost&&(d<NOTICE||this.lit(z,d)||this.bell.seen(z,NOTICE)))this.notice(z);else{this.wander(z,dt);return;}}
   if(z.roam!==undefined&&d>ROAM.lose*(z.swarm?1.6:1)){z.hunt=false;z.state='wander';z.sx=z.x;z.sy=z.y;z.wt=0;return;}
+  if(!SPECIALS.has(z.kind)){const M=this.bell.preyOf(z,d,dt);if(M)return this.atMate(z,dt,M);}
   z.direction=facing(dx,dy);
   if(this.down){z.frame=0;return;}
   if(z.kind==='brute')return this.brute(z,dt,d,dx,dy);
@@ -423,12 +424,18 @@ export class Fight{
   const speed=(d<ZOMBIE.lurchAt?ZOMBIE.lurch:ZOMBIE.walk)*(z.look==='jogger'?1.25:1);this.chase(z,dt,Math.min(Math.max(0,d-ZOMBIE.reach+4),speed*dt),d,dx,dy);}
  // Moving at you by go this step: straight, or round what is between by the flow, sidestepping when stuck. stride is how far one
  // walk cycle carries it.
- chase(z,dt,go,d,dx,dy,stride=40){const m=this.model;let ax=dx/d,ay=dy/d;
+ chase(z,dt,go,d,dx,dy,stride=40,m=this.model){let ax=dx/d,ay=dy/d;
   // A clear line: straight at you. Otherwise round whatever is between, by the flow (checked a few times a second).
   if(d>28){z.seeT=(z.seeT||0)-dt;if(z.seeT<=0){z.seeT=.2;z.clear=clearLine(z.x,z.y,m.x,m.y);}if(!z.clear){const w=this.flow.way(z.x,z.y);if(w){ax=w.x;ay=w.y;}}}
   if(z.detour>0){z.detour-=dt;const s=z.side;[ax,ay]=[-ay*s*.9+ax*.1,ax*s*.9+ay*.1];}
   const moved=go?this.step(z,ax,ay,go):0;if(go&&!moved){z.stuck=(z.stuck||0)+dt;if(z.stuck>.35){z.stuck=0;z.side=z.side===1?-1:1;z.detour=.9;}}else z.stuck=0;
   if(moved){z.phase=(z.phase+moved/stride)%1;z.frame=1+Math.floor(z.phase*8);}else{z.frame=0;z.phase=0;}return moved;}
+ // One of the ordinary dead after Aaron instead of you (street/op.js says when): the same shamble and lurch, and a bite that hurts
+ // him; it has no hold on him, so it bites again when it can.
+ atMate(z,dt,M){const a=M.m,B=ZOMBIE.bite,dx=a.x-z.x,dy=a.y-z.y,d=Math.hypot(dx,dy)||1;z.direction=facing(dx,dy);
+  if(z.state==='windup'){z.t-=dt;z.tell=Math.max(0,z.t);z.frame=0;if(z.t<=0){z.state='chase';z.cool=B.cooldown;z.tell=0;if(d<B.range&&!M.down)M.hurt(B.damage,z);else this.emit('miss',{z});}return;}
+  if(d<ZOMBIE.reach+2&&!z.cool){z.state='windup';z.t=B.windup;z.tell=B.windup;this.emit('windup',{z,mate:true});return;}
+  const speed=(d<ZOMBIE.lurchAt?ZOMBIE.lurch:ZOMBIE.walk)*(z.look==='jogger'?1.25:1);this.chase(z,dt,Math.min(Math.max(0,d-ZOMBIE.reach+4),speed*dt),d,dx,dy,40,a);}
  // A runner: the crouch, the leap, and the sprawl after a miss. Returns true while it is busy with one.
  runner(z,dt,d,dx,dy){const L=RUNNER.lunge,m=this.model;
   // On you: on top of you, clawing, until it is shoved or shot off you (and then it sprawls a moment).
@@ -521,7 +528,7 @@ export class Fight{
  specialsOn(){let n=0;for(const z of this.zombies)if(SPECIALS.has(z.kind)&&z.hp>0&&(z.hunt||z.roam===undefined&&this.alert))n++;return n;}
  pickSpecial(w){const ks=Object.keys(w).filter(k=>k!=='brute'||this.level>=1),sum=ks.reduce((a,k)=>a+w[k],0);let r=this.rand()*sum;for(const k of ks)if((r-=w[k])<0)return k;return ks[0];}
  // The director lets one in: from the edge of the dark, already after you, calling out as it comes.
- lone(){if(this.specialsOn()>=SPECIAL.cap[this.level])return false;const at=this.edge();if(!at)return false;const m=this.model,kind=this.pickSpecial(SPECIAL.pick),look=vary(kind,this.rand()),hp=this.hpOf(kind,look);
+ lone(want=null){if(this.specialsOn()>=SPECIAL.cap[this.level])return false;const at=this.edge();if(!at)return false;const m=this.model,kind=want||this.pickSpecial(SPECIAL.pick),look=vary(kind,this.rand()),hp=this.hpOf(kind,look);
   const z={kind,...(kind==='brute'?{tellY:BRUTE.tellY}:kind==='bloater'?{tellY:BLOATER.tellY}:{}),extra:true,roam:-1,look,x:at.x,y:at.y,sx:at.x,sy:at.y,direction:facing(m.x-at.x,m.y-at.y),frame:0,phase:0,hp,max:hp,idle:false,delay:0,state:'chase',hunt:true,t:0,vx:0,vy:0,stagger:0,tell:0,cool:0,flash:0,groan:SPECIAL.call.every[0],wt:0,wx:at.x,wy:at.y,acc:0};
   this.zombies.push(z);this.emit('special',{z});this.emit('call',{z,first:true});return true;}
  // A patrol, or a horde: only the ordinary dead (the specials come on their own, above), with a brute in a horde at the top if there
