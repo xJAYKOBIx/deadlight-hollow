@@ -126,7 +126,7 @@ test('climbing: push into a low fence for a moment and you hop over it, bites mi
  // The farm fence round the edge of town stays shut.
  const farm=PROPS.find(o=>o.id==='farm-n2');Object.assign(m,{x:farm.x+300,y:farm.y+farm.h+m.radius*.85+1});run(f,m,1,up);assert.ok(m.y>farm.y,'still inside the farm fence');});
 test('the first job: three things anywhere in town in any order, then call the truck, hold out, and get in the back',async()=>{const {JOB}=await import('../dist/street/fight.js');const {jobsDone,GO_BAG}=await import('../dist/home/kit.js');const {TARGETS}=await import('../dist/street/model.js');
- const {box,m,f}=setup({...armed(),street:'done'}),T=id=>TARGETS.find(t=>t.id===id),at=t=>Object.assign(m,{x:t.x,y:t.y});
+ const {box,m,f}=setup({...armed(),street:'done'}),T=id=>TARGETS.find(t=>t.id===id),at=t=>Object.assign(m,{x:t.x,y:t.y});f.zombies.length=0;
  assert.match(goal(box.k,true),/radio.*generator.*go-bag/);assert.equal(f.can(T('evac')),false,'the truck cannot be called yet');assert.equal(f.can(T('board')),false);
  for(const id of ['job-radio','job-power','job-supplies'])assert.ok(!solidAt(T(id).x,T(id).y,8),id+' can be reached');
  // The go-bag first: a moment standing still, then it is in your bag. Moving stops a job.
@@ -141,3 +141,24 @@ test('the first job: three things anywhere in town in any order, then call the t
  for(let t=0;t<JOB.evac.hold;t+=1/60){f.hp=PLAYER_HP;m.update(1/60,{});f.update(1/60,{});}assert.ok(f.drain().filter(e=>e.type==='horde').length>=3,'hordes come all through the hold-out');
  f.zombies.length=0;run(f,m,JOB.evac.drive+.1);assert.equal(f.evac.state,'wait');assert.ok(solidAt(T('board').x-30,T('board').y,4),'the truck is there and solid');assert.ok(f.can(T('board')));
  at(T('board'));f.drain();assert.ok(f.work(T('board')));const ex=f.drain().find(e=>e.type==='extract');assert.ok(ex&&ex.stats.time>JOB.evac.hold,'the night is summed up');assert.equal(box.k.mission.out,true);assert.equal(f.can(T('board')),false);});
+const special=(f,kind,x,y)=>{const hp=f.hpOf(kind,kind),z={kind,extra:true,roam:-1,look:kind,x,y,sx:x,sy:y,direction:4,frame:0,phase:0,hp,max:hp,idle:false,delay:0,state:'chase',hunt:true,t:0,vx:0,vy:0,stagger:0,tell:0,cool:0,flash:0,groan:9,wt:0,wx:x,wy:y,acc:0};f.zombies.push(z);return z;};
+test('screamers keep their distance and scream when they see you: a hit breaks it, a finished scream brings a horde',async()=>{const {SCREAMER}=await import('../dist/street/fight.js');const {box,m,f}=setup({...armed(),street:'done'});
+ Object.assign(m,{x:5300,y:1990});f.zombies.length=0;f.patrolT=999;const z=special(f,'screamer',5440,1960),C=SCREAMER.scream;
+ run(f,m,2.2);assert.equal(z.state,'scream','it stops and screams');assert.ok(Math.hypot(z.x-m.x,z.y-m.y)>SCREAMER.keep-40,'from a distance');
+ f.aimAngle=Math.atan2(z.y-m.y,z.x-m.x);f.kit().held;box.k={...box.k,held:'light-pistol'};f.held=f.gunId;f.hit(z,5,1,0);assert.equal(z.state,'chase','a hit breaks it');f.drain();
+ const heat=f.heat;run(f,m,C.again+C.tell+.3);const ev=f.drain();assert.ok(ev.some(e=>e.type==='screamed'),'it tries again and finishes');assert.ok(ev.some(e=>e.type==='horde'),'the horde is coming');assert.ok(f.heat>=heat+C.heat-3);});
+test('bloaters swell and burst close to you, throwing you back; the gas hangs and kills the dead caught in it',async()=>{const {BLOATER}=await import('../dist/street/fight.js');const {box,m,f}=setup({...armed(),street:'done'});
+ Object.assign(m,{x:5300,y:1990});f.zombies.length=0;f.patrolT=999;const b=special(f,'bloater',5380,1990),B=BLOATER.burst;
+ for(let t=0;t<5&&b.state!=='swell';t+=1/60){m.update(1/60,{});f.update(1/60,{});}assert.equal(b.state,'swell','close in, it swells');f.drain();run(f,m,BLOATER.swell.tell+.05);const ev=f.drain();assert.ok(ev.some(e=>e.type==='burst'));assert.equal(b.hp,0);assert.ok(f.hp<=PLAYER_HP-B.damage,'the burst hurts');assert.ok(f.shove,'and throws you back');
+ assert.equal(f.clouds.length,1);assert.equal(b.gore,null,'it never comes apart');
+ // Shot among others: the burst hurts them and the gas finishes them.
+ const {m:m2,f:f2}=setup({...armed(),street:'done'});Object.assign(m2,{x:5000,y:1990});f2.zombies.length=0;f2.patrolT=999;const b2=special(f2,'bloater',5400,1990),near=[special(f2,'shambler',5420,2000),special(f2,'runner',5385,1975)];near[0].look='worker';
+ f2.hit(b2,999,1,0);assert.ok(near.every(z=>z.hp<z.max),'the burst hurts the dead round it');for(let t=0;t<B.time;t+=1/60){f2.hp=PLAYER_HP;m2.update(1/60,{});f2.update(1/60,{});}assert.ok(near.every(z=>z.hp<=0),'the gas kills them');assert.equal(f2.clouds.length,0,'and clears');});
+test('spitters lob acid where you are going: stand there and it lands on you, move and it misses, and the pool burns',async()=>{const {SPITTER}=await import('../dist/street/fight.js');const {m,f}=setup({...armed(),street:'done'});
+ Object.assign(m,{x:5300,y:1990});f.zombies.length=0;f.patrolT=999;const z=special(f,'spitter',5520,1990),P=SPITTER.spit;
+ run(f,m,P.tell+.1);assert.equal(f.globs.length,1,'it spits');const g=f.globs[0];assert.ok(Math.hypot(g.x1-m.x,g.y1-m.y)<5,'at where you stand');run(f,m,P.flight+.05);assert.ok(f.hp<=PLAYER_HP-P.damage,'and it lands on you');assert.equal(f.pools.length,1);
+ // Stand in the pool and it burns.
+ const hp=f.hp;run(f,m,1.1);assert.ok(f.hp<hp,'the pool burns');
+ // Walk away from the next one and it misses.
+ Object.assign(m,{x:5300,y:2100});f.hp=PLAYER_HP;z.cool=0;run(f,m,P.tell+.05,()=>({x:-1,y:0}));assert.equal(f.globs.length,1);run(f,m,P.flight+.05,()=>({x:-1,y:0}));assert.equal(f.hp,PLAYER_HP,'it misses you on the move');
+ assert.ok(Math.hypot(z.x-m.x,z.y-m.y)>SPITTER.keep[0]-20,'it keeps its distance');});

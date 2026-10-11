@@ -523,6 +523,18 @@ Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack),
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
 
+## v0.47.0 — Screamers, bloaters and spitters
+
+From the build order (2026-10-11): the special dead that change how a fight plays, each with a tell you can read and answer. Their art is new in the Master Creator (d1b2a17): `characters/specials.js` paints each over any zombie look, with an Act frame for the moment before it does its thing, and `effects/hazards.js` has the acid and the gas. (`SCREAMER`, `BLOATER` and `SPITTER` in `street/fight.js`.)
+
+**Screamers.** A woman in a nightgown with long grey hair, glowing eyes and her jaw hanging open to her chest. 45 health. They keep about 230 units from you. One that sees you with a clear line stops, throws its head back and screams: a 1.5 second tell, with pale rings off its head that come faster as it builds. If it finishes, the heat jumps by 30, every wanderer near it comes, and a horde is on its way. Any hit breaks the scream, and it tries again 4 seconds later; after a scream it waits 16. Kill it first.
+
+**Bloaters.** A big man in a tank top that no longer covers his swollen, pustuled belly, drawn a little bigger. 110 health and slow. Within 36 units of you it swells for 0.8 seconds (the tell) and bursts; shot dead, it bursts too. The burst does 14 and throws you back if you are within 64 units and on your feet (a dive clears it), does 30 to the dead round it (setting off any other bloater), and leaves a cloud of gas for 7 seconds that does 12 every half second to the dead in it and 4 to you. Shoot one when it is among others; never let one reach you. Bloaters never come apart.
+
+**Spitters.** A man in a stained work shirt with a sac of acid under his chin and burns down his front. 55 health. They keep 150 to 280 units from you and every 3.4 seconds wind up for 0.55 seconds and lob a glob at where you are going (your movement half a second ahead), over fences and cars. While it flies (0.95 seconds) a green ring marks where it will land: be out of it. A hit does 12 and leaves a pool of acid that bubbles for 5 seconds and does 6 every half second to anyone standing in it. The shotgun breaks the wind-up.
+
+**Where they are.** One near each job (a screamer by the radio house, a bloater on Walt's street, a spitter in the yards round the go-bag), a few more wandering the other blocks, and some in patrols as the heat rises (screamers from Quiet, spitters and bloaters from Stirring); most hordes have a bloater or a spitter. Acid and gas give off a faint sickly light so you can see them in the dark.
+
 ## v0.46.0 — Climbing fences, and the first job with extraction
 
 From the build order (2026-10-11): climbing low fences, and the first mission, ending in an extraction. This is the Helldivers loop: objectives anywhere on the map in any order, the noise they make, then a call, a hold-out and a ride out.

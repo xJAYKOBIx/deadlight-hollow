@@ -5,7 +5,7 @@
 const GRAVITY=260,hex=c=>typeof c==='number'?c:parseInt(String(c).slice(1,7),16);
 export const STOP={down:.045,brute:.11,boom:.07};
 export const SHAKE={down:[90,.0018],brute:[260,.006],stun:[200,.0045],hurt:[140,.0035],boom:[300,.008]};
-const TELL={brute:0xff4a3a,spitter:0x8fd14f,runner:0xff9a52,husk:0xffe27a,shambler:0xffe27a};
+const TELL={brute:0xff4a3a,spitter:0x8fd14f,runner:0xff9a52,husk:0xffe27a,shambler:0xffe27a,screamer:0xd9b8ff,bloater:0xc8e85a};
 export class Juice{
  constructor(scene,{quality,world,reduced=false}={}){this.scene=scene;this.quality=quality;this.reduced=reduced;this.parts=[];this.rings=[];this.stopUntil=0;this.lastHp=null;
   const ADD=Phaser.BlendModes.ADD,tx=scene.textures;

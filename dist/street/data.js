@@ -155,6 +155,12 @@ export const WAVES=[
 // The rest of the neighbourhood: two to four in every other block, wandering their yards and the street until they notice you.
 export const ROAMERS=[];{const R=rng(9091),LOOKS=['neighbour','jogger','robe','worker','neighbour2'];
  for(const b of BLOCKS){if(b.home)continue;for(let k=0,n=2+Math.floor(R()*3);k<n;k++)for(let tries=0;tries<20;tries++){const x=Math.round(b.x+40+R()*(BLOCK-80)),y=Math.round(b.y+(R()<.6?150+R()*230:BACK+30+R()*120));if(!solidAt(x,y,10)){ROAMERS.push({look:LOOKS[Math.floor(R()*LOOKS.length)],x,y});break;}}}}
+// The special dead about town: one near each job (a screamer by the radio house, a bloater on Walt's street, a spitter in the yards
+// round the go-bag) and a few more scattered through the other blocks.
+{const R=rng(3131),put=(kind,x,y)=>{for(let t=0;t<30;t++){const px=Math.round(x+(R()-.5)*t*12),py=Math.round(y+(R()-.5)*t*8);if(!solidAt(px,py,10)&&px>WALK.left+40&&px<WALK.right-40&&py>WALK.top+40&&py<WALK.bottom-40){ROAMERS.push({look:kind,kind,x:px,y:py});return;}}};
+ const near=(id,dx,dy)=>{const o=OBJECTS.find(q=>q.id===id);return [o.x+dx,o.y+dy];};
+ put('screamer',...near('job-radio',-160,40));put('bloater',...near('job-power',140,70));put('spitter',...near('job-supplies',120,-60));
+ for(const b of BLOCKS){if(b.home||R()>.4)continue;const kind=['screamer','bloater','spitter'][Math.floor(R()*3)];put(kind,b.x+100+R()*(BLOCK-200),b.y+(R()<.6?180+R()*180:BACK+40+R()*100));}}
 // The cop turns round when you come this close, or the moment you fire. Wanderers notice you as close, and hear a shot from further.
 export const NOTICE=190,HEAR=420;
 // Light: the moon in patches over everything, a candle in a window here and there, and the cruiser's one working headlight.

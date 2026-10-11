@@ -10,7 +10,9 @@ import {Juice} from '../study/juice.js';
 import {iconArt,ICON,ICONS} from '../camp/art.js';
 import {MAP,CHUNK,PROPS,LIGHT_BAR,HOME,EVAC,TRUCK,coverAt} from './data.js';
 import {groundArt,lightArt,LIGHT_SCALE,propArt,PROP_PAD} from './art.js';
-import {Fight,DIVE,CRAWLER,SEARCH,BRUTE,JOB} from './fight.js';
+import {Fight,DIVE,CRAWLER,SEARCH,BRUTE,JOB,SCREAMER,BLOATER,SPITTER} from './fight.js';
+import {special,SPECIAL_LOOKS} from '../mc/assets/characters/specials.js';
+import {ACID_BOX,acidArt,GLOB,globArt,GAS_BOX,gasArt} from '../mc/assets/effects/hazards.js';
 import {ITEM_IDS,itemArt} from '../mc/assets/gear/items.js';
 import {painter} from '../mc/assets/core/paint.js';
 import {zombiePiece,GORE_PARTS,crawlArt,CRAWL,gibArt,GIBS,bloodArt,BLOOD_BOX} from '../mc/assets/effects/gore.js';
@@ -23,9 +25,13 @@ export const ZOMBIE_LOOKS={cop:{...DEFAULT_APPEARANCE,...POLICE,...Z,hair:1,skin
  worker:{...DEFAULT_APPEARANCE,...Z,top:0,coat:4,hat:1,bottom:2,pants:3,shoes:0,beard:3,skin:4,eyes:2,wounds:2},
  // A runner: out for a run when it happened, lean, with eyes that catch the light. A brute: a big man gone bad, drawn half as big again.
  runner:{...DEFAULT_APPEARANCE,...Z,body:1,top:6,shirt:5,bottom:4,shoes:1,hair:2,color:2,skin:1,decay:1,eyes:1,wounds:2,rot:3},
- brute:{...DEFAULT_APPEARANCE,...Z,top:3,coat:2,bottom:5,pants:3,shoes:0,hair:4,beard:3,color:0,skin:5,decay:1,eyes:2,wounds:3,rot:1}};
+ brute:{...DEFAULT_APPEARANCE,...Z,top:3,coat:2,bottom:5,pants:3,shoes:0,hair:4,beard:3,color:0,skin:5,decay:1,eyes:2,wounds:3,rot:1},
+ // The special dead, in the Master Creator's looks for them: a screamer in a nightgown, a bloater in a tank top, a spitter.
+ screamer:{...DEFAULT_APPEARANCE,...Z,...SPECIAL_LOOKS.screamer},bloater:{...DEFAULT_APPEARANCE,...Z,...SPECIAL_LOOKS.bloater},spitter:{...DEFAULT_APPEARANCE,...Z,...SPECIAL_LOOKS.spitter}};
 // Runners' sheets hold the lurching run in place of the walk; brutes never come apart, so they have no pieces.
-const RUN_LOOKS=new Set(['runner']),WHOLE=new Set(['brute']);
+const RUN_LOOKS=new Set(['runner']),WHOLE=new Set(['brute','bloater']);
+// The special dead's sheets have one more row: the act (the scream, the swell, the spit), frame 9.
+const SPECIAL=new Set(['screamer','bloater','spitter']),SCALE={brute:BRUTE.scale,bloater:BLOATER.scale};
 const SHEET_OF={neighbour2:'neighbour'};
 // Zombie sheets hold the standing frame and the eight walking frames, cropped to the part of the frame a body uses.
 const ZF={x:16,y:8,w:128,h:176,rows:9};
@@ -81,8 +87,9 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   // You.
   this.parts={};this.gunSheets={};this.setPlayerLook(bridge.look());
   // The dead: one sheet per look.
-  for(const [id,look] of Object.entries(ZOMBIE_LOOKS)){const t=this.texture('street-z-'+id,ZF.w*8,ZF.h*ZF.rows,c=>{c.imageSmoothingEnabled=false;for(let f=0;f<ZF.rows;f++)for(let d=0;d<8;d++){c.save();c.beginPath();c.rect(d*ZF.w,f*ZF.h,ZF.w,ZF.h);c.clip();c.translate(d*ZF.w-ZF.x,f*ZF.h-ZF.y);c.scale(2,2);survivor(c,d,RUN_LOOKS.has(id)&&f>0?f+8:f,false,look);c.restore();}});
-   for(let f=0;f<ZF.rows;f++)for(let d=0;d<8;d++)if(!t.has(f*8+d))t.add(f*8+d,0,d*ZF.w,f*ZF.h,ZF.w,ZF.h);
+  for(const [id,look] of Object.entries(ZOMBIE_LOOKS)){const sp=SPECIAL.has(id),rows=ZF.rows+(sp?1:0),t=this.texture('street-z-'+id,ZF.w*8,ZF.h*rows,c=>{c.imageSmoothingEnabled=false;for(let f=0;f<rows;f++)for(let d=0;d<8;d++){c.save();c.beginPath();c.rect(d*ZF.w,f*ZF.h,ZF.w,ZF.h);c.clip();c.translate(d*ZF.w-ZF.x,f*ZF.h-ZF.y);c.scale(2,2);
+    if(sp)special(c,id,d,f<ZF.rows?f:0,look,f<ZF.rows?0:1);else survivor(c,d,RUN_LOOKS.has(id)&&f>0?f+8:f,false,look);c.restore();}});
+   for(let f=0;f<rows;f++)for(let d=0;d<8;d++)if(!t.has(f*8+d))t.add(f*8+d,0,d*ZF.w,f*ZF.h,ZF.w,ZF.h);
    // Its pieces, a row each in the same crop, and its crawl: five facings (the rest are mirrored) by four frames.
    if(WHOLE.has(id))continue;
    const P=this.texture('street-zp-'+id,ZF.w*8,ZF.h*4,c=>{c.imageSmoothingEnabled=false;GORE_PARTS.forEach((part,r)=>{for(let d=0;d<8;d++){c.save();c.beginPath();c.rect(d*ZF.w,r*ZF.h,ZF.w,ZF.h);c.clip();c.translate(d*ZF.w-ZF.x,r*ZF.h-ZF.y);zombiePiece(c,look,d,part,0,d+r*8+1);c.restore();}});});
@@ -95,6 +102,11 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   const LI=this.texture('loot-icons',24*ITEM_IDS.length,24,c=>ITEM_IDS.forEach((id,i)=>{c.save();c.scale(2,2);c.translate(i*12+6,6);itemArt(painter(c),id);c.restore();}));ITEM_IDS.forEach((id,i)=>{if(!LI.has(id))LI.add(id,0,i*24,0,24,24);});this.dropImgs=new Map();
   const BW=BLOOD_BOX.w*2,BH=BLOOD_BOX.h*2,BS=this.texture('gore-blood',BW*8,BH*Math.ceil(STAINS.length/8),c=>STAINS.forEach(([k,sd,d],i)=>{c.save();c.translate((i%8)*BW,Math.floor(i/8)*BH);bloodArt(c,k,sd*17+i+3,d);c.restore();}));
   for(let i=0;i<STAINS.length;i++)if(!BS.has(i))BS.add(i,0,(i%8)*BW,Math.floor(i/8)*BH,BW,BH);
+  // Acid pools (four frames of bubbling and a dried stain), the glob in flight, and three shades of the bloater's gas.
+  const AW=ACID_BOX.w*2,AH=ACID_BOX.h*2,AC=this.texture('haz-acid',AW*5,AH,c=>{for(let f=0;f<5;f++){c.save();c.translate(f*AW,0);acidArt(c,7,f%4,f<4?0:.8);c.restore();}});for(let f=0;f<5;f++)if(!AC.has(f))AC.add(f,0,f*AW,0,AW,AH);
+  const GL=this.texture('haz-glob',GLOB.w*2*2,GLOB.h*2,c=>{for(let f=0;f<2;f++){c.save();c.translate(f*GLOB.w*2,0);globArt(c,f,0);c.restore();}});for(let f=0;f<2;f++)if(!GL.has(f))GL.add(f,0,f*GLOB.w*2,0,GLOB.w*2,GLOB.h*2);
+  const GW=GAS_BOX.w*2,GH=GAS_BOX.h*2,GS=this.texture('haz-gas',GW*3,GH,c=>{for(let k=0;k<3;k++){const t=document.createElement('canvas');t.width=GW;t.height=GH;gasArt(t.getContext('2d'),k*5+2,k);c.drawImage(t,k*GW,0);}});for(let k=0;k<3;k++)if(!GS.has(k))GS.add(k,0,k*GW,0,GW,GH);
+  this.hz=new Map();
   this.zs=new Map();this.pool=[];
   this.fight=new Fight(model,{kit:bridge.kit,setKit:bridge.setKit,grid:bridge.grid});model.zombies=this.fight.zombies;
   // Night: the light maps of the chunks on screen, and your flashlight added on top, go into one picture each frame that multiplies
@@ -121,7 +133,7 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   this.cameras.main.setBackgroundColor('#07080b').setBounds(0,0,MAP.w,MAP.h).setZoom(this.zoom());
   this.events.on('wake',()=>this.enter());this.enter();bridge.ready(this);}
  // Each time you step out of the door: the street as the kit says it is, you on your step.
- enter(){model.reset();this.fight.start();for(const i of this.dropImgs.values())i.destroy();this.dropImgs.clear();for(const i of [...this.stains,...this.bits.map(b=>b.img),...this.lain])i.destroy();this.stains.length=0;this.bits.length=0;this.lain.length=0;this.brass.length=0;this.lying.length=0;this.pumps.length=0;this.floorG.clear();this.kick=null;this.jolt={x:0,y:0};for(const z of [...this.zs.keys()])this.free(z);this.setPlayerLook(bridge.look());this.setTrunk(bridge.kit().street!=='start'&&bridge.kit().street!=='cleared');this.setPower(!!bridge.kit().mission?.done.includes('power'));this.cameras.main.centerOn(model.x,model.y-20);this.stream(true);}
+ enter(){model.reset();this.fight.start();for(const i of this.dropImgs.values())i.destroy();this.dropImgs.clear();for(const v of this.hz.values())for(const i of v)i.destroy();this.hz.clear();for(const i of [...this.stains,...this.bits.map(b=>b.img),...this.lain])i.destroy();this.stains.length=0;this.bits.length=0;this.lain.length=0;this.brass.length=0;this.lying.length=0;this.pumps.length=0;this.floorG.clear();this.kick=null;this.jolt={x:0,y:0};for(const z of [...this.zs.keys()])this.free(z);this.setPlayerLook(bridge.look());this.setTrunk(bridge.kit().street!=='start'&&bridge.kit().street!=='cleared');this.setPower(!!bridge.kit().mission?.done.includes('power'));this.cameras.main.centerOn(model.x,model.y-20);this.stream(true);}
  // What the camera shows, in world units.
  view(){const s=this.scale,z=this.zoom(),w=s.width/z,h=s.height/z,x=Math.max(0,Math.min(MAP.w-w,model.x-w/2)),y=Math.max(0,Math.min(MAP.h-h,model.y-20-h/2));return {x,y,w,h};}
  // Takes hold of the chunks near the screen and lets go of the ones well past it, then paints: everything on screen now, the rest
@@ -161,6 +173,9 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   if(this.power&&meets(grow(V,200),{x:FLOOD.x,y:FLOOD.y,w:1,h:1}))rt.stamp('nb-pool',undefined,(FLOOD.x+8-ox)/L,(FLOOD.y+16-oy)/L,{blendMode:add,scale:6,alpha:.9,tint:0xfff0d0});
   if(ev&&meets(grow(V,200),{x:EVAC.x,y:EVAC.y,w:1,h:1}))rt.stamp('nb-pool',undefined,(EVAC.x-ox)/L,(EVAC.y-oy)/L,{blendMode:add,scale:4.2*flick,alpha:.95,tint:0xff5a40});
   if(ev&&ev.state!=='hold'){const tx=ev.x,ty=TRUCK.y+TRUCK.h*.5;for(const dy of [-16,14])rt.stamp('nb-beam',undefined,(tx-ox)/L,(ty+dy-oy)/L,{originX:0,originY:.5,rotation:Math.PI,blendMode:add,alpha:.8});}
+  // Acid and gas give off a little sickly light of their own, so you can see them in the dark.
+  for(const p of f.pools)if(meets(grow(V,60),{x:p.x,y:p.y,w:1,h:1}))rt.stamp('nb-pool',undefined,(p.x-ox)/L,(p.y-oy)/L,{blendMode:add,scale:1.5,alpha:.55*Math.min(1,(p.T-p.t)/1.2),tint:0x9ad13a});
+  for(const c of f.clouds)if(meets(grow(V,120),{x:c.x,y:c.y,w:1,h:1}))rt.stamp('nb-pool',undefined,(c.x-ox)/L,(c.y-10-oy)/L,{blendMode:add,scale:3.4,alpha:.45*Math.min(1,(c.T-c.t)/1.6),tint:0x9ab83a});
   // A shot lights the street round you for an instant, warm and wide, the shotgun more.
   const K=KICK[this.fight.gunId],t=this.fight.sinceShot;if(K&&t<K.light&&this.shotA!==undefined){const mz=muzzle(this.shotA,this.look.gun),k=1-t/K.light;
    const x=(model.x+mz.x*.6-ox)/L,y=(model.y+mz.y*.4-oy)/L,add=Phaser.BlendModes.ADD;rt.stamp('nb-pool',undefined,x,y,{blendMode:add,scale:K.glow*(.8+.2*k),alpha:k,tint:0xffd49a});
@@ -198,7 +213,7 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
  // dead only ever needs as many as you can see.
  sprite(z){let s=this.zs.get(z);if(!s){s=this.pool.pop()||this.add.image(0,0,'street-z-cop',0).setScale(.5);const id=SHEET_OF[z.look]||z.look;
   if(z.kind==='crawler')s.setTexture('street-zc-'+id,0).setOrigin(CRAWL.x/CRAWL.w,CRAWL.y/CRAWL.h);else s.setTexture('street-z-'+id,0).setOrigin((FRAME.w/2-ZF.x)/ZF.w,(FRAME.footY*2-ZF.y)/ZF.h);
-  s.setScale(z.kind==='brute'?.5*BRUTE.scale:.5).setAngle(0).setFlipX(false).clearTint().setAlpha(1).setVisible(true);s.laid=false;s.white=false;s.grey=false;this.zs.set(z,s);}return s;}
+  s.setScale(.5*(SCALE[z.kind]||1)).setAngle(0).setFlipX(false).clearTint().setAlpha(1).setVisible(true);s.laid=false;s.white=false;s.grey=false;this.zs.set(z,s);}return s;}
  free(z){const s=this.zs.get(z);if(!s)return;s.setVisible(false);this.pool.push(s);this.zs.delete(z);}
  // A blood stamp at (x, y): on the ground under everything, or up a wall at the wall's depth. With gore reduced, fewer of them.
  stain(kind,x,y,{dir=0,depth=.5}={}){if(!this.goreOn&&kind!=='pool'&&Math.random()<.5)return;const d=((dir%8)+8)%8,v=Math.random()*4|0;
@@ -259,6 +274,14 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   else if(e.type==='restart')this.enter();
   // Over a fence: a little dust where you land. The generator coughs into life in a cloud of smoke.
   else if(e.type==='over')j.puff(e.x,e.y-2,.6,0x6a6458,.5,-4);
+  // The special dead: a bloater bursting (a green blast, its insides and the street shaking), a glob landing in a hiss of acid, a
+  // spitter's spit, and a scream that lands (rings off it and a shudder).
+  else if(e.type==='burst'){const near=Math.hypot(e.x-model.x,e.y-model.y)<500;for(let k=0;k<5;k++)j.puff(e.x+(Math.random()-.5)*30,e.y-20+(Math.random()-.5)*16,1.4,[0x6f8a2a,0x8fa83a,0x4a5a1e][k%3],.9,-10);
+   j.bits(16,e.x,e.y,{dir:0,spread:6.3,speed:140,lift:60,z:30,col:0x6f8a2a,life:.6,kind:'drop'});j.bits(10,e.x,e.y,{dir:0,spread:6.3,speed:110,lift:50,z:30,col:0x8a1a16,life:.55,kind:'drop'});j.flash(e.x,e.y-20,1.4,.6,.12,false);
+   this.stain('splash',e.x,e.y+2,{dir:Math.floor(Math.random()*8)});this.stain('pool',e.x,e.y+4);if(near){j.shake('brute');j.hold(now,.06);}}
+  else if(e.type==='splash'){j.bits(9,e.x,e.y,{dir:-Math.PI/2,spread:3,speed:70,lift:40,z:2,col:0x9ad13a,life:.4,kind:'drop'});j.puff(e.x,e.y-3,.6,0x8fa83a,.5,-10);}
+  else if(e.type==='spit')j.bits(4,z.x,z.y,{dir:Math.atan2(e.g.y1-z.y,e.g.x1-z.x),spread:.6,speed:60,lift:20,z:44,col:0x9ad13a,life:.3,kind:'drop'});
+  else if(e.type==='screamed'){for(let k=0;k<3;k++)j.ring(z.x,z.y-50,40+k*30,0xe0c8ff,.6+k*.2,2);if(Math.hypot(z.x-model.x,z.y-model.y)<500)j.shake('hurt');}
   else if(e.type==='job'&&e.job==='power'){this.setPower(true);j.puff(GEN.x+4,GEN.y-12,1,0x6a6a66,.7,-12);}
   bridge.event?.(e);}
  // A casing out of the right side of the gun: brass from the pistol, a red hull from the shotgun.
@@ -294,7 +317,7 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
    if(z.kind==='crawler'){const col=CRAWL_COL[z.direction]??CRAWL_FLIP[z.direction];s.setVisible(!(z.hatch>0)).setFlipX(z.direction in CRAWL_FLIP).setFrame(col+(z.hp>0?z.frame:0)*5).setPosition(half(z.x),half(z.y)).setDepth(z.y-4);
     if(z.hp<=0&&!s.grey){s.grey=true;if(!white)s.setTint(0x9a8a8a);}if(z.hp>0){const m=Math.hypot(z.x-(z.tx??z.x),z.y-(z.ty??z.y));if(m>16||z.tx===undefined){if(z.tx!==undefined)this.stain('drops',z.x,z.y+1);z.tx=z.x;z.ty=z.y;}}continue;}
    if(z.hp<=0){if(!s.laid){s.laid=true;if(z.gore)s.setTexture('street-zp-'+(SHEET_OF[z.look]||z.look),z.direction+(z.gore==='half'?8:24));else s.setFrame(z.direction);s.setOrigin(.5,.62);}z.fallT=Math.min(1,(z.fallT||0)+dt/TOPPLE.time);const k=z.fallT*z.fallT;
-    const sc=z.kind==='brute'?BRUTE.scale:1;s.setAngle(90*z.fall*k).setPosition(half(z.x),half(z.y-(TOPPLE.hips+(6-TOPPLE.hips)*k)*sc)).setDepth(z.y-10*k);
+    const sc=SCALE[z.kind]||1;s.setAngle(90*z.fall*k).setPosition(half(z.x),half(z.y-(TOPPLE.hips+(6-TOPPLE.hips)*k)*sc)).setDepth(z.y-10*k);
     if(k>=1&&!s.grey){s.grey=true;if(!white)s.setTint(0x9a8a8a);if(!z.thud){z.thud=true;this.juice.puff(z.x+z.fall*14,z.y-2,.6,0x6a6458,.5,-4);}}
     if(z._pool&&!z.vx&&!z.vy&&k>=1){z._pool=false;this.stain('pool',z.x+z.fall*(z.gore==='half'?6:14),z.y+2);}continue;}
    const fl=z.flinch>0?z.flinch/TOPPLE.flinch:0;if(fl)z.flinch-=dt;s.setAngle(fl?Math.sign(z.flinchX||1)*7*fl:0);
@@ -333,12 +356,27 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   for(const [d,img] of this.dropImgs)if(!f.drops.includes(d)){img.destroy();this.dropImgs.delete(d);}
   for(const d of f.drops){let img=this.dropImgs.get(d);if(!img){img=this.add.image(d.x,d.y,'loot-icons',d.id).setScale(.5).setOrigin(.5,1);this.dropImgs.set(d,img);}const bob=Math.round(Math.sin(now/260+d.x)*1.5*2)/2;img.setPosition(Math.round(d.x*2)/2,Math.round(d.y*2)/2-2+bob).setDepth(d.y);
    if(Math.floor(now/700+d.x/37)%4===0)g.fillStyle(0xfff6d8,.9).fillRect(Math.round(d.x*2)/2+2,Math.round(d.y*2)/2-8+bob,1,1);}
+  this.hazardStep(now,g);
   // A search under way: a ring round the spot filling as it goes.
   const S=f.searching;if(S){const k=Math.min(1,S.time/(S.need||SEARCH.time)),x=S.t.mx??S.t.x,y=(S.t.my??S.t.y)-4,a0=-Math.PI/2;g.lineStyle(3,0x111319,.7).strokeCircle(x,y,7);g.lineStyle(1.5,0xf2e6c8,.35).strokeCircle(x,y,7);
    g.lineStyle(1.5,0xffb347,1).beginPath().arc(x,y,7,a0,a0+k*Math.PI*2,false).strokePath();}
   const target=f.down?null:paused&&this.target?this.target:model.target(t=>bridge.usable?.(t)!==false);this.target=target;
   if(target){const bob=Math.round(Math.sin(now/180)*2*2)/2;this.marker.setVisible(true).setPosition(target.mx??target.x,target.my+bob);}else this.marker.setVisible(false);
   const cam=this.cameras.main;cam.setZoom(this.zoom());cam.centerOn(model.x+this.jolt.x,model.y-20+this.jolt.y);bridge.tick(now,this);}
+ // Acid pools bubbling and drying, globs in the air with their shadow and the mark where they will land, gas hanging and drifting,
+ // and the rings off a screamer mid-scream. Pictures are kept per hazard and let go when it is gone.
+ hazardStep(now,g){const f=this.fight,half=n=>Math.round(n*2)/2,keep=new Set(),img=(o,n,make)=>{let a=this.hz.get(o);if(!a){a=Array.from({length:n},make);this.hz.set(o,a);}keep.add(o);return a;};
+  for(const p of f.pools){const [i]=img(p,1,()=>this.add.image(0,0,'haz-acid',0).setScale(.5)),dry=p.t>p.T-1.2,k=dry?Math.max(0,(p.T-p.t)/1.2):1;
+   i.setFrame(dry&&k<.5?4:Math.floor(now/170+p.seed)%4).setPosition(half(p.x),half(p.y)).setDepth(.55).setAlpha(Math.min(1,p.t*6)*(.35+.65*k));}
+  for(const b of f.globs){const [i]=img(b,1,()=>this.add.image(0,0,'haz-glob',0).setScale(.5)),k=b.t/b.T,vx=b.x1-b.x0,vy=b.y1-b.y0-(Math.cos(Math.PI*k)*Math.PI*b.arc);
+   i.setFrame(Math.floor(now/80)%2).setPosition(half(b.x),half(b.y-b.h)).setRotation(Math.atan2(vy,vx)).setDepth(b.y+40);
+   g.fillStyle(0x111319,.35).fillEllipse(b.x,b.y,8,4);const R=SPITTER.spit.radius,pulse=.5+.5*Math.sin(now/60);
+   g.fillStyle(0x9ad13a,.08+.14*k).fillEllipse(b.x1,b.y1,R*2*k,R*1.25*k);g.lineStyle(1.5,0x9ad13a,.45+.4*k*pulse).strokeEllipse(b.x1,b.y1,R*2,R*1.25);g.lineStyle(1,0xe2ff8a,.5*k).strokeEllipse(b.x1,b.y1,R*2*k,R*1.25*k);}
+  for(const c of f.clouds){const a=img(c,6,(_,n)=>this.add.image(0,0,'haz-gas',n%3).setScale(.5)),fade=Math.min(1,c.t/.3)*Math.min(1,(c.T-c.t)/1.6),grow=Math.min(1,.65+c.t*.25);
+   a.forEach((i,n)=>{const ang=n/6*Math.PI*2+c.seed,r=(n?BLOATER.burst.radius*.45:0)*grow+c.t*2,x=c.x+Math.cos(ang)*r,y=c.y+Math.sin(ang)*r*.6-6-c.t*1.5;i.setPosition(half(x),half(y)).setScale(.5*grow*(n?1:1.2)).setDepth(c.y+30+n).setAlpha(.5*fade);});}
+  for(const [o,a] of this.hz)if(!keep.has(o)){for(const i of a)i.destroy();this.hz.delete(o);}
+  // A scream: rings off its head, faster as it builds.
+  for(const z of f.zombies)if(z.state==='scream'&&z.hp>0&&this.zs.has(z)){const C=SCREAMER.scream,k=1-z.t/C.tell;for(let q=0;q<3;q++){const ph=((now/(420-k*200))+q/3)%1;g.lineStyle(1.5,0xe0c8ff,.55*(1-ph)*(.4+.6*k)).strokeEllipse(z.x,z.y-52,16+ph*70,10+ph*40);}}}
  // How far a line from you goes before it meets something solid or one of the dead, up to max.
  reach(a,max){const c=Math.cos(a),s=Math.sin(a),f=this.fight,near=f.zombies.filter(z=>f.out(z)&&Math.abs(z.x-model.x)<max+20&&Math.abs(z.y-model.y)<max+20);
   for(let d=6;d<=max;d+=3){const x=model.x+c*d,y=model.y+s*d;if(coverAt(x,y)||near.some(z=>Math.hypot(z.x-x,(z.y-y)*1.2)<12))return d;}return max;}
