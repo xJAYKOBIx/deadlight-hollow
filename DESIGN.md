@@ -533,6 +533,10 @@ Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack),
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
 
+## v0.57.0 — Smooth drawing
+
+The first step of the smoother art (decided 2026-10-11): `study/smooth.js` turns on Master Creator's smooth mode (c7d4c72, `STYLE.smooth` in `core/paint.js`) before anything paints, so every shape is an anti-aliased path off the half-unit grid, and Phaser no longer draws pixel art (`pixelArt`, `roundPixels` off, `antialias` on), so pictures scale smoothly and move by fractions of a pixel. Texture sizes are unchanged, so memory is too. Art with dither painted in, shapes built from rectangles, and the small pixelated icons in the page (faces, bag, gun chip) are redrawn later, asset by asset.
+
 ## v0.56.0 — Parts of you going missing on a phone
 
 Jaykobi's iPhone recording (2026-10-11) showed the turned frames from v0.55 broken in the house: side on, your torso and pack were gone and only the head, the arm with the flashlight and the legs showed; facing the screen, the torso showed but the arms and flashlight did not. Chromium never did this, with any number of texture units or after a lost graphics context, and the sheets it paints are correct, so the cause is inferred: the turned body and head were drawn into the sheets from an OffscreenCanvas, and Safari can draw one from before its last change, which would put the wrong pixels (or none) into some turned cells.
