@@ -92,8 +92,8 @@ export function patient(c){
  path(c,'M562 228Q551 220 556 209Q561 194 578 195Q596 193 603 211L602 219Q594 215 589 207Q578 208 573 215L568 231Z','#474841','#2e4245',2);
  path(c,'M560 211Q566 198 580 200Q591 200 596 207Q579 202 568 216Z','#656354');
  ellipse(c,569,230,5,7,'#c79b7d');line(c,'M568 227Q574 227 570 234','#9a755f',.8);
- line(c,'M589 221Q594 220 598 223','#74634f',1.2);line(c,'M589 227L596 229','#534e42',1.2);
- line(c,'M601 246L606 246','#8e6857',1);path(c,'M580 242Q586 248 595 250L590 253L581 249Z','#ba8b7260');
+ line(c,'M589 221Q594 220 598 223','#74634f',1.2);
+ path(c,'M580 242Q586 248 595 250L590 253L581 249Z','#ba8b7260');
  // Blanket describes two legs at full length: pelvis, knees, ankles and feet.
  path(c,'M461 316Q476 313 495 333L523 353Q528 362 514 373L455 398Q425 417 402 432L365 449Q357 454 345 446L255 396Q246 389 256 381L306 365Q353 345 395 337Q429 328 461 316Z',grad(c,384,330,420,447,'#c9d3c3','#809d9c'),'#587c7f',2);
  // Twin knee ridges and a shallow central valley create volume without a giant mound.
@@ -135,7 +135,7 @@ export function relative(c,relief=false){
  path(c,'M670 252Q659 242 666 230Q674 214 691 219Q709 220 717 237Q722 255 713 282L703 288L701 273Q708 264 706 253L699 239Q684 244 674 239Z','#4a4439','#2e474b',2);
  path(c,'M669 233Q681 221 694 225Q708 229 711 241Q691 229 680 239Z','#75644b');
  line(c,relief?'M673 254Q678 252 682 253':'M673 253L682 250','#795c43',1.1);
- if(relief){line(c,'M672 259Q677 261 681 257','#5b4d3a',1);line(c,'M674 274Q680 278 687 272','#8b6248',1);}
+ if(relief){path(c,'M671 258Q676 254 682 257Q678 261 671 258Z','#e7d2ad','#75654e',.6);ellipse(c,673,257.5,1.4,1.8,'#35473f');line(c,'M674 274Q680 278 687 272','#8b6248',1);}
  else{ellipse(c,675,258,1.5,2,'#36423b');line(c,'M674 274Q679 272 684 274','#8b6248',1);}
  line(c,'M670 265L674 267','#a57b5c',.8);ellipse(c,704,258,3.5,5,'#c69b77');
  // Reaching arm: shoulder -> elbow -> forearm -> palm, each segment connected.
@@ -143,6 +143,19 @@ export function relative(c,relief=false){
  line(c,'M677 309L649 352L608 351','#d4bd8b66',1.5);
  path(c,'M591 343L601 344L599 360L588 359Z','#d2c4a0','#657566',1.2);
  path(c,'M591 345L578 339L558 341L549 350L558 361L580 362L591 359Z',grad(c,556,340,575,363,'#dbb28a','#ba8c69'),'#646852',1.3);
+}
+// The face is a compact atlas; eyes stay open after the revival.
+export function face(c,awake=0,gasp=0){
+ if(awake<.03){line(c,'M589 227L596 229','#534e42',1.2);}
+ else{
+  c.save();c.translate(593,228);c.rotate(.16);
+  ellipse(c,0,0,4.5,.3+awake*2.15,'#e9ddbd');
+  c.beginPath();c.ellipse(0,0,4.5,.3+awake*2.15,0,0,Math.PI*2);c.clip();
+  ellipse(c,1.8,0,1.7,2.5,'#4b655c');ellipse(c,2,0,.8,1.8,'#273e3c');
+  c.restore();line(c,'M588.5 227.3Q593 223.8 597.5 228.7','#625543',.9);
+ }
+ if(gasp>.03){ellipse(c,604,246,2.5,.6+gasp*2.4,'#735349');line(c,'M602 249L605 249','#ddb395',.7);}
+ else{line(c,awake>.5?'M600 246Q603 248 606 245.5':'M601 246L606 246','#8e6857',1);}
 }
 export function hands(c,closed=0){
  // Distinct patient fingers rest over the visitor's palm. Closing rotates each around the knuckle.
