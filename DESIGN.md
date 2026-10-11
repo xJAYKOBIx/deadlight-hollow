@@ -523,6 +523,22 @@ Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack),
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
 
+## v0.50.0 — The control center (portrait)
+
+Jaykobi (2026-10-11): the deck has to fit every button without shrinking them, Use was hidden under other buttons and never lit, zoom could be a pinch on the game, the deck should look like the game (G.U.N. or LEET AF in the metal, wear, blood), a map button is coming, and everything should be customisable. "Your left thumb … is going to be our movement and we don't ever want the user to have to take their thumb off the movement stick." Both factions go on the plate equally: the player doesn't know who G.U.N. is yet. Left side: "only the move stick … menu buttons or inventory … you'll never need access to those while moving."
+
+**The rule.** Left thumb: the move stick only, plus the screens you open standing still (Character, Bag, Menu, and Map later) along the bottom left. Right thumb: everything you need in a fight, ringed round the fire stick.
+
+**The layout** (`study/console.js`). One function places every control from the screen width and the player's settings; CSS reads the centres and sizes as variables. Fight: Dive and Reload nearest the thumb, Run below, Light (or the grenade) above, the weapon readout top right (tap it to swap guns; the old swap button is gone). Training Grounds: the same without Dive. Camp and the house: Use takes the fire stick's place with Run beside it. The zombie: move, Run, Use. Sizes scale with the width (and the player's size setting), capped so the move stick and the fire ring always fit side by side; a test checks nothing overlaps from 320 to 480 wide, either hand.
+
+**Use.** In a fight Use is a lit pill in the game view just above the right stick, shown only while something is in reach, with a pulse and the accent edge.
+
+**Pinch to zoom** on the game view replaces the zoom bar; the zoom is saved as before.
+
+**The plate** (Master Creator `assets/ui/plate.js`). Worn gunmetal with a hazard lip, screws, rust, scuffs, claw marks and blood, recessed wells under the sticks, sockets under the buttons, dark glass behind the readouts, and the two names along the bottom the same size: G.U.N. in a clean pale stencil on the left, LEET AF hand-cut on the right. It is repainted to match the layout. Buttons are round steel caps that press in, with the accent glow when lit.
+
+**Settings saved on the device** (`deadlight-console-v1`): size, see-through, accent colour (Ember, Bone, Toxic, Siren, Blood), left-handed (the whole deck mirrored) and moved controls. The editor to change them comes next. Landscape, keyboard and controller are unchanged.
+
 ## v0.49.0 — Night one, start to finish: the tutorial ends with him
 
 Jaykobi (2026-10-11): being restricted to the TV makes it hard to tell the whole story, so the introduction starts from scratch; the film is kept for pieces later on. "A full and complete tutorial that ends with the tutorial character dying", seen from the point of view of someone who watches him die and come back, then the creator for your first character, who kills the risen survivor, takes his supplies and runs for the Hollow. Chosen on the card: he dies during the hold-out, after the job is done and the truck is called.
@@ -746,4 +762,5 @@ Bookmark set by Jaykobi before starting the Master Creator.
 2. **Tutorial:** complete in v0.49.0, from the dog waking you to the truck: the dark house and the flashlight, the crash, the guns, the street, the first job, the hold-out where the tutorial survivor dies (seen through a neighbour's window), the creator for your own survivor, putting him down, taking his gear back, and the truck to Firelight Camp. Next: tune it from Jaykobi's playthrough; the next intro video later.
 3. **Inventory:** the three bags (v0.33.0) and the inventory screen with supplies (v0.34.0) are in. Next, as the crafting plan orders them: wear (armor condition, gun fouling, gun oil), materials in the world, then Hollis's workbench.
 4. **Intro:** The Fall (v0.48.0) no longer opens the game (v0.49.0); its pieces get used later in the story, and a new introduction video comes later.
-5. **Later:** Mop the camp dog and his quest, Macy's pet makeovers, the landscape controller redesign, a trademark search on every in-world name before release.
+5. **Control center:** the portrait deck is redone in v0.50.0. Next: the editor (drag controls, size, see-through, colour, left hand, reset), then the map button.
+6. **Later:** Mop the camp dog and his quest, Macy's pet makeovers, the landscape controller redesign, a trademark search on every in-world name before release.

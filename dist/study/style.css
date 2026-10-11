@@ -744,3 +744,62 @@ html body.deck #thought{top:calc(var(--vy) + var(--gh) * .64);font-size:14px}
 .summary-stats dd{margin:4px 0 0;font:700 22px/1 var(--ui);color:var(--bone);font-variant-numeric:tabular-nums}
 #summaryGo{display:flex;width:100%;justify-content:center;min-height:48px;padding:10px 14px;font:700 15px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;background:var(--ember);color:var(--ember-ink);border:1px solid var(--ember-hi);border-radius:3px;cursor:pointer}
 #fall{position:fixed;inset:0;z-index:200;background:#000;touch-action:none}#fall[hidden]{display:none}#fallFilm{display:block;width:100%;height:100%}#fallSkip{position:absolute;right:max(18px,env(safe-area-inset-right));bottom:max(18px,env(safe-area-inset-bottom));min-width:96px;min-height:44px;padding:0 18px;border:1px solid #6a645a;border-radius:3px;background:#000000a0;color:#e8e0d1;font:700 12px/1 'Barlow Condensed',Arial,sans-serif;letter-spacing:.22em;text-transform:uppercase}
+/* v0.50 the control center: the phone held upright. study/console.js works out where each control sits and gives it --cx, --cy (its
+   centre in deck pixels), --cw and --ch; the deck is a painted steel plate (mc/assets/ui/plate.js) with a well under each stick and a
+   socket under each button. The left thumb only moves; the fight rings the fire stick; Use appears above the right stick when
+   something is in reach. Selectors start html body.cc.deck.touch so they outrank the older deck rules above. */
+#plate{display:none}
+html body.cc.deck.touch #deck{background:#15161a;border-top:0;box-shadow:0 -6px 16px #000b}
+html body.cc.deck.touch #deck::before,html body.cc.deck.touch #deck::after{content:none}
+html body.cc.deck.touch #grime{display:none}
+html body.cc.deck.touch #plate{display:block;position:absolute;left:0;top:0;width:100%;height:100%;image-rendering:pixelated;pointer-events:none}
+html body.cc.deck.touch #zoomBar,html body.cc.deck.touch #swapGun{display:none!important}
+html body.cc.deck.touch .topbar{pointer-events:none}html body.cc.deck.touch .topbar .hud-btn{pointer-events:auto}
+html body.cc.deck.touch [data-cc]{position:fixed!important;left:calc(var(--vx) + var(--cx) - var(--cw) / 2)!important;right:auto!important;top:auto!important;bottom:calc(var(--sb) + var(--dk) - var(--cy) - var(--ch) / 2)!important;width:var(--cw)!important;height:var(--ch)!important;min-width:0!important;min-height:0!important;max-width:none!important;margin:0!important;z-index:5;opacity:var(--cc-op,1)}
+html body.cc.deck.touch.talking [data-cc],html body.cc.deck.touch.cine [data-cc]{visibility:hidden}
+/* The move stick: the left of the deck is its zone; the ring rests in its well. */
+html body.cc.deck.touch #moveZone{left:calc(var(--vx) + var(--zone-l))!important;width:var(--zone-w)!important;bottom:var(--sb)!important;height:var(--dk)!important;z-index:1}
+html body.cc.deck.touch #moveZone #ring{left:var(--mx);top:var(--my);width:var(--mw);height:var(--mw)}
+html body.cc.deck.touch #moveZone #thumb{width:calc(var(--mw) * .42);height:calc(var(--mw) * .42)}
+/* The fire stick. */
+html body.cc.deck.touch #rightPad #aimRing{width:calc(var(--cw) * .83);height:calc(var(--cw) * .83)}
+html body.cc.deck.touch #rightPad #aimThumb{width:calc(var(--cw) * .37);height:calc(var(--cw) * .37)}
+html body.cc.deck.touch #moveZone #ring,html body.cc.deck.touch #rightPad #aimRing{border:2px solid #e8e0d124;background:radial-gradient(circle,#0b0c0f40 0 52%,#0b0c0f8c 55% 100%);box-shadow:inset 0 2px 6px #000c}
+html body.cc.deck.touch #moveZone #thumb,html body.cc.deck.touch #rightPad #aimThumb{border:0;background:radial-gradient(circle at 50% 32%,#6c685f 0,#3e3b35 38%,#201f1c 72%,#141311);box-shadow:0 0 0 2px #0a0a0c,inset 0 2px 0 #ffffff38,inset 0 -3px 0 #0009,0 5px 10px #000c}
+html body.cc.deck.touch #moveZone.sprint #ring,html body.cc.deck.touch #rightPad #aimZone.firing #aimRing{border-color:var(--cc-glow);box-shadow:inset 0 2px 6px #000c,0 0 0 2px #0008,0 0 16px var(--cc-accent)}
+html body.cc.deck.touch #rightPad #aimZone.firing #aimThumb{background:radial-gradient(circle at 50% 32%,#ffd2a0,var(--cc-glow) 40%,var(--cc-accent) 80%)}
+/* Buttons: chunky caps seated in the plate's sockets. Round for the fight, square-ish for the screens. */
+html body.cc.deck.touch :is(#diveBtn,#runToggle,#reload,#throwGrenade,#inspect,#bagBtn,#menu)[data-cc]{place-items:center;padding:0;border:0;color:#ebe4d4;border-radius:50%;
+ background:radial-gradient(circle at 50% 26%,#5a564e 0,#3a3731 30%,#211f1c 66%,#131211 100%);box-shadow:0 0 0 2px #09090b,0 0 0 3px #ffffff10,inset 0 2px 0 #ffffff33,inset 0 -3px 0 #000a,0 4px 0 #000c,0 7px 12px #000b;transition:transform .05s,box-shadow .05s,color .1s}
+html body.cc.deck.touch :is(#runToggle,#reload,#throwGrenade)[data-cc],html body.cc.deck.touch .topbar .hud-btn[data-cc]{display:grid!important}
+html body.cc.deck.touch :is(#diveBtn,#runToggle,#reload,#throwGrenade)[data-cc] svg{width:calc(var(--cw) * .4);height:calc(var(--cw) * .4);margin-top:calc(var(--cw) * -.16)}
+html body.cc.deck.touch .topbar .hud-btn[data-cc] svg{width:calc(var(--cw) * .48);height:calc(var(--cw) * .48)}
+html body.cc.deck.touch :is(#diveBtn,#runToggle,#reload,#throwGrenade)[data-cc]>span{position:absolute;left:0;right:0;bottom:calc(var(--cw) * .13);text-align:center;font:700 clamp(7px,calc(var(--cw) * .16),9px)/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:#cfc6b4}
+html body.cc.deck.touch :is(#diveBtn,#runToggle,#reload,#throwGrenade)[data-cc]:is(:active,.down),html body.cc.deck.touch .topbar .hud-btn[data-cc]:active,html body.cc.deck.touch #weaponHud[data-cc].down{transform:translateY(3px);box-shadow:0 0 0 2px #09090b,0 0 0 3px #ffffff10,inset 0 2px 0 #ffffff22,inset 0 -1px 0 #000a,0 1px 0 #000c,0 2px 4px #000b}
+html body.cc.deck.touch .fan-ring{inset:-4px;-webkit-mask:radial-gradient(circle,transparent calc(var(--cw) / 2 + 1px),#000 calc(var(--cw) / 2 + 2px));mask:radial-gradient(circle,transparent calc(var(--cw) / 2 + 1px),#000 calc(var(--cw) / 2 + 2px))}
+/* Lit: running, the flashlight on, a reload you should do now. */
+html body.cc.deck.touch #runToggle.on[data-cc],html body.cc.deck.touch #throwGrenade.lit[data-cc],html body.cc.deck.touch #reload.low[data-cc],html body.cc.deck.touch #reload.busy[data-cc]{color:var(--cc-glow);box-shadow:0 0 0 2px #09090b,0 0 0 3px var(--cc-accent),0 0 14px var(--cc-accent),inset 0 2px 0 #ffffff33,inset 0 -3px 0 #000a,0 4px 0 #000c}
+html body.cc.deck.touch #runToggle.on[data-cc]>span,html body.cc.deck.touch #throwGrenade.lit[data-cc]>span,html body.cc.deck.touch #reload.low[data-cc]>span{color:var(--cc-glow)}
+html body.cc.deck.touch #throwGrenade.busy[data-cc],html body.cc.deck.touch #runToggle.winded[data-cc]{color:#7d766a}
+/* The weapon readout is the Swap button: tap it for the other gun. */
+html body.cc.deck.touch #weaponHud[data-cc]{display:flex!important;flex-direction:column;justify-content:center;gap:2px;padding:3px 6px 3px 19px;background:none;border:0;box-shadow:none;pointer-events:auto;cursor:pointer;transition:transform .05s}
+html body.cc.deck.touch #weaponHud[data-cc]::after{content:'';position:absolute;left:4px;top:50%;width:12px;height:12px;transform:translateY(-50%);background:var(--cc-glow);opacity:.85;
+ -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8h14l-4-4M20 16H6l4 4'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8h14l-4-4M20 16H6l4 4'/%3E%3C/svg%3E") center/contain no-repeat}
+html body.cc.deck.touch #weaponHud[data-cc] .wh-top{justify-content:flex-start}
+html body.cc.deck.touch #weaponHud[data-cc] .wh-top b{font-size:clamp(8px,calc(var(--cw) * .085),10px);letter-spacing:.04em}html body.cc.deck.touch #weaponHud[data-cc] .wh-top{gap:4px}
+html body.cc.deck.touch #weaponHud[data-cc] .wh-mid{margin:2px 0 0;justify-content:flex-start}
+/* Use, over the game: only there while something is in reach, lit in the accent colour. */
+html body.cc.deck.touch:not(.camp):not(.zombie) #rightPad #act[data-cc]{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px;padding:0 14px 0 10px;border-radius:6px;opacity:1;
+ background:linear-gradient(#2c2823f5,#151412f5);border:2px solid var(--cc-accent);box-shadow:0 0 0 1px #000,0 0 18px var(--cc-accent),0 6px 14px #000c;animation:cc-pop .16s ease-out}
+html body.cc.deck.touch:not(.camp):not(.zombie) #rightPad #act[data-cc]::before{content:'';flex:none;width:24px;height:24px;border-radius:50%;background:radial-gradient(circle,var(--cc-glow) 0 28%,transparent 31% 50%,var(--cc-accent) 53% 68%,transparent 71%)}
+html body.cc.deck.touch:not(.camp):not(.zombie) #rightPad #act[data-cc]::after{border-radius:8px;inset:-6px;border-color:var(--cc-glow);animation:cc-pulse 1.6s ease-out infinite}
+html body.cc.deck.touch:not(.camp):not(.zombie) #rightPad #act[data-cc] b{font-size:15px;color:var(--cc-glow)}
+html body.cc.deck.touch:not(.camp):not(.zombie) #rightPad #act[data-cc] span{font-size:10px;color:#e3dccd}
+@keyframes cc-pop{0%{transform:translateY(8px) scale(.94);opacity:0}100%{transform:none;opacity:1}}
+@keyframes cc-pulse{0%{transform:scale(.97);opacity:.7}100%{transform:scale(1.08);opacity:0}}
+html body.cc.deck.touch.camp #rightPad #act[data-cc],html body.cc.deck.touch.zombie #rightPad #act[data-cc]{border-color:var(--cc-accent);box-shadow:0 0 0 3px #09090b,0 0 16px var(--cc-accent),0 6px 14px #000c}
+/* The readouts: status (or the place's name) top left, the weapon or camp stamina top right, inside the plate's dark glass. */
+html body.cc.deck.touch .identity,html body.cc.deck.touch #drillHud{left:calc(var(--vx) + var(--st-x) + 4px)!important;top:auto!important;bottom:calc(var(--sb) + var(--dk) - var(--st-y) - var(--st-h) + 3px)!important;max-width:calc(var(--st-w) - 8px)!important;width:auto;transform:none}
+html body.cc.deck.touch #drillHud{background:none;box-shadow:none;padding:2px 4px}
+html body.cc.deck.touch #vitals{left:calc(var(--vx) + var(--rt-x))!important;right:auto!important;top:auto!important;bottom:calc(var(--sb) + var(--dk) - var(--rt-y) - var(--rt-h) + 4px)!important;width:var(--rt-w);align-items:flex-end;padding-right:6px}
+@media(prefers-reduced-motion:reduce){html body.cc.deck.touch #rightPad #act[data-cc],html body.cc.deck.touch #rightPad #act[data-cc]::after{animation:none}}
