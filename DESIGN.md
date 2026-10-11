@@ -45,6 +45,12 @@ Jaykobi, 2026-10-10: "this will be the plan moving forward." The goals are Helld
 - Zombies far from every player move on a cheap, slow update with no sprite; they become full sprites near a player, from a reused pool, so sprites are not made and thrown away.
 - No leaks: a scene that is left stops its timers and listeners, and everything a chunk or a fight makes is freed with it. A long session's memory is checked as part of testing a new place.
 
+## Map style (proposed 2026-10-11)
+
+Jaykobi (2026-10-11): map design is "very, very important"; the current neighbourhood is "low-grade and repetitive"; choose between Helldivers 1 (large, free, kiting) and Gauntlet Slayer Edition (guided, fights locked to an area until the spawners are done), or blend them. The night one script is good up to the creator; the part after it will be reworked later. Next: the starter map, the suburbs.
+
+Proposed (Claude Doc "Deadlight Hollow: Map Style Decision"): maps are open neighbourhoods played the Helldivers way (objectives in any order, heat, kiting, extraction), shaped like Diablo zones (distinct districts, landmarks, loops, something on every screen), with Gauntlet's lock-in only for hold-outs: an open lot with breach points (windows, drains, fence gaps) you shut to end the wave, held by the objective, not locked doors. Rules: loops not dead ends; main spaces at least a phone screen wide (about 560 units at Wide), pinch points narrow; no two neighbouring districts alike; landmarks; light leads; built from reusable Master Creator pieces. The tutorial goes narrow (house, your street), then open (the three jobs), then the hold-out (the call at the school's bus lot, the east end of your street). Suburbs layout: nine districts (back-yard maze with Okafor's radio, water tower and woods, building site with Walt's generator, church and cemetery, your street, the school, park and creek with Mrs. Novak's go-bag, shops and gas station, ball fields), about 7,200 units each way.
+
 ## The Helldivers loop: the combat plan (proposed 2026-10-10; Jaykobi: "a good start for a plan", combat feel first)
 
 What Jaykobi asked for (2026-10-10): shooting is constant, as in Helldivers, but running through your ammo is not a punishment; staying supplied is a real thing to balance; different kinds of monsters keep every fight changing; and you are always on the move round the map, kiting crowds while you complete missions. The numbers below are starting points to tune by feel.
@@ -819,4 +825,4 @@ Bookmark set by Jaykobi before starting the Master Creator.
 3. **Inventory:** the three bags (v0.33.0) and the inventory screen with supplies (v0.34.0) are in. Next, as the crafting plan orders them: wear (armor condition, gun fouling, gun oil), materials in the world, then Hollis's workbench.
 4. **Intro:** The Fall (v0.48.0) no longer opens the game (v0.49.0); its pieces get used later in the story, and a new introduction video comes later.
 5. **Control center:** the portrait deck is redone in v0.50.0, with Customize controls in v0.51.0. Next: the map button.
-6. **Later:** Mop the camp dog and his quest, Macy's pet makeovers, the landscape controller redesign, a trademark search on every in-world name before release.
+6. **Later:** procedurally generated maps (Jaykobi, 2026-10-11: "that will come later"), built from the same district pieces and map rules as the hand-made suburbs; Mop the camp dog and his quest, Macy's pet makeovers, the landscape controller redesign, a trademark search on every in-world name before release.
