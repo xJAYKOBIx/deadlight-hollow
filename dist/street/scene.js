@@ -2,7 +2,7 @@
 // the dead, the night light, the cruiser's light bar and the fight's effects. The map is far too big to hold as one picture, so it
 // is kept in square chunks: the ground and light of the chunks round the screen are painted as you come near and let go once you
 // are well past, and each prop is painted while any chunk its picture touches is held. The fight is street/fight.js; this draws it.
-import {bake,unbake,worthBaking} from '../study/memory.js';import {drawLaser} from '../study/aimstick.js';import {muzzle,lightAt} from '../study/equipment.js';
+import {CineCam} from '../study/camera.js';import {bake,unbake,worthBaking} from '../study/memory.js';import {drawLaser} from '../study/aimstick.js';import {muzzle,lightAt} from '../study/equipment.js';
 import {survivor,FRAME} from '../study/character.js';
 import {LAYERS,ORDER,origin,sheetSize,paintLayers,paintRacked,paintDive,DIVE as DIVE_ART,pose,armed} from '../study/layers.js';
 import {DEFAULT_APPEARANCE,UNIFORMS} from '../study/appearance.js';
@@ -377,7 +377,8 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   const cam=this.cameras.main;
   // From the window across the street: closer in on him, held by a hand that is not quite steady.
   if(f.dead){const b=f.dead.body,t=f.dead.t,sw=Math.sin(t*.9)*3+Math.sin(t*2.3)*1.1,sy=Math.cos(t*.7)*1.8+Math.sin(t*3.1)*.6;cam.setZoom(this.zoom()*(1.75+Math.min(.25,t*.016)));cam.centerOn(b.x+sw,b.y-24+sy);}
-  else{cam.setZoom(this.zoom());cam.centerOn(model.x+this.jolt.x,model.y-20+this.jolt.y);}bridge.tick(now,this);}
+  // Following you, unless the story points the camera somewhere (focus: the cruiser, the officer); it glides there and back.
+  else{const at=(this.cineCam??=new CineCam()).step(dt,{x:model.x+this.jolt.x,y:model.y-20+this.jolt.y,z:this.zoom()},this.focus);cam.setZoom(at.z);cam.centerOn(at.x,at.y);}bridge.tick(now,this);}
  // Acid pools bubbling and drying, globs in the air with their shadow and the mark where they will land, gas hanging and drifting,
  // and the rings off a screamer mid-scream. Pictures are kept per hazard and let go when it is gone.
  hazardStep(now,g){const f=this.fight,half=n=>Math.round(n*2)/2,keep=new Set(),img=(o,n,make)=>{let a=this.hz.get(o);if(!a){a=Array.from({length:n},make);this.hz.set(o,a);}keep.add(o);return a;};

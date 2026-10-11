@@ -90,7 +90,7 @@ test('finding the flashlight plays the crash where you stand: the sirens, the cr
  const {Wake,CRASH}=await import('../dist/home/wake.js');const you={x:300,y:330,direction:4};
  const [dog,cat]=PETS.map(def=>new HousePet(def,{rooms:ROOMS,blocked,rand:seeded(5)}));const w=new Wake({dog,cat,you,beats:CRASH});assert.equal(w.fade,0);assert.equal(w.x,300);let t=0,said=new Set();
  while(!w.done&&t<60){w.update(.05);t+=.05;if(w.line&&!said.has(w.line)){said.add(w.line);w.ack();}}
- assert.ok(w.done,`it ends (${t.toFixed(1)} s)`);assert.deepEqual(w.cues,['distant-siren','car-pass','car-crash']);assert.equal(w.police,'parked');assert.equal(w.shook,1);assert.equal(said.size,CRASH.filter(b=>b.line).length,'every line is shown');assert.ok([...said].flat(2).some(s=>/nightstand/i.test(s)));
+ assert.ok(w.done,`it ends (${t.toFixed(1)} s)`);assert.deepEqual(w.cues,['distant-siren','car-pass','car-crash','dog-bark','dog-bark']);assert.equal(w.police,'parked');assert.equal(w.shook,1);assert.equal(said.size,CRASH.filter(b=>b.line).length,'every line is shown');assert.ok([...said].flat(2).some(s=>/nightstand/i.test(s)));
  assert.deepEqual({x:you.x,y:you.y},{x:300,y:330},'you stay where you found it');
  const s2=new Wake({dog,cat,you,beats:CRASH});s2.update(.05);s2.skip();assert.ok(s2.done);assert.equal(s2.police,'parked','skipping still leaves the cruiser in the pole');});
 test('when he dies, the one who watched takes over: a new survivor with a pistol, and his gear on his body to take back',async()=>{

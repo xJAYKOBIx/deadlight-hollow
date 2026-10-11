@@ -7,7 +7,7 @@ import {iconArt,ICON,ICONS} from '../camp/art.js';
 import {PET_FRAME,PET_FRAME_COUNT,paintPetSheet} from '../companion/pet.js';
 import {drawHearts} from '../companion/sprite.js';
 import {HousePet} from '../companion/house.js';
-import {Wake,COUCH,CRASH} from './wake.js';import {lightAt} from '../study/equipment.js';
+import {Wake,COUCH,CRASH} from './wake.js';import {CineCam} from '../study/camera.js';import {lightAt} from '../study/equipment.js';
 // The flashlight: how far its beam reaches, how wide it is, how fast it swings round to where you face, the pool round your feet,
 // and its warm white. DARK: how much of the moonlight and candle you see, before the flashlight and after (your eyes adjust).
 const TORCH={len:200,half:24*Math.PI/180,turn:12,pool:30,col:[255,244,220]},DARK={before:.6,after:.7};
@@ -123,5 +123,6 @@ export function makeHomeScene(model,bridge){return class Home extends Phaser.Sce
   const t=now/1000,fl=.5+.28*Math.sin(t*11.3)+.16*Math.sin(t*31.7+1)+.06*Math.sin(t*67+2);this.glow.setAlpha(.2+.14*fl).setScale(1.05+.12*fl,.78+.08*fl);
   const g=this.flame;g.clear();g.fillStyle(0xff9a52,1);g.fillRect(CANDLE.x,CANDLE.y-(fl>.6?.5:0),1.5,2.5);g.fillStyle(0xffe4a0,1);g.fillRect(CANDLE.x+.5,CANDLE.y-.5-(fl>.6?.5:0),.5,1);
   this.petFx.clear();for(const p of this.pets)drawHearts(this.petFx,p.pet,p.target.my+6,now);
-  const cam=this.cameras.main;cam.setZoom(this.zoom());cam.centerOn(model.x,model.y-20);bridge.tick(now,this);}
+  // The camera follows you, unless a scene beat points it somewhere (wake.js cam); it glides there and back.
+  const cam=this.cameras.main,at=(this.cineCam??=new CineCam()).step(dt,{x:model.x,y:model.y-20,z:this.zoom()},w?.cam);cam.setZoom(at.z);cam.centerOn(at.x,at.y);bridge.tick(now,this);}
 };}

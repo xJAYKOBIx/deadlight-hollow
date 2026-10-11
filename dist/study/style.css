@@ -854,3 +854,15 @@ body.keys #sayNext kbd{display:inline-block;margin-right:4px}
 /* While a line is up, the prompt, the Use pill and passing thoughts step aside. */
 body.saying #prompt,body.saying #act,body.saying #thought,body.saying #cineLine{visibility:hidden}
 @media (prefers-reduced-motion:reduce){#say.typed #sayNext::after{animation:none}#radio{transition:none}}
+
+/* v0.54 the cutscenes: the bars slide in rather than appearing, and the title card fades a name in over black and out again. */
+#cine::before,#cine::after{animation:bar-in .7s cubic-bezier(.2,.7,.2,1) both}#cine::before{transform-origin:top}#cine::after{transform-origin:bottom}
+@keyframes bar-in{from{transform:scaleY(0)}}
+#titleCard{position:fixed;z-index:30;left:var(--vx);top:var(--vy);width:var(--vw);height:var(--vh);display:grid;place-content:center;justify-items:center;gap:10px;pointer-events:none;background:#000;color:var(--bone);opacity:0}
+#titleCard.on{animation:title-card var(--title-ms,3000ms) ease-in-out both}
+#titleCard b{font:400 clamp(30px,8vw,56px)/1 var(--display);letter-spacing:.06em;text-transform:uppercase}
+#titleCard span{font:600 12px/1 var(--ui);letter-spacing:.32em;text-transform:uppercase;color:var(--ember)}#titleCard span:empty{display:none}
+#titleCard b,#titleCard span{animation:title-words var(--title-ms,3000ms) ease-in-out both}
+@keyframes title-card{0%{opacity:0}12%,80%{opacity:1}100%{opacity:0}}
+@keyframes title-words{0%,14%{opacity:0;transform:translateY(6px)}34%,72%{opacity:1;transform:none}92%,100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){#cine::before,#cine::after{animation:none}#titleCard b,#titleCard span{transform:none!important}}

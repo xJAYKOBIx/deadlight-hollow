@@ -523,6 +523,20 @@ Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack),
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
 
+## v0.54.0 — Cutscenes with a camera
+
+Jaykobi (2026-10-11): the cutscenes felt low effort and strangely paced.
+
+**A camera that is directed** (`study/camera.js`). A scene beat can point the camera somewhere and it glides there with an eased start and stop, then glides back to you (1.6 seconds) and follows again. The house reads it from the wake beats (`cam`), the street from `focus`.
+
+**The opening.** A title card ("Night one", Deadlight Hollow) over black, then the room fades up slowly with the camera in close on the couch. Duke noses his hand; Owen speaks while still half asleep, sits up, and the camera eases back to the house as he stands.
+
+**The crash.** Sirens, then the camera pulls back over the front rooms as the light bar sweeps past, and cuts to the corner as it hits the pole, with a shake. Duke runs to the front door barking (a new Master Creator sound, `dog-bark`) and the cat bolts under the bed. The camera holds on the turning lights, then comes back to Owen for his lines.
+
+**The street.** The first time out, the camera goes down the road to the cruiser in the pole while Owen takes it in, then comes back. Close to the officer it moves in on him for "Officer? You okay?", and he turns only after you tap past it. The bars slide in for each of these.
+
+**The one who watched.** When the window goes dark, "Who are you?" fades in over black before the character creator opens.
+
 ## v0.53.0 — The dialog box, and one script for night one
 
 Jaykobi (2026-10-11): narration, thoughts and dialog felt quick, out of place and thrown in. Asked for a small dialog box with a portrait of who is talking and a button to continue, so the player reads at their own pace, without it becoming another burden on the screen.

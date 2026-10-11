@@ -297,10 +297,9 @@ export class Fight{
   // Walking over something the dead dropped picks it up.
   for(const d of this.drops){d.age+=dt;if(Math.hypot(d.x-m.x,(d.y-m.y)*1.3)<SEARCH.pick){const k=this.kit();this.setKit({...k,bag:add(k.bag,this.grid(),d.id,d.n)});d.taken=true;this.emit('pickup',{id:d.id,n:d.n});}}
   if(this.drops.some(d=>d.taken))this.drops=this.drops.filter(d=>!d.taken);
-  // The officer, the first time: what you see coming up to the cruiser, then him, just before he would notice you. The game holds
-  // the street while those lines are read and wakes him after the last one (study/app.js), so the line comes before the lunge.
+  // The officer, the first time: just before he would notice you, a line to him. The game holds the street while it is read and
+  // wakes him after it (study/app.js), so the line comes before the lunge.
   const cop=!this.alert&&this.wave===0&&this.zombies.find(z=>z.idle&&z.look==='cop'),near=cop&&Math.hypot(cop.x-m.x,cop.y-m.y);this.told??=new Set();
-  if(cop&&near<NOTICE*2.4&&!this.told.has('see')){this.told.add('see');this.emit('story',{beat:'see'});}
   if(cop&&near<NOTICE+30&&!this.told.has('him')){this.told.add('him');this.emit('story',{beat:'him'});}
   else if(!this.alert&&this.zombies.some(z=>z.idle&&Math.hypot(z.x-m.x,z.y-m.y)<NOTICE))this.wake();
   // The way to you, spread again while anything is coming.
