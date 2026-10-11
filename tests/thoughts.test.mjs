@@ -1,7 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 const {Thoughts,THOUGHTS,showFor}=await import('../dist/home/thoughts.js');
 const lines=(t,s,secs,quiet=false)=>{const out=[];for(let i=0;i<secs*10;i++){const l=t.update(.1,typeof s==='function'?s(i/10):s,quiet);if(l&&out.at(-1)!==l)out.push(l);}return out;};
-const home=(guns={},x=300,y=300)=>({place:'home',kit:{guns,street:'start'},x,y,pets:[]});
+const home=(guns={},x=300,y=300,light=true)=>({place:'home',kit:{guns,street:'start',light},x,y,pets:[]});
 test('every thought is first person, short, and has its own id',()=>{const ids=new Set();for(const t of THOUGHTS){assert.ok(!ids.has(t.id),t.id);ids.add(t.id);assert.ok(['home','street'].includes(t.at));assert.ok(t.say.length<=90,t.id);assert.ok(!/\byou\b/i.test(t.say),t.id);}
  assert.ok(showFor('Short.')>=3&&showFor(THOUGHTS.map(t=>t.say).join(' '))<=6.5);});
 test('at home: no gun, then the pistol, then the shotgun in the closet; each said once',()=>{const t=new Thoughts(),guns={};
@@ -16,3 +16,7 @@ test('thoughts wait while you talk or watch, and a moment that passed is not sai
 test('the fight\'s firsts: bitten and the first kill wait for the event, and reset starts the night over',()=>{const t=new Thoughts(),s={place:'street',kit:{guns:{},street:'start'},x:700,y:200,fight:{alert:true,hp:80,maxHp:100}};
  lines(t,s,12);t.note('hurt');assert.ok(lines(t,s,8).some(l=>/bit me/.test(l)));t.note('kill');assert.ok(lines(t,s,8).some(l=>/didn't stop/.test(l)));
  t.reset();assert.equal(t.said.size,0);});
+test('in the dark it is the junk drawer; once he is gone, him, then his gear, then sorry, then run',()=>{let t=new Thoughts();assert.match(lines(t,home({},300,300,false),24)[0],/junk drawer/);
+ t=new Thoughts();const own=taken=>({place:'street',kit:{guns:{},street:'done',phase:'own',corpse:{taken}},x:500,y:300,fight:{alert:true,hp:100,maxHp:100}});
+ const said=lines(t,own(false),16);assert.match(said[0],/watched him get up/);assert.match(said[1],/still on him/);assert.ok(!said.some(l=>/happening to everyone/.test(l)));
+ t.note('fallen');assert.match(lines(t,own(false),6)[0],/sorry/);assert.deepEqual(lines(t,own(true),6),['Now run.']);});

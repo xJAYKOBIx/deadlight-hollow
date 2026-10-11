@@ -35,7 +35,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const painter=c=>({r:(x,y,w,h,col)=>{c.fillStyle=col;c.fillRect(x,y,w,h);},p:(pts,col)=>{c.fillStyle=col;c.beginPath();pts.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.fill();}});
 const make=(w,h)=>{if(typeof OffscreenCanvas!=='undefined')return new OffscreenCanvas(w,h);const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
 
-export function createCreator({$,storage,look,setLook,loadout,setLoadout,companion=()=>null,setCompanion=()=>{}}){
+export function createCreator({$,storage,kicker=()=>null,look,setLook,loadout,setLoadout,companion=()=>null,setCompanion=()=>{}}){
  let section='body',history=[],name='',mode='person',petSection='pkind',petHistory=[];
  try{name=storage?.getItem(NAME_KEY)||'';}catch{}
  const cache=new Map();
@@ -83,7 +83,7 @@ export function createCreator({$,storage,look,setLook,loadout,setLoadout,compani
   panel.innerHTML=`<div class="cr-panel-head"><h2>${s.name}</h2><span>${list.indexOf(s)+1} / ${list.length}</span></div>`+s.rows.map(r=>rowHtml(r,l)).join('');
   for(const b of $('categoryRail').querySelectorAll?.('[data-section]')||[]){b.setAttribute('aria-pressed',String(b.dataset.section===section));b.hidden=!list.some(x=>x.id===b.dataset.section);}
   for(const b of $('kindSwitch').querySelectorAll?.('[data-kind]')||[])b.setAttribute('aria-pressed',String((b.dataset.kind==='zombie')===!!l.zombie));
-  $('creatorKicker')&&($('creatorKicker').textContent=l.zombie?'Infected specimen · File 01':'Survivor intake · File 01');
+  $('creatorKicker')&&($('creatorKicker').textContent=kicker()||(l.zombie?'Infected specimen · File 01':'Survivor intake · File 01'));
   for(const c of panel.querySelectorAll?.('canvas[data-thumb]')||[]){const [key,v,crop]=c.dataset.thumb.split(':');thumb(c,{...l,[key]:Number(v)},crop);}
   for(const c of panel.querySelectorAll?.('canvas[data-uniformthumb]')||[])thumb(c,{...l,...UNIFORMS[Number(c.dataset.uniformthumb)].look},'full');
   for(const c of panel.querySelectorAll?.('canvas[data-gearthumb]')||[]){const [kind,id]=c.dataset.gearthumb.split(':');gearThumb(c,kind,id);}

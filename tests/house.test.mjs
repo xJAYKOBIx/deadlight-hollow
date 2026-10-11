@@ -53,14 +53,17 @@ test('walking speed follows real time from the first step, not a smoothed 60 fps
  assert.match(fs.readFileSync(new URL('../dist/study/scene.js',import.meta.url),'utf8'),/delta=Math\.min\(50,delta\)/);});
 test('the first night: you wake, find the pistol and the shotgun with their rounds, and it is saved',async()=>{
  const {readHome,saveHome,normalizeHome,take,swap,goal,useLines,rounds,verbFor,spare,FINDS}=await import('../dist/home/kit.js');
- let k=normalizeHome();assert.deepEqual(k,{woke:false,guns:{},held:null,bag:{items:[],spill:[]},searched:[],street:'start',looted:[],mission:{done:[],out:false}});assert.equal(goal(k),'');k={...k,woke:true};assert.match(goal(k),/protect yourself/);
+ let k=normalizeHome();assert.deepEqual(k,{woke:false,light:false,guns:{},held:null,bag:{items:[],spill:[]},searched:[],street:'start',looted:[],mission:{done:[],out:false},phase:'tutorial',corpse:null});assert.equal(goal(k),'');k={...k,woke:true};assert.match(goal(k),/flashlight in the kitchen/);
+ // In the dark the guns wait for the flashlight, which is in the kitchen junk drawer.
+ assert.equal(useLines(k,'nightstand').act,undefined);assert.match(useLines(k,'closet').lines.join(' '),/flashlight/);assert.equal(useLines(k,'counter').act,'flashlight');assert.equal(verbFor(k,'counter'),'Search');
+ k={...k,light:true};assert.match(goal(k),/protect yourself/);
  assert.equal(useLines(k,'frontdoor').act,undefined);assert.equal(useLines(k,'nightstand').act,'take:light-pistol');
  k=take(k,'light-pistol');assert.equal(k.held,'light-pistol');assert.equal(rounds(k),'15 / ∞','a pistol never runs out of spare rounds');assert.equal(spare(k,'light-pistol'),Infinity);assert.match(goal(k),/crashed down the street/,'one gun is enough to go and look');assert.equal(useLines(k,'frontdoor').act,'leave');assert.match(useLines(k,'frontdoor').lines.at(-1),/shotgun is still in the closet/);assert.equal(verbFor(k,'nightstand'),'Look');assert.equal(useLines(k,'nightstand').act,undefined);
  k=take(k,'pump-shotgun');assert.equal(k.held,'pump-shotgun');assert.equal(rounds(k),'8 / 16','the shotgun starts at 8 and 16');assert.match(goal(k),/crashed down the street/);
  assert.equal(take(k,'pump-shotgun'),k,'taking twice changes nothing');assert.equal(swap(k).held,'light-pistol');assert.equal(swap(swap(k)).held,'pump-shotgun');
  assert.equal(FINDS['pump-shotgun'].ammo,8);assert.deepEqual(FINDS['pump-shotgun'].bag,[['shells',16],['gun-oil',1]],'the shotgun comes with a box of 16 shells and gun oil');
  const store=new Map(),mem={getItem:x=>store.get(x)??null,setItem:(x,v)=>store.set(x,v)};assert.ok(saveHome(mem,k));assert.deepEqual(readHome(mem,undefined,false),k);assert.deepEqual(readHome(mem),normalizeHome(),'while the tutorial is built, every visit starts fresh');
- store.set('deadlight-home-v1','{"woke":true,"guns":{"pump-shotgun":{"ammo":99,"reserve":-3},"bazooka":{}},"held":"bazooka"}');assert.deepEqual(readHome(mem,undefined,false),{woke:true,guns:{'pump-shotgun':{ammo:8}},held:'pump-shotgun',bag:{items:[],spill:[]},searched:[],street:'start',looted:[],mission:{done:[],out:false}});
+ store.set('deadlight-home-v1','{"woke":true,"guns":{"pump-shotgun":{"ammo":99,"reserve":-3},"bazooka":{}},"held":"bazooka"}');assert.deepEqual(readHome(mem,undefined,false),{woke:true,light:false,guns:{'pump-shotgun':{ammo:8}},held:'pump-shotgun',bag:{items:[],spill:[]},searched:[],street:'start',looted:[],mission:{done:[],out:false},phase:'tutorial',corpse:null});
  store.set('deadlight-home-v1','{"woke":true,"guns":{"pump-shotgun":{"ammo":5,"reserve":16}},"held":"pump-shotgun"}');assert.equal(rounds(readHome(mem,undefined,false)),'5 / 16','an older save moves its spare shells into the bag');
  assert.deepEqual(readHome({getItem(){throw new Error('blocked');}},undefined,false),normalizeHome());});
 test('waking up on the couch plays through, brings both pets over for a pat, and hands control back',async()=>{
@@ -69,7 +72,7 @@ test('waking up on the couch plays through, brings both pets over for a pat, and
  const [dog,cat]=PETS.map(def=>new HousePet(def,{rooms:ROOMS,blocked:blk,rand:seeded(5)}));cat.place(PETS[1].spots.find(s=>s.perch&&s.room==='living'&&s.perch.h<20));
  const w=new Wake({dog,cat,you});let t=0,petted=new Set(),said=new Set();
  while(!w.done&&t<60){you.x=w.x;you.y=w.y;w.update(.05);dog.update(.05,you);cat.update(.05,you);t+=.05;if(dog.happy)petted.add('dog');if(cat.happy)petted.add('cat');if(w.say)said.add(w.say);}
- assert.ok(w.done&&t<55,`it ends (${t.toFixed(1)} s)`);assert.deepEqual(w.cues,['distant-siren','car-pass','car-crash'],'the sirens, the cruiser going past and the crash');assert.equal(w.police,'parked');assert.equal(w.shook,1);assert.deepEqual([...petted].sort(),['cat','dog']);assert.equal(said.size,BEATS.filter(b=>b.say).length,'every line is shown');
+ assert.ok(w.done&&t<55,`it ends (${t.toFixed(1)} s)`);assert.deepEqual(w.cues,[],'nothing outside yet: the crash waits for the flashlight');assert.equal(w.police,null);assert.ok([...said].some(s=>/junk drawer/.test(s)),'it tells you where the flashlight is');assert.deepEqual([...petted].sort(),['cat','dog']);assert.equal(said.size,BEATS.filter(b=>b.say).length,'every line is shown');
  assert.ok(Math.hypot(dog.x-DOG_AT.x,dog.y-DOG_AT.y)<6&&Math.hypot(cat.x-CAT_AT.x,cat.y-CAT_AT.y)<6,'both pets came over');
  assert.deepEqual({x:you.x,y:you.y},{x:WAKE_END.x,y:WAKE_END.y});assert.ok(!new HomeModel().blocked(WAKE_END.x,WAKE_END.y),'you end on open floor');
  // Released, they go back to their own routine.
@@ -78,10 +81,18 @@ test('skipping the wake-up puts everyone where the scene ends',async()=>{
  const {Wake,WAKE_END,DOG_AT}=await import('../dist/home/wake.js');const you={x:0,y:0};
  const [dog,cat]=PETS.map(def=>new HousePet(def,{rooms:ROOMS,blocked,rand:seeded(9)}));const w=new Wake({dog,cat,you});for(let i=0;i<40;i++)w.update(.05);w.skip();
  assert.ok(w.done);assert.equal(you.x,WAKE_END.x);assert.equal(you.direction,WAKE_END.direction);assert.deepEqual({x:dog.x,y:dog.y},DOG_AT);assert.equal(cat.perched,false);});
-test('after the intro the wake-up skips the sirens and the crash it has just shown, and starts with the cruiser already there',async()=>{
- const {Wake,WAKE_END,AFTER_INTRO}=await import('../dist/home/wake.js');const you={x:0,y:0},blk=(x,y,p,plan)=>blocked(x,y,p)||(!plan&&Math.hypot(x-you.x,(y-you.y)*1.4)<p.def.radius+9);
- const [dog,cat]=PETS.map(def=>new HousePet(def,{rooms:ROOMS,blocked:blk,rand:seeded(5)}));const w=new Wake({dog,cat,you});w.afterIntro();assert.equal(w.police,'parked');let t=0,said=new Set();
- while(!w.done&&t<60){you.x=w.x;you.y=w.y;w.update(.05);dog.update(.05,you);cat.update(.05,you);t+=.05;if(w.say)said.add(w.say);}
- assert.ok(w.done,`it ends (${t.toFixed(1)} s)`);assert.deepEqual(w.cues,[]);assert.equal(said.size,AFTER_INTRO.filter(b=>b.say).length,'every line is shown');assert.ok([...said].some(s=>/Red and blue/.test(s)));
- assert.deepEqual({x:you.x,y:you.y},{x:WAKE_END.x,y:WAKE_END.y});
- const late=new Wake({dog,cat,you});late.update(.05);late.afterIntro();assert.equal(late.beats,undefined,'once the night has started it is left alone');});
+test('finding the flashlight plays the crash where you stand: the sirens, the cruiser going past, the crash, and where the guns are',async()=>{
+ const {Wake,CRASH}=await import('../dist/home/wake.js');const you={x:300,y:330,direction:4};
+ const [dog,cat]=PETS.map(def=>new HousePet(def,{rooms:ROOMS,blocked,rand:seeded(5)}));const w=new Wake({dog,cat,you,beats:CRASH});assert.equal(w.fade,0);assert.equal(w.x,300);let t=0,said=new Set();
+ while(!w.done&&t<60){w.update(.05);t+=.05;if(w.say)said.add(w.say);}
+ assert.ok(w.done,`it ends (${t.toFixed(1)} s)`);assert.deepEqual(w.cues,['distant-siren','car-pass','car-crash']);assert.equal(w.police,'parked');assert.equal(w.shook,1);assert.equal(said.size,CRASH.filter(b=>b.say).length,'every line is shown');assert.ok([...said].some(s=>/nightstand/.test(s)));
+ assert.deepEqual({x:you.x,y:you.y},{x:300,y:330},'you stay where you found it');
+ const s2=new Wake({dog,cat,you,beats:CRASH});s2.update(.05);s2.skip();assert.ok(s2.done);assert.equal(s2.police,'parked','skipping still leaves the cruiser in the pole');});
+test('when he dies, the one who watched takes over: a new survivor with a pistol, and his gear on his body to take back',async()=>{
+ const K=await import('../dist/home/kit.js');const B=await import('../dist/home/bag.js');
+ let k=K.take(K.take({...K.normalizeHome(),woke:true,light:true},'light-pistol'),'pump-shotgun');k=K.search(k,'counter');
+ const r=K.reborn(k,{x:900,y:400,dir:3});assert.equal(r.phase,'own');assert.deepEqual(Object.keys(r.guns),[K.OWN_GUN]);assert.equal(r.held,K.OWN_GUN);assert.deepEqual(r.bag,{items:[],spill:[]});
+ assert.deepEqual({x:r.corpse.x,y:r.corpse.y,dir:r.corpse.dir,taken:r.corpse.taken},{x:900,y:400,dir:3,taken:false});assert.match(K.goal(r,true),/Put him down/);
+ assert.deepEqual(K.normalizeHome(JSON.parse(JSON.stringify(r))),r,'it survives a save');
+ const back=K.reclaim(r);assert.deepEqual(Object.keys(back.guns).sort(),['heavy-pistol','light-pistol','pump-shotgun']);assert.equal(back.held,K.OWN_GUN);assert.equal(B.count(back.bag,'shells'),16);assert.equal(B.count(back.bag,'scrap'),3);assert.equal(back.corpse.taken,true);
+ assert.equal(K.reclaim(back),back,'there is nothing left on him the second time');assert.match(K.reclaimed(r.corpse),/Light Pistol.*Pump Shotgun.*16 shotgun shells/);assert.match(K.goal(back,true),/truck/);});

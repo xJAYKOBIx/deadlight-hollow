@@ -30,7 +30,7 @@ test('the bag grid: stacks fill up, items move and turn only where they fit, sor
  assert.equal(fixed.items.length,3,'overlapping and off-grid stacks are placed again');assert.equal(fixed.items[0].n,24,'a stack is cut to its size');});
 test('searching the house fills the bag, and the bag knows the shotgun shells',async()=>{
  const K=await import('../dist/home/kit.js');const B=await import('../dist/home/bag.js');
- let k={...K.normalizeHome(),woke:true};k=K.take(k,'pump-shotgun');assert.equal(B.count(k.bag,'shells'),16);assert.equal(B.count(k.bag,'gun-oil'),1);
+ let k={...K.normalizeHome(),woke:true,light:true};k=K.take(k,'pump-shotgun');assert.equal(B.count(k.bag,'shells'),16);assert.equal(B.count(k.bag,'gun-oil'),1);
  k=K.search(k,'counter');assert.equal(B.count(k.bag,'scrap'),3);assert.equal(B.count(k.bag,'electronics'),1);assert.equal(K.search(k,'counter'),k,'a spot is searched once');
  assert.equal(K.verbFor(k,'counter'),'Look');assert.equal(K.useLines(k,'sink').act,'search:sink');assert.match(K.pickupLine('laundry'),/2 cloth and leather/);
  k={...k,bag:B.remove(k.bag,'shells',10)};assert.equal(K.rounds(k),'8 / 6','spare shells are the ones in the bag');});

@@ -2,7 +2,7 @@ import test from 'node:test';import assert from 'node:assert/strict';
 const {Fight,ZOMBIE,PLAYER_HP,ROAM,SLOW,DIVE,SHOVE,GORE_KILL,CRAWLER}=await import('../dist/street/fight.js');const {StreetModel}=await import('../dist/street/model.js');
 const {normalizeHome,take,goal,useLines,loot,TRUNK}=await import('../dist/home/kit.js');const {count}=await import('../dist/home/bag.js');const {carrying}=await import('../dist/mc/assets/gear/bags.js');
 const {STREET,START,WAVES,COP,NOTICE,HEAR,PROPS,BLOCKS,HOUSES,OBJECTS,ROAMERS,solidAt,coverAt,COLS,ROWS}=await import('../dist/street/data.js');
-const grid=carrying({}),armed=(guns=['light-pistol','pump-shotgun'])=>guns.reduce((k,g)=>take(k,g,grid),{...normalizeHome(null),woke:true});
+const grid=carrying({}),armed=(guns=['light-pistol','pump-shotgun'])=>guns.reduce((k,g)=>take(k,g,grid),{...normalizeHome(null),woke:true,light:true});
 function setup(k=armed()){const box={k},m=new StreetModel(),f=new Fight(m,{kit:()=>box.k,setKit:v=>box.k=v,grid:()=>grid});m.zombies=f.zombies;f.start();return {box,m,f};}
 const waves=f=>f.zombies.filter(z=>z.roam===undefined),run=(f,m,s,input=()=>({}))=>{for(let t=0;t<s;t+=1/60){const i=input();m.update(1/60,i);f.update(1/60,i);}};
 test('the street: you step out on your own step, and everything stands on the map',()=>{const m=new StreetModel();assert.deepEqual([m.x,m.y],[START.x,START.y]);assert.equal(m.blocked(m.x,m.y),false);
@@ -136,11 +136,27 @@ test('the first job: three things anywhere in town in any order, then call the t
  at(T('job-power'));f.work(T('job-power'));run(f,m,JOB.time.power+.1);assert.ok(box.k.mission.done.includes('power'));assert.ok(f.heat>=JOB.power.noise);f.drain();run(f,m,JOB.power.horde+.1);assert.ok(f.drain().some(e=>e.type==='horde'),'a horde heard it');
  // Going down after a job keeps the job done.
  at(T('job-radio'));f.work(T('job-radio'));run(f,m,JOB.time.radio+.1);assert.ok(jobsDone(box.k));f.hurt(999,{x:m.x+10,y:m.y});run(f,m,3.2);assert.ok(jobsDone(box.k),'still done after going down');assert.match(goal(box.k,true),/east end/);
- // The call: a hold-out against hordes, then the truck drives in, pulls up, and waits; getting in ends the night.
+ // The call: a hold-out against hordes (on night one it goes wrong; see the next test).
  f.zombies.length=0;at(T('evac'));assert.ok(f.can(T('evac')));f.work(T('evac'));assert.equal(f.evac.state,'hold');f.drain();
- for(let t=0;t<JOB.evac.hold;t+=1/60){f.hp=PLAYER_HP;m.update(1/60,{});f.update(1/60,{});}assert.ok(f.drain().filter(e=>e.type==='horde').length>=3,'hordes come all through the hold-out');
- f.zombies.length=0;run(f,m,JOB.evac.drive+.1);assert.equal(f.evac.state,'wait');assert.ok(solidAt(T('board').x-30,T('board').y,4),'the truck is there and solid');assert.ok(f.can(T('board')));
- at(T('board'));f.drain();assert.ok(f.work(T('board')));const ex=f.drain().find(e=>e.type==='extract');assert.ok(ex&&ex.stats.time>JOB.evac.hold,'the night is summed up');assert.equal(box.k.mission.out,true);assert.equal(f.can(T('board')),false);});
+ run(f,m,JOB.evac.every*3+.5,()=>{f.hp=PLAYER_HP;return {};});assert.ok(f.drain().filter(e=>e.type==='horde').length>=3,'hordes come all through the hold-out');});
+test('night one ends in the hold-out: overrun, he dies and gets up, and the one who watched puts him down and takes his gear to the truck',async()=>{
+ const {DEATH,RISEN,JOB}=await import('../dist/street/fight.js');const K=await import('../dist/home/kit.js');const {TARGETS}=await import('../dist/street/model.js');
+ const {box,m,f}=setup({...armed(),street:'done',mission:{done:['radio','power','supplies'],out:false}}),T=id=>TARGETS.find(t=>t.id===id);f.zombies.length=0;
+ Object.assign(m,{x:T('evac').x,y:T('evac').y});f.work(T('evac'));f.drain();
+ run(f,m,DEATH.overrun+.2,()=>{f.hp=PLAYER_HP;return {};});let ev=f.drain();assert.ok(ev.some(e=>e.type==='overrun'));assert.ok(f.zombies.filter(z=>z.extra).length>=DEATH.shamblers+DEATH.runners);
+ const left=f.evac.t;run(f,m,1,()=>{f.hp=PLAYER_HP;return {};});assert.equal(f.evac.t,left,'the truck is held up');
+ for(let t=0;t<DEATH.doom+2&&!f.dead;t+=1/60){m.update(1/60,{});f.update(1/60,{});}assert.ok(f.dead,'he does not get back up this time');ev=f.drain();assert.ok(ev.some(e=>e.type==='death'));assert.ok(!ev.some(e=>e.type==='restart'));
+ const body=f.dead.body;assert.equal(body.kind,'risen');assert.ok(f.torch,'his flashlight lies where he dropped it');
+ run(f,m,DEATH.cine.end+.2);ev=f.drain();assert.ok(ev.some(e=>e.type==='rose'));assert.ok(ev.some(e=>e.type==='watched'));assert.equal(body.state,'up');
+ const watch=f.dead.watch;box.k=K.reborn(box.k,{x:body.x,y:body.y,dir:body.direction});f.reborn();
+ assert.equal(f.dead,null);assert.ok(Math.hypot(m.x-watch.x,m.y-watch.y)<1,'you come out of the door across the street');assert.equal(f.held,K.OWN_GUN);assert.equal(f.hp,PLAYER_HP);
+ assert.ok(!f.zombies.some(z=>z.extra),'the overrun has moved on');assert.ok(body.lurk&&body.hp===RISEN.hp&&f.zombies.includes(body));assert.ok(f.evac.paused,'the truck waits on you');
+ f.hit(body,9999,1,0);ev=f.drain();assert.ok(ev.some(e=>e.type==='fallen'));assert.ok(f.remains);
+ const t={id:'remains',remains:true,x:f.remains.x,y:f.remains.y};Object.assign(m,{x:t.x,y:t.y});f.zombies.length=0;assert.ok(f.work(t));run(f,m,RISEN.search+.1);
+ assert.equal(box.k.corpse.taken,true);assert.ok(box.k.guns['pump-shotgun']&&box.k.guns['light-pistol']&&box.k.guns[K.OWN_GUN],'all three guns');ev=f.drain();assert.ok(ev.some(e=>e.type==='reclaimed'));assert.equal(f.evac.state,'drive');
+ f.zombies.length=0;run(f,m,JOB.evac.drive+.1);assert.equal(f.evac.state,'wait');f.zombies.length=0;Object.assign(m,{x:T('board').x,y:T('board').y});f.drain();assert.ok(f.work(T('board')));assert.ok(f.drain().some(e=>e.type==='extract'));assert.equal(box.k.mission.out,true);
+ // Going down as your own survivor is not the end: back where you came out, as before.
+ const {box:b2,m:m2,f:f2}=setup(box.k);f2.hurt(9999,{x:m2.x+10,y:m2.y});assert.equal(f2.dead,null);assert.ok(f2.down>0&&f2.down<10);});
 const special=(f,kind,x,y)=>{const hp=f.hpOf(kind,kind),z={kind,extra:true,roam:-1,look:kind,x,y,sx:x,sy:y,direction:4,frame:0,phase:0,hp,max:hp,idle:false,delay:0,state:'chase',hunt:true,t:0,vx:0,vy:0,stagger:0,tell:0,cool:0,flash:0,groan:9,wt:0,wx:x,wy:y,acc:0};f.zombies.push(z);return z;};
 test('screamers keep their distance and scream when they see you: a hit breaks it, a finished scream brings a horde',async()=>{const {SCREAMER}=await import('../dist/street/fight.js');const {box,m,f}=setup({...armed(),street:'done'});
  Object.assign(m,{x:5300,y:1990});f.zombies.length=0;f.patrolT=999;const z=special(f,'screamer',5440,1960),C=SCREAMER.scream;

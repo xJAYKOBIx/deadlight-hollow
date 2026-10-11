@@ -7,8 +7,8 @@
 // It changes the kit (ammo, shells, the street stage) only through the setKit it is given, so the game saves as it goes.
 import {GUNS,muzzle} from '../study/equipment.js';
 import {count,remove,add} from '../home/bag.js';
-import {ammoOf,advance,loot,scavenge,alarmed,DROPS,job,jobsDone,board} from '../home/kit.js';
-import {MAP,WAVES,ROAMERS,NOTICE,HEAR,WALK,ROADS,CROSSES,EVAC,TRUCK,MOVING,solidAt,coverAt} from './data.js';
+import {ammoOf,advance,loot,scavenge,alarmed,DROPS,job,jobsDone,board,reclaim,reclaimed} from '../home/kit.js';
+import {MAP,WAVES,ROAMERS,NOTICE,HEAR,WALK,ROADS,CROSSES,EVAC,TRUCK,MOVING,OBJECTS,solidAt,coverAt} from './data.js';
 import {Flow,clearLine} from './paths.js';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),facing=(dx,dy)=>(Math.round(Math.atan2(dy,dx)/(Math.PI/4))+8)%8;
 // Wanderers: how far they stroll from where they started and how slowly, when they give up on you, and how far off they stop
@@ -66,13 +66,32 @@ export const BLOATER={hp:110,speed:26,scale:1.12,tellY:68,swell:{at:36,tell:.8},
 // Spitters: they keep their distance and lob acid at where you are going, over fences and cars. Where it will land is marked on
 // the ground while it flies: be out of the mark when it lands. The pool it leaves burns for a while.
 export const SPITTER={hp:55,speed:36,keep:[150,280],spit:{tell:.55,flight:.95,cool:3.4,damage:12,radius:22,lead:.55,pool:{time:5,radius:24,every:.5,hurt:6}}};
+// The end of the tutorial. In the hold-out the man you started as cannot make it: a while into it the truck is held up and the dead
+// come from every side at once (the overrun), their bites land harder, and if he is somehow still standing at the end of it, one of
+// them gets him. Going down in the hold-out is the end of him, with no checkpoint. Then, as seen from a window across the street
+// (the game draws that): the dead close in and feed, then drift off; he twitches, gets up, and turns toward the window; then the
+// picture goes and you make the survivor who was watching. Times are seconds from when he went down. lines are what the watcher says.
+export const DEATH={overrun:20,ring:[170,300],shamblers:14,runners:4,hurt:1.5,doom:26,feeders:6,
+ cine:{leave:6.5,twitch:8.6,rise:10,up:11.4,walk:12.6,end:15.6},
+ lines:[[1.2,'No. No, no, no…'],[3.8,'Don\'t look. Don\'t you dare look away.'],[6.9,'They\'re leaving him. They\'re just… leaving him there.'],[9,'He moved. Did he move?'],[12.2,'That\'s not him any more.']]};
+// Him, after: tougher than most, standing where he got up until you come close or shoot him. Taking your gear back off him is a search.
+export const RISEN={hp:150,notice:230,search:2};
 export const CRAWLER={hp:25,speed:22,reach:16,windup:.55,damage:9,hold:.9,slow:.3,rise:.6,cool:1.4};
 export class Fight{
  constructor(model,{kit,setKit,grid}){Object.assign(this,{model,kit,setKit,grid,traces:[],fields:[],events:[],zombies:[],hp:PLAYER_HP,maxHp:PLAYER_HP,down:0,cooldown:0,reloadTime:0,throwCooldown:0,sinceShot:9,sinceHurt:9,dive:null,diveCool:0,alert:false,wave:-1,seed:1,held:null,grab:0,gore:true,searching:null,drops:[],heat:0,quiet:99,level:0,patrolT:30,hordeT:0,vault:null,push:0,evac:null,powerT:0,globs:[],pools:[],clouds:[],burnT:0,pv:{x:0,y:0},stats:{kills:0,shots:0,found:0,downs:0,time:0}});
   this.drill={bots:this.zombies,holdout:false,downed:false};this.flow=new Flow();}
  // Sets the street up for where the kit says you are: the cop waiting at the cruiser, the second wave coming, or nothing.
  start(){const k=this.kit();this.snapshot=k;this.hp=PLAYER_HP;this.down=0;this.dive=null;this.grab=0;this.searching=null;this.drops=[];this.heat=0;this.quiet=99;this.level=0;this.patrolT=30;this.hordeT=0;this.vault=null;this.push=0;this.evac=null;this.powerT=0;this.globs=[];this.pools=[];this.clouds=[];this.burnT=0;MOVING.length=0;this.diveCool=0;this.alert=false;this.traces=[];this.reloadTime=0;this.cooldown=0;this.held=k.held;this.zombies.length=0;
+  this.overrun=null;this.dead=null;this.remains=null;this.torch=k.phase==='own'&&k.corpse&&!k.corpse.taken?this.torch:null;this.model.spawn=k.phase==='own'?this.model.spawn:null;
+  if(k.phase==='own'){this.own(k);return;}
   if(k.street==='start')this.spawn(0);else if(k.street==='looted'){this.spawn(1);this.alert=true;}else{this.wave=-1;this.zombies.length=0;this.zombies.push(...this.roamers());}}
+ // Your own survivor's street: the wanderers, him standing where he got up (until you have your gear back off him), and the truck,
+ // held up until then and on its way after.
+ own(k){this.wave=-1;this.alert=true;this.zombies.push(...this.roamers());const c=k.corpse;
+  if(c&&!c.taken){const b=this.risenAt(c.x,c.y);b.hp=b.max;b.state='chase';b.lurk=true;b.direction=c.dir??2;this.zombies.push(b);this.evac={state:'hold',t:0,h:0,paused:true};}
+  else this.evac={state:'drive',t:JOB.evac.drive,h:0};}
+ // Him, as one of the dead: whole (he never comes apart, so there is something to search), with his own look.
+ risenAt(x,y){return {kind:'risen',look:'you',x,y,sx:x,sy:y,direction:2,frame:0,phase:0,hp:0,max:RISEN.hp,idle:false,delay:0,state:'dead',t:0,vx:0,vy:0,stagger:0,tell:0,cool:0,flash:0,groan:2};}
  // The ones you already put down stay where they fell when the next wave comes.
  spawn(i){this.wave=i;const fell=i>0?this.zombies.filter(z=>z.roam===undefined&&z.hp<=0):[];this.zombies.length=0;this.zombies.push(...fell);for(const s of WAVES[i]){const kind=s.kind||'shambler',hp=this.hpOf(kind,s.look);this.zombies.push({kind,...(kind==='brute'?{tellY:BRUTE.tellY}:{}),look:s.look,x:s.x,y:s.y,sx:s.x,sy:s.y,direction:s.direction??4,frame:0,phase:0,hp,max:hp,idle:!!s.idle,delay:s.delay||0,state:'chase',t:0,vx:0,vy:0,stagger:0,tell:0,cool:0,flash:0,groan:1+this.rand()*2});}
   this.zombies.push(...this.roamers());}
@@ -81,7 +100,7 @@ export class Fight{
   return R.filter(r=>!this.fallen.has(r.i)||r.z).map(r=>{if(this.fallen.has(r.i))return r.z;const s=r.s,kind=s.kind||'shambler',hp=this.hpOf(kind,s.look);
    return r.z=Object.assign(r.z||{},{kind,...(kind==='bloater'?{tellY:BLOATER.tellY}:{}),roam:r.i,look:s.look,x:s.x,y:s.y,sx:s.x,sy:s.y,direction:Math.floor(this.rand()*8),frame:0,phase:0,hp,max:hp,idle:false,delay:0,state:'wander',hunt:false,t:0,vx:0,vy:0,stagger:0,tell:0,cool:0,flash:0,groan:2+this.rand()*4,wt:this.rand()*3,wx:s.x,wy:s.y,acc:0,laid:false,fall:0});});}
  // How much one takes, by kind and look.
- hpOf(kind,look){return {crawler:CRAWLER.hp,runner:RUNNER.hp,brute:BRUTE.hp,screamer:SCREAMER.hp,bloater:BLOATER.hp,spitter:SPITTER.hp}[kind]||ZOMBIE.hp[look]||60;}
+ hpOf(kind,look){return {risen:RISEN.hp,crawler:CRAWLER.hp,runner:RUNNER.hp,brute:BRUTE.hp,screamer:SCREAMER.hp,bloater:BLOATER.hp,spitter:SPITTER.hp}[kind]||ZOMBIE.hp[look]||60;}
  rand(){this.seed=(this.seed*1103515245+12345)&0x7fffffff;return this.seed/0x7fffffff;}
  emit(type,o={}){this.events.push({type,...o});}
  drain(){return this.events.splice(0);}
@@ -123,15 +142,17 @@ export class Fight{
   if((z.state==='windup'||z.state==='crouch'||z.state==='spit')&&this.gun?.pellets&&!big){z.state='chase';z.tell=0;z.cool=.5;}
   if(z.state==='scream'&&z.hp>0){z.state='chase';z.tell=0;z.scool=SCREAMER.scream.again;this.emit('miss',{z});}
   if(z.hp<=0){this.stats.kills++;if(z.roam!==undefined)this.fallen.add(z.roam);z.state='dead';z.tell=0;z.frame=0;z._popped=true;z.fall=dx>=0?1:-1;
+   if(z.kind==='risen'){this.remains={x:z.x,y:z.y};this.emit('fallen',{z});}
    this.drop(z,dx,dy);this.noise(HEAT.kill);if(z.kind==='bloater')this.pop(z);const gore=z.gore=this.goreOf(z),crawler=gore==='half'&&this.rand()<GORE_KILL.crawl?this.crawler(z,dx,dy):null;this.emit('kill',{z,dx,dy,gore,crawler});this.check();}else this.emit('hit',{z,dx,dy});}
  // Noise raises the heat and resets the quiet.
  noise(n){this.heat=Math.min(100,this.heat+n);this.quiet=0;}
  // Sometimes something falls out of a pocket.
- drop(z,dx,dy){if(z.kind==='crawler')return;for(const [id,p,a,b] of DROPS[z.look]||DROPS.any)if(this.rand()<p){this.drops.push({id,n:a+Math.floor(this.rand()*(b-a+1)),x:z.x+dx*10+(this.rand()-.5)*8,y:z.y+dy*6+(this.rand()-.5)*6,age:0});return;}}
+ drop(z,dx,dy){if(z.kind==='crawler'||z.kind==='risen')return;for(const [id,p,a,b] of DROPS[z.look]||DROPS.any)if(this.rand()<p){this.drops.push({id,n:a+Math.floor(this.rand()*(b-a+1)),x:z.x+dx*10+(this.rand()-.5)*8,y:z.y+dy*6+(this.rand()-.5)*6,age:0});return;}}
  // Starts searching a spot; the search finishes in update, if you stay put.
  scavenge(t){if(this.down||this.dive||this.vault||this.searching||!t?.loot||this.kit().looted?.includes(t.id))return false;this.searching={t,time:0,need:SEARCH.time};this.emit('search',{t});return true;}
  // A job spot: the radio, the generator, the go-bag, the call for the truck, the truck itself.
- work(t){if(this.down||this.dive||this.vault||this.searching||!this.can(t))return false;
+ work(t){if(t.remains){if(this.down||this.dive||this.vault||this.searching||!this.remains)return false;this.searching={t,time:0,need:RISEN.search};this.emit('search',{t});return true;}
+  if(this.down||this.dive||this.vault||this.searching||!this.can(t))return false;
   if(t.job==='evac'){this.call();return true;}if(t.job==='board'){this.setKit(board(this.kit()));this.emit('extract',{stats:{...this.stats}});return true;}
   this.searching={t,time:0,need:JOB.time[t.job]};this.emit('search',{t,job:t.job});return true;}
  // Which job spots can be used now: the three until each is done, then the call, then the truck once it is waiting.
@@ -142,17 +163,59 @@ export class Fight{
  // The call: the truck is on its way, and everything in town heard the flare.
  call(){this.evac={state:'hold',t:JOB.evac.hold,h:3};this.noise(JOB.evac.heat);this.heard(EVAC.x,EVAC.y);this.emit('evac',{x:EVAC.x,y:EVAC.y});}
  // The hold-out, the truck driving in, and the truck waiting. x is where its back end is while it drives in.
- holding(dt){const v=this.evac,E=JOB.evac;this.heat=Math.max(this.heat,E.heat);this.quiet=0;
-  if(v.state==='hold'){v.t-=dt;if((v.h-=dt)<=0){v.h=E.every;this.patrol(true);}if(v.t<=0){v.state='drive';v.t=E.drive;this.emit('truck');}}
+ holding(dt){const v=this.evac,E=JOB.evac;if(v.paused)return;this.heat=Math.max(this.heat,E.heat);this.quiet=0;
+  // The tutorial's hold-out: a while in, the overrun; from then the truck is held up, and the end comes for him.
+  if(this.kit().phase!=='own'&&v.state==='hold'){v.el=(v.el||0)+dt;if(!this.overrun&&v.el>=DEATH.overrun)this.overrunStart();}
+  if(this.overrun){const o=this.overrun;o.t+=dt;if(o.t>=DEATH.doom&&!o.doomed){o.doomed=true;const m=this.model,z=this.zombies.filter(z=>this.out(z)).sort((a,b)=>Math.hypot(a.x-m.x,a.y-m.y)-Math.hypot(b.x-m.x,b.y-m.y))[0];this.hurt(this.hp/DEATH.hurt+1,z||{x:m.x+10,y:m.y});}}
+  if(v.state==='hold'){if(!this.overrun)v.t-=dt;if((v.h-=dt)<=0){v.h=E.every;this.patrol(true);}if(v.t<=0){v.state='drive';v.t=E.drive;this.emit('truck');}}
   else if(v.state==='drive'){v.t-=dt;if(v.t<=0){v.state='wait';this.park();this.emit('truckin');}}
   v.x=v.state==='drive'?TRUCK.x+(TRUCK.from-TRUCK.x)*Math.pow(Math.max(0,v.t/E.drive),1.6):v.state==='wait'?TRUCK.x:TRUCK.from;}
+ // The overrun: the dead out of the dark on every side at once, already coming for you, a few of them running.
+ overrunStart(){const m=this.model,D=DEATH,n=D.shamblers+D.runners;this.overrun={t:0};
+  for(let i=0;i<n;i++){let x=m.x,y=m.y;for(let k=0;k<20;k++){const a=(i/n)*Math.PI*2+(this.rand()-.5)*.5,r=D.ring[0]+this.rand()*(D.ring[1]-D.ring[0]);x=m.x+Math.cos(a)*r;y=m.y+Math.sin(a)*r*.75;if(x>WALK.left+20&&x<WALK.right-20&&y>WALK.top+20&&y<WALK.bottom-20&&!solidAt(x,y,10))break;}
+   const kind=i<D.runners?'runner':'shambler',look=kind==='runner'?'runner':LOOKS[Math.floor(this.rand()*LOOKS.length)],hp=this.hpOf(kind,look);
+   this.zombies.push({kind,extra:true,roam:-1,look,x,y,sx:x,sy:y,direction:facing(m.x-x,m.y-y),frame:0,phase:0,hp,max:hp,idle:false,delay:i*.12,state:'chase',hunt:true,t:0,vx:0,vy:0,stagger:0,tell:0,cool:0,flash:0,groan:.5+this.rand()*2,wt:0,wx:x,wy:y,acc:0});}
+  this.emit('overrun',{n});}
+ // He goes down for the last time. His body stays where he fell; the nearest of the dead come to it, the rest wander off.
+ die(){const m=this.model;this.down=1e9;this.reloadTime=0;this.dive=null;this.vault=null;this.grab=0;this.shove=null;if(this.searching){this.searching=null;this.emit('searchstop');}
+  const b=this.risenAt(m.x,m.y);b.fall=this.rand()<.5?1:-1;b._pool=true;this.zombies.push(b);
+  const a=this.aimAngle??m.aim??m.direction*Math.PI/4;this.torch={x:m.x+Math.cos(a)*10,y:m.y+3,a:a+(this.rand()-.5)*.8};
+  // The one watching: whoever is behind the nearest neighbour's door, across the street from him if there is one.
+  const doors=OBJECTS.filter(o=>o.id.startsWith('door-')),watch=doors.reduce((q,o)=>{const d=Math.hypot(o.x-m.x,(o.y-m.y)*1.2);return d>80&&d<q.d?{o,d}:q;},{o:doors[0],d:Infinity}).o;
+  this.dead={t:0,x:m.x,y:m.y,body:b,watch:{x:watch.x,y:watch.y,id:watch.id}};
+  const near=this.zombies.filter(z=>z!==b&&this.out(z)).sort((a,c)=>Math.hypot(a.x-m.x,a.y-m.y)-Math.hypot(c.x-m.x,c.y-m.y));
+  near.forEach((z,i)=>{if(i<DEATH.feeders&&Math.hypot(z.x-m.x,z.y-m.y)<320){const a=i/DEATH.feeders*Math.PI*2+.3;z.feed={x:m.x+Math.cos(a)*(15+i%2*5),y:m.y+Math.sin(a)*9};}else z.leave=Math.atan2(z.y-m.y,z.x-m.x);z.state='chase';z.tell=0;});
+  this.emit('death',{x:m.x,y:m.y});}
+ // The dead while he lies there: the ones feeding go to him and crouch over him; after a while they all drift away from him.
+ mourn(z,dt){const D=this.dead,C=DEATH.cine,b=D.body;z.tell=0;
+  if(z.feed&&D.t<C.leave){const dx=z.feed.x-z.x,dy=z.feed.y-z.y,d=Math.hypot(dx,dy);if(d>2){const mv=this.step(z,dx/d,dy/d,Math.min(d,ZOMBIE.lurch*dt));z.direction=facing(dx,dy);if(mv){z.phase=(z.phase+mv/40)%1;z.frame=1+Math.floor(z.phase*8);}else z.frame=0;}
+   else{z.direction=facing(b.x-z.x,b.y-z.y);z.frame=0;z.feeding=true;}return;}
+  z.feeding=false;if(D.t<C.leave&&!z.feed){z.frame=0;return;}const a=z.leave??Math.atan2(z.y-b.y,z.x-b.x)+(z.feed?0:.4);z.leave=a;const mv=this.step(z,Math.cos(a),Math.sin(a),ROAM.walk*1.4*dt);z.direction=facing(Math.cos(a),Math.sin(a));
+  if(mv){z.phase=(z.phase+mv/40)%1;z.frame=1+Math.floor(z.phase*8);}else z.frame=0;}
+ // His body: still, then a twitch, then up, turned toward the window, and a few steps.
+ dying(dt){const D=this.dead,C=DEATH.cine,b=D.body,t=(D.t+=dt);
+  b.twitch=t>=C.twitch&&t<C.rise?(Math.floor(t*9)%5===0?1:0):0;
+  if(t>=C.rise&&t<C.up)b.rise=(t-C.rise)/(C.up-C.rise);
+  else if(t>=C.up&&b.state==='dead'){b.rise=null;b.hp=b.max;b.state='up';b.direction=facing(D.watch.x-b.x,D.watch.y-b.y);b.frame=0;this.emit('groan',{z:b,loud:true});this.emit('rose',{z:b});}
+  if(b.state==='up'&&t>=C.walk&&t<C.walk+1.6){const dx=D.watch.x-b.x,dy=D.watch.y-b.y,d=Math.hypot(dx,dy)||1,mv=this.step(b,dx/d,dy/d,ZOMBIE.walk*.5*dt);if(mv){b.phase=(b.phase+mv/40)%1;b.frame=1+Math.floor(b.phase*8);}}else if(b.state==='up')b.frame=0;
+  if(t>=C.end&&!D.over){D.over=true;this.emit('watched',{x:b.x,y:b.y});}}
+ // You, the one who was watching: out of the door across the street with your own pistol. The dead that fed on him have gone on
+ // after the noise; he is still out there, standing where he got up.
+ reborn(){const D=this.dead;if(!D)return;const b=D.body,w=D.watch,m=this.model;
+  const keep=this.zombies.filter(z=>z===b||z.hp<=0&&!z.extra||z.roam!==undefined&&z.roam>=0);this.zombies.length=0;this.zombies.push(...keep);for(const z of keep){z.feed=null;z.leave=undefined;z.feeding=false;}
+  Object.assign(b,{hp:b.max,state:'chase',lurk:true,rise:null,twitch:0,frame:0,sx:b.x,sy:b.y});
+  m.spawn={x:w.x,y:w.y,direction:facing(b.x-w.x,b.y-w.y)};m.reset();this.dead=null;this.overrun=null;this.down=0;this.hp=PLAYER_HP;this.drill.downed=false;this.alert=true;this.heat=0;this.level=0;this.quiet=99;this.hordeT=0;this.powerT=0;
+  this.evac={state:'hold',t:0,h:0,paused:true};this.snapshot=this.kit();this.held=this.kit().held;this.emit('reborn');}
+ // Your gear back off him; and the truck, which was waiting on you, comes in. So does everything that heard you.
+ reclaim(){const k=this.kit(),c=k.corpse;if(!c||c.taken)return;this.setKit(reclaim(k,this.grid()));this.snapshot=this.kit();this.remains=null;this.torch=null;this.stats.found++;
+  this.emit('reclaimed',{text:reclaimed(c)});this.evac={state:'drive',t:JOB.evac.drive,h:0};this.emit('truck');this.noise(60);this.patrol(true);}
  // Pulled up: the truck is solid, and anything standing where it stopped is pushed out of the way.
  park(){const b={x:TRUCK.x,y:TRUCK.y,w:TRUCK.w,h:TRUCK.h,z:TRUCK.z,see:false,id:'truck',kind:'truck'};MOVING.length=0;MOVING.push(b);
   const m=this.model,inside=(x,y,r)=>x>b.x-r&&x<b.x+b.w+r&&y>b.y-r&&y<b.y+b.h+r;if(inside(m.x,m.y,m.radius))m.y=b.y-m.radius-2;for(const z of this.zombies)if(z.hp>0&&inside(z.x,z.y,8))z.y=z.y<b.y+b.h/2?b.y-10:b.y+b.h+10;}
  // A car alarm: every wanderer in earshot comes to see, and keeps coming.
  alarm(x,y){this.emit('alarm',{x,y});this.noise(HEAT.alarm);for(const z of this.zombies)if(z.roam!==undefined&&z.hp>0&&Math.hypot(z.x-x,z.y-y)<SEARCH.alarm)this.notice(z);this.heard(x,y);}
  // What a killing hit does to the body: nothing more, 'half' (in two at the waist) or 'head' (the head comes off).
- goreOf(z){if(!this.gore||this.gassing||z.kind==='crawler'||z.kind==='brute'||z.kind==='bloater')return null;const m=this.model,d=Math.hypot(z.x-m.x,z.y-m.y),G=GORE_KILL;
+ goreOf(z){if(!this.gore||this.gassing||z.kind==='risen'||z.kind==='crawler'||z.kind==='brute'||z.kind==='bloater')return null;const m=this.model,d=Math.hypot(z.x-m.x,z.y-m.y),G=GORE_KILL;
   if(this.gun?.pellets)return d<G.near||d<G.far&&this.rand()<G.chance?'half':null;return this.rand()<G.head?'head':null;}
  // The top half lands a little way along the shot and starts to crawl. It counts as one of the wave it came from.
  crawler(z,dx,dy){let x=z.x,y=z.y;for(const t of [28,20,12])if(!this.blockedZ(z,z.x+dx*t,z.y+dy*t*.7)){x=z.x+dx*t;y=z.y+dy*t*.7;break;}
@@ -180,8 +243,8 @@ export class Fight{
  vaulting(dt){const v=this.vault,m=this.model;v.t+=dt;const k=Math.min(1,v.t/VAULT.time),e=k<.5?2*k*k:1-2*(1-k)*(1-k);m.x=v.from.x+(v.to.x-v.from.x)*e;m.y=v.from.y+(v.to.y-v.from.y)*e;
   v.k=k;v.h=Math.sin(k*Math.PI)*v.z*VAULT.lift;m.moving=false;if(k>=1){this.vault=null;this.emit('over',{x:m.x,y:m.y});}}
  // You, bitten.
- hurt(n,from,shove=true,kind='bite'){if(this.down)return;this.dive=null;if(this.searching){this.searching=null;this.emit('searchstop');}this.hp=Math.max(0,this.hp-n);this.sinceHurt=0;const m=this.model,dx=m.x-from.x,dy=m.y-from.y,d=Math.hypot(dx,dy)||1;if(shove)this.shove={x:dx/d*ZOMBIE.bite.shove,y:dy/d*ZOMBIE.bite.shove};
-  this.emit('hurt',{n,hp:this.hp,kind});if(!this.hp){this.down=3;this.reloadTime=0;this.drill.downed=true;this.emit('down');}}
+ hurt(n,from,shove=true,kind='bite'){if(this.down||this.dead)return;if(this.overrun)n*=DEATH.hurt;this.dive=null;if(this.searching){this.searching=null;this.emit('searchstop');}this.hp=Math.max(0,this.hp-n);this.sinceHurt=0;const m=this.model,dx=m.x-from.x,dy=m.y-from.y,d=Math.hypot(dx,dy)||1;if(shove)this.shove={x:dx/d*ZOMBIE.bite.shove,y:dy/d*ZOMBIE.bite.shove};
+  this.emit('hurt',{n,hp:this.hp,kind});if(!this.hp){if(this.kit().phase!=='own'&&this.evac){this.die();return;}this.down=3;this.reloadTime=0;this.drill.downed=true;this.emit('down');}}
  // The cop turns round and the others come out of the dark.
  wake(){this.alert=true;for(const z of this.zombies)if(z.idle){z.idle=false;this.emit('groan',{z,loud:true});}}
  // A shot: the cop wakes if it is near enough to hear, and so does every wanderer in earshot.
@@ -202,6 +265,8 @@ export class Fight{
  update(dt,input={}){dt=clamp(Number(dt)||0,0,.05);const m=this.model,g=this.gun;if(dt){this.pv={x:(m.x-(this.px??m.x))/dt,y:(m.y-(this.py??m.y))/dt};}this.px=m.x;this.py=m.y;
   if(this.held!==this.gunId){this.held=this.gunId;this.reloadTime=0;this.cooldown=Math.max(this.cooldown,.35);this.emit('swap');}
   this.cooldown=Math.max(0,this.cooldown-dt);this.sinceShot+=dt;this.sinceHurt+=dt;
+  // He is gone: only his body and the dead near him move, until you have made the survivor who watched.
+  if(this.dead){this.dying(dt);const b=this.dead.body;for(const z of this.zombies)if(z!==b&&Math.abs(z.x-b.x)+Math.abs(z.y-b.y)<900)this.think(z,dt);for(const t of this.traces){t.age+=dt;t.life-=dt;t.done=t.done||t.age>=t.dur;}this.traces=this.traces.filter(t=>t.life>0);return;}
   if(this.down){this.down=Math.max(0,this.down-dt);if(!this.down)this.restart();}
   if(this.reloadTime){this.reloadTime=Math.max(0,this.reloadTime-dt);if(!this.reloadTime&&g)this.loaded();}
   // Back on your feet slowly once nothing has touched you for a while.
@@ -215,7 +280,8 @@ export class Fight{
   if(input.fire&&!this.down)this.fire();
   // A search under way: stop if you move, shoot or dive; otherwise, once it is done, what was there goes in your bag.
   const S=this.searching;if(S){if(Math.hypot(Number(input.x)||0,Number(input.y)||0)>.25||input.fire||this.dive||this.down){this.searching=null;this.emit('searchstop');}
-   else if((S.time+=dt)>=S.need&&S.t.job){this.searching=null;this.done(S.t);}
+   else if((S.time+=dt)>=S.need&&S.t.remains){this.searching=null;this.reclaim();}
+   else if(S.time>=S.need&&S.t.job){this.searching=null;this.done(S.t);}
    else if(S.time>=S.need){this.searching=null;this.stats.found++;const r=scavenge(this.kit(),S.t,this.grid()),alarm=alarmed(S.t);this.setKit(r.k);this.emit('found',{t:S.t,items:r.items,alarm});if(alarm)this.alarm(S.t.x,S.t.y);}}
   // The heat cools once it has been quiet a while; out on a quiet street, it sends patrols, and at the top, hordes.
   this.quiet+=dt;if(this.quiet>HEAT.quiet)this.heat=Math.max(0,this.heat-HEAT.fall*dt);const lv=HEAT.levels.filter(v=>this.heat>=v).length-1;if(lv!==this.level){const up=lv>this.level;this.level=lv;this.emit('heat',{level:lv,up});if(up&&lv===3)this.hordeT=Math.min(this.hordeT,4);}
@@ -240,11 +306,14 @@ export class Fight{
   // Shoved: slide back along the hit, slowing fast. The dead slide too, a little further, and stop where they hit something.
   if(z.vx||z.vy){const k=Math.exp((z.hp>0?-9:-7)*dt),mx=z.vx*dt,my=z.vy*dt;if(!this.blockedZ(z,z.x+mx,z.y))z.x+=mx;else z.vx*=-.2;if(!this.blockedZ(z,z.x,z.y+my))z.y+=my;else z.vy*=-.2;z.vx*=k;z.vy*=k;if(Math.hypot(z.vx,z.vy)<2)z.vx=z.vy=0;}
   if(z.hp<=0)return;
+  if(this.dead){if(z.delay>0)z.delay=0;this.mourn(z,dt);return;}
   if(z.delay>0&&!z.idle){if(this.alert||z.extra)z.delay-=dt;if(z.delay>0)return;this.emit('groan',{z});}
   if(z.kind==='crawler')return this.crawl(z,dt);
   z.cool=Math.max(0,z.cool-dt);if(z.stagger>0){z.stagger-=dt;z.frame=0;return;}
   if(z.idle){z.frame=0;return;}
   const dx=m.x-z.x,dy=m.y-z.y,d=Math.hypot(dx,dy)||1;
+  // Him, standing where he got up, swaying, until you come close or put a round in him.
+  if(z.lurk){if(d<RISEN.notice||z.hp<z.max){z.lurk=false;this.emit('groan',{z,loud:true});this.emit('lurch',{z});}else{z.frame=0;return;}}
   z.groan-=dt;if(z.groan<=0){z.groan=2.5+this.rand()*3;if(d<ROAM.hear)this.emit('groan',{z});}
   if(z.roam!==undefined&&!z.hunt){if(!this.down&&(d<NOTICE||this.lit(z,d)))this.notice(z);else{this.wander(z,dt);return;}}
   if(z.roam!==undefined&&d>ROAM.lose){z.hunt=false;z.state='wander';z.sx=z.x;z.sy=z.y;z.wt=0;return;}

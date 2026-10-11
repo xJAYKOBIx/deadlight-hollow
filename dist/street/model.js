@@ -5,7 +5,8 @@ import {WALK,START,OBJECTS,solidAt} from './data.js';
 export const TARGETS=OBJECTS.map(o=>({...o,kind:'object',range:o.range||40}));
 export class StreetModel extends StudyModel{
  constructor(){super();this.reset();}
- reset(){Object.assign(this,{x:START.x,y:START.y,direction:START.direction,phase:0,frame:0,moving:false,running:false,slow:1});this.face?.(null,null);}
+ // spawn: where you come out instead of your own step (your own survivor, out of the house across the street).
+ reset(){const S=this.spawn||START;Object.assign(this,{x:S.x,y:S.y,direction:S.direction,phase:0,frame:0,moving:false,running:false,slow:1});this.face?.(null,null);}
  blocked(x,y){const r=this.radius;if(x-r<WALK.left||x+r>WALK.right||y-r*.6<WALK.top||y+r*.4>WALK.bottom)return true;
   if(this.zombies?.some(z=>{if(z.hp<=0||Math.abs(x-z.x)>40||Math.abs(y-z.y)>40||(z.delay>0&&!z.idle)||z.hatch>0)return false;const d=Math.hypot(x-z.x,(y-z.y)*1.4);return d<r+4&&d<Math.hypot(this.x-z.x,(this.y-z.y)*1.4);}))return true;
   return !!solidAt(x,y,r*.85);}

@@ -628,7 +628,7 @@ html body.deck .topbar #menu::after{background-image:var(--gore-wipe);background
 .home #gunChip:not([hidden]){display:flex;align-items:center;gap:6px;padding:2px 8px 2px 4px;font:600 10px/1 var(--ui);letter-spacing:.06em;text-transform:uppercase;color:var(--bone);background:#141311cc;border:1px solid var(--edge);border-radius:3px;pointer-events:auto;cursor:default}
 #gunChip canvas{width:48px;height:16px;image-rendering:pixelated}#gunChip span{color:var(--ember-hi);font-variant-numeric:tabular-nums}
 #gunChip.two{cursor:pointer}#gunChip.two::after{content:'⇄';margin-left:2px;color:var(--ember-hi)}
-#toast{position:fixed;z-index:6;left:50%;top:calc(var(--vy) + var(--gh) * .3);transform:translateX(-50%);margin:0;padding:8px 14px;font:600 12px/1.2 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--bone);background:#141311e8;border:1px solid var(--edge);border-left:3px solid var(--ember);box-shadow:0 8px 24px #0009;white-space:nowrap;transition:opacity .4s}
+#toast{position:fixed;z-index:6;left:50%;top:calc(var(--vy) + var(--gh) * .3);transform:translateX(-50%);margin:0;padding:8px 14px;width:max-content;max-width:calc(var(--vw) - 32px);text-align:center;font:600 12px/1.2 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--bone);background:#141311e8;border:1px solid var(--edge);border-left:3px solid var(--ember);box-shadow:0 8px 24px #0009;transition:opacity .4s}
 #toast.out{opacity:0}
 #cine{position:fixed;z-index:6;left:var(--vx);top:var(--vy);width:var(--vw);height:var(--gh);pointer-events:none}
 #cine::before,#cine::after{content:'';position:absolute;left:0;right:0;height:min(9vh,60px);background:#000}#cine::before{top:0}#cine::after{bottom:0}
@@ -637,6 +637,11 @@ html body.deck .topbar #menu::after{background-image:var(--gore-wipe);background
 #cineSkip{position:absolute;right:max(12px,env(safe-area-inset-right));top:calc(min(9vh,60px) + 10px);pointer-events:auto;padding:6px 10px;font:600 11px/1 var(--ui);letter-spacing:.1em;text-transform:uppercase;color:var(--bone);background:#141311b0;border:1px solid var(--edge);border-radius:3px}
 #cineSkip kbd{margin-left:4px}.touch #cineSkip kbd{display:none}
 .cine .topbar,.cine #vitals,.cine #prompt,.cine #act,.cine #instructions,.cine #moveZone{visibility:hidden}
+/* The end of night one: the street seen through a neighbour's window, painted at a third of the screen's size and scaled up hard.
+   Everything that belongs to playing steps aside while it runs; the creator that follows has no way back to the room. */
+#watch{position:fixed;z-index:5;left:var(--vx);top:var(--vy);width:var(--vw);height:var(--gh);image-rendering:pixelated;pointer-events:none}
+.watching #deck,.watching #weaponHud,.watching #marks,.watching #drillHud,.watching #banner,.watching #toast,.watching #aimZone,.watching #gunChip,.watching #goalChip,.watching #bagBtn,.watching #hitFlash,.watching #reticle{visibility:hidden}
+.first-survivor #closeInspect,.first-survivor #kindSwitch{display:none}
 /* The inventory: the pack and what you have equipped on the left, the bag grid on the right. Cells are buttons; items sit over them. */
 kbd:empty{display:none}.touch .bag kbd{display:none}
 dialog.bag{width:min(940px,calc(100% - 24px));--cell:min(50px,calc((min(100vw,940px) - 72px) / var(--cols,6)))}

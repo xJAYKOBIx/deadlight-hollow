@@ -1,10 +1,10 @@
-// The first night in the house: whether you have woken up yet, the guns you have found with the rounds in them, what is in your
+// The first night in the house: whether you have woken up yet, whether you have found the flashlight, the guns you have found with the rounds in them, what is in your
 // bag, which spots you have already searched, and how far the fight out on the street has got. Saved, but while the tutorial is
 // being built every visit starts fresh on the couch (FRESH), so each test plays it from the very beginning. The Light Pistol is in the
 // bedroom nightstand, the Pump Shotgun in the hall closet lockbox; the kitchen, the sink and the laundry hold supplies.
 import {GUNS,unlimited} from '../study/equipment.js';
 import {itemInfo} from '../mc/assets/gear/items.js';
-import {carrying} from '../mc/assets/gear/bags.js';
+import {carrying,BAGS} from '../mc/assets/gear/bags.js';
 import {add,count,normalizeBag} from './bag.js';
 import {rng} from '../mc/assets/core/kit.js';
 export const HOME_KEY='deadlight-home-v1';
@@ -29,9 +29,18 @@ export const TRUNK=[['shells',12],['rounds',30]];
 export const FINDS={'light-pistol':{at:'nightstand',ammo:15,bag:[]},'pump-shotgun':{at:'closet',ammo:8,bag:[['shells',16],['gun-oil',1]]}};
 // Supplies in the house, found by searching. Nothing here is needed to leave; it is what a careful person takes.
 export const SUPPLIES={counter:[['scrap',3],['electronics',1]],sink:[['solvent',1]],laundry:[['cloth',2]]};
-const ORDER=Object.keys(FINDS);
+// The guns a kit can hold: the two in the house, and the heavy pistol your own survivor comes out with.
+const ORDER=[...Object.keys(FINDS),'heavy-pistol'];
+// Whose night it is. tutorial: the man on the couch, start to finish. own: after he dies in the hold-out, the survivor you make, who
+// watched it from across the street; corpse is what he had on him when he went down (his guns, rounds and bag) and where, and taken
+// once you have it back.
+export const PHASES=['tutorial','own'];
+const BIGGEST=Object.values(BAGS).reduce((a,b)=>a.cols*a.rows>=b.cols*b.rows?a:b);
+// What your own survivor has when they come out of the house across the street: their own heavy pistol, nothing else.
+export const OWN_GUN='heavy-pistol';
 // Which ammo a gun uses from the bag, or null for a pistol (unlimited).
 export const ammoOf=id=>unlimited(id)?null:GUNS[id]?.shells?'shells':'rounds';
+const normGuns=v=>{const guns={};for(const id of ORDER){const g=v?.[id];if(!g)continue;guns[id]={ammo:Math.min(GUNS[id].mag,Math.max(0,Math.floor(Number(g.ammo)||0)))};}return guns;};
 export function normalizeHome(v,grid=carrying({})){const guns={};for(const id of ORDER){const g=v?.guns?.[id];if(!g)continue;guns[id]={ammo:Math.min(GUNS[id].mag,Math.max(0,Math.floor(Number(g.ammo)||0)))};}
  const held=guns[v?.held]?v.held:ORDER.find(id=>guns[id])||null,searched=[...new Set((Array.isArray(v?.searched)?v.searched:[]).filter(id=>SUPPLIES[id]))];
  let bag=normalizeBag(v?.bag,grid);
@@ -39,7 +48,8 @@ export function normalizeHome(v,grid=carrying({})){const guns={};for(const id of
  if(!v?.bag&&guns['pump-shotgun'])bag=add(bag,grid,'shells',Math.max(0,Math.floor(Number(v.guns['pump-shotgun'].reserve)||0)));
  const street=STREET_STAGES.includes(v?.street)?v.street:'start',looted=[...new Set((Array.isArray(v?.looted)?v.looted:[]).filter(id=>typeof id==='string'))];
  const mission={done:[...new Set((Array.isArray(v?.mission?.done)?v.mission.done:[]).filter(id=>JOBS.includes(id)))],out:v?.mission?.out===true};
- return {woke:v?.woke===true,guns,held,bag,searched,street,looted,mission};}
+ const phase=PHASES.includes(v?.phase)?v.phase:'tutorial',c=v?.corpse,corpse=phase==='own'&&c?{guns:normGuns(c.guns),held:c.held??null,bag:normalizeBag(c.bag,BIGGEST),x:Number(c.x)||0,y:Number(c.y)||0,dir:Number(c.dir)>=0&&Number(c.dir)<8?Number(c.dir)|0:2,taken:c.taken===true}:null;
+ return {woke:v?.woke===true,light:v?.light===true,guns,held,bag,searched,street,looted,mission,phase,corpse};}
 export function readHome(storage,grid,fresh=FRESH){if(fresh)return normalizeHome(null,grid);try{return normalizeHome(JSON.parse(storage.getItem(HOME_KEY)),grid);}catch{return normalizeHome(null,grid);}}
 export function saveHome(storage,v){try{storage.setItem(HOME_KEY,JSON.stringify(v));return true;}catch{return false;}}
 const pack=(k,grid,list)=>list.reduce((b,[id,n])=>add(b,grid,id,n),k.bag);
@@ -75,6 +85,8 @@ export function rounds(k,id=k.held){const g=k.guns[id];if(!g)return '';const s=s
 // What to do next, shown under the place name. outside is true on the street.
 export const JOB_NAMES={radio:'find a radio',power:'start the generator',supplies:'get the go-bag'};
 export function goal(k,outside=false){if(!k.woke)return '';const p=found(k,'light-pistol'),s=found(k,'pump-shotgun');
+ if(k.phase==='own'){if(k.mission?.out)return 'You made it out';return k.corpse&&!k.corpse.taken?'Put him down, and take back what he carried':'Get to the truck at the east end of the street';}
+ if(!k.light&&!outside)return 'Find the flashlight in the kitchen';
  if(!p&&!s)return 'Find something to protect yourself with';
  if(k.street==='done'&&k.mission){const m=k.mission;if(m.out)return 'You made it out';if(jobsDone(k))return 'Call the truck at the east end of your street';
   return 'Get ready to leave: '+JOBS.filter(id=>!m.done.includes(id)).map(id=>JOB_NAMES[id]).join(', ');}
@@ -86,7 +98,10 @@ const SEARCH_LINES={counter:['The junk drawer. Takeout menus, rubber bands and a
  sink:['Dish soap, sponges and a mousetrap nobody set.','At the back, the can of degreaser you bought for the bike and never used.'],
  laundry:['Clean, folded, and never put away.','A couple of old flannel shirts. They will make good rags, or patches.']};
 export function useLines(k,id){
- if(id==='nightstand')return found(k,'light-pistol')?{lines:['Just the paperback and a dead flashlight now.']}:
+ // Until you have the flashlight, the drawers and the closet are too dark to go through; the flashlight is in the kitchen junk drawer.
+ if(!k.light&&(id==='nightstand'||id==='closet'))return {lines:[id==='closet'?'You open the closet onto pitch black. Coats, boxes, something that falls over.':'The drawer sticks. Inside it is too dark to tell what is what.','You need the flashlight. It should be in the kitchen junk drawer.']};
+ if(id==='counter'&&!k.light)return {lines:['The junk drawer. Takeout menus, rubber bands and a lot of screws.','And at the back, where it always ends up: the flashlight. You thumb the switch and it comes on, strong and white.'],act:'flashlight',verb:'Take'};
+ if(id==='nightstand')return found(k,'light-pistol')?{lines:['Just the paperback and the phone charger now.']}:
   {lines:['The top drawer sticks, like always.','Your Light Pistol is right where you left it, loaded, with the spare magazines you always keep topped up.'],act:'take:light-pistol',verb:'Take'};
  if(id==='closet')return found(k,'pump-shotgun')?{lines:['The lockbox is empty now. The coats can stay.']}:
   {lines:['Coats, boxes of who-knows-what, and the vacuum nobody uses.','The lockbox is on the floor at the back. Your fingers still know the code.','The Pump Shotgun. Eight shells in the tube, a box of sixteen more, and the little bottle of gun oil.'],act:'take:pump-shotgun',verb:'Take'};
@@ -99,7 +114,18 @@ export function useLines(k,id){
  if(id==='window'&&k.woke&&k.street==='start')return {lines:['Down the street, a police cruiser has gone up the curb into a pole. Its lights are still turning.','Nobody has got out of it. Nobody has come out of the houses either.']};
  return null;}
 // Once something is taken, the spot is only worth a look.
-export const verbFor=(k,id)=>(id==='nightstand'&&found(k,'light-pistol'))||(id==='closet'&&found(k,'pump-shotgun'))||(SUPPLIES[id]&&k.searched.includes(id))?'Look':null;
+export const verbFor=(k,id)=>id==='counter'&&!k.light?'Search':(id==='nightstand'&&found(k,'light-pistol'))||(id==='closet'&&found(k,'pump-shotgun'))||(SUPPLIES[id]&&k.searched.includes(id))?'Look':null;
 // The line that tells you what you just picked up.
 export function pickupLine(id){const f=FINDS[id];if(f)return `${GUNS[id].name}: ${f.ammo} loaded${ammoOf(id)?'':', unlimited spare'}${f.bag.length?'. In your bag: '+listOf(f.bag):''}`;
  return SUPPLIES[id]?'In your bag: '+listOf(SUPPLIES[id]):'';}
+// He is gone: what he had stays with his body, and your own survivor starts over with just their pistol. The street and the job
+// stay where they were (the truck is still coming), since you watched it all happen.
+export function reborn(k,at){const corpse={guns:k.guns,held:k.held,bag:k.bag,x:at.x,y:at.y,dir:at.dir??2,taken:false};
+ return {...k,phase:'own',corpse,guns:{[OWN_GUN]:{ammo:GUNS[OWN_GUN].mag}},held:OWN_GUN,bag:{items:[],spill:[]}};}
+// Taking it back off him: his guns with what is in them, and everything in his bag on top of yours (what does not fit is set down,
+// never lost). You keep holding what you hold.
+export function reclaim(k,grid=carrying({})){const c=k.corpse;if(!c||c.taken)return k;let bag=k.bag;for(const o of [...c.bag.items,...c.bag.spill])bag=add(bag,grid,o.id,o.n);
+ return {...k,guns:{...c.guns,...k.guns},bag,corpse:{...c,taken:true}};}
+// What comes back, for the line on screen: his guns by name, then what was in his bag.
+export function reclaimed(c){const items=[...c.bag.items,...c.bag.spill].reduce((m,o)=>{const e=m.find(x=>x[0]===o.id);if(e)e[1]+=o.n;else m.push([o.id,o.n]);return m;},[]);
+ return [...Object.keys(c.guns).map(id=>GUNS[id].name),...(items.length?[listOf(items)]:[])].join(', ');}

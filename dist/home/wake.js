@@ -1,5 +1,5 @@
 // The opening of the tutorial: you wake up on the couch in the dark, the dog and the cat come to you, you give them a pat, and
-// then it is your turn to move. A short script of beats; each one runs until its time is up or what it waits for has happened.
+// then it is your turn to move: the candle is nearly out, so first the flashlight in the kitchen (CRASH plays once you have it). A short script of beats; each one runs until its time is up or what it waits for has happened.
 // Beats can also cue a sound, move the police car's light (pass sweeps it past the front windows, parked leaves it turning down the
 // street) and shake the camera; the scene reads those off the Wake. It drives the survivor itself (the couch is solid, so it does not walk through the model) and calls the pets over with goTo.
 // The couch is seen from behind, so lying, sitting and standing on it are the same standing sprite lower or higher, drawn just
@@ -15,27 +15,28 @@ export const BEATS=[
  {t:2.4,zzz:true,say:'A cold nose pushes into your hand.'},
  {t:2.4,rise:['lie','sit'],say:'You fell asleep on the couch again.'},
  {t:2.2,dir:4,say:'"Hey, you. What time is it?"'},
- {t:2.6,rise:['sit','stand'],say:'The candle has burned down to a stub. The power is still out.',start:c=>c.dog.goTo(DOG_AT.x,DOG_AT.y,{pose:'sit',face:1,rush:1.4})},
+ {t:2.6,rise:['sit','stand'],say:'The candle on the table has burned right down. The power is still out.',start:c=>c.dog.goTo(DOG_AT.x,DOG_AT.y,{pose:'sit',face:1,rush:1.4})},
  {t:6,walk:[[212,COUCH.stand],[WAKE_END.x,WAKE_END.y]]},
  {t:2.8,dir:4,start:c=>{c.dog.pet(c.you);c.cat.goTo(CAT_AT.x,CAT_AT.y,{pose:'sit',face:4,rush:1.6});},say:'You scratch behind its ears. Its tail thumps the floor.'},
  {t:6,until:c=>c.cat.arrived},
  {t:2.8,dir:0,start:c=>c.cat.pet(c.you),say:'The cat acts like it does not care, then leans into your hand anyway.'},
+ {t:3.2,dir:2,say:'"Power\'s still out, and that candle\'s almost gone. Time to find the flashlight."'},
+ {t:2.6,say:'It should be in the kitchen, in the junk drawer.'}];
+// Then, once the flashlight is on: sirens, and one of them comes down your street. The light sweeps past the front windows and a few
+// houses down it hits something. Played wherever you are standing.
+export const CRASH=[
+ {t:2,say:'The beam finds the fridge, the table, the dog\'s bowl. Better.'},
  {t:2.6,dir:2,cue:'distant-siren',say:'Outside, sirens. More of them than there should be.'},
- // Then one of them comes down your street: the light sweeps past the front windows, and a few houses down it hits something.
- {t:3.6,dir:2,cue:'car-pass',police:'pass',say:'One of them is close. Tires on your street, coming fast.'},
+ {t:3.4,dir:2,cue:'car-pass',police:'pass',say:'One of them is close. Tires on your street, coming fast.'},
  {t:2.2,cue:'car-crash',police:'parked',shake:true,say:'Brakes. Then a crash, a few houses down.'},
- {t:2.8,say:'The siren chokes off. Red and blue light keeps turning on the ceiling.'},
- {t:3,say:'Find something to protect yourself with. Then go and look.'}];
-// After the intro you have already seen the cruiser hit the pole, so the night opens on what it left: its light turning on the ceiling
-// from the start, the dog woken by the crash, and no second crash.
-export const AFTER_INTRO=[{...BEATS[0],police:'parked'},BEATS[1],BEATS[2],BEATS[3],{...BEATS[4],say:'"Hey, you. What woke you up?"'},...BEATS.slice(5,10),
- {t:3,dir:2,say:'Red and blue light keeps turning on the ceiling. Something crashed out there, a few houses down.'},BEATS[BEATS.length-1]];
+ {t:2.8,say:'The siren chokes off. Red and blue light keeps turning through the front windows.'},
+ {t:3.2,say:'The pistol is in the bedroom nightstand, the shotgun in the hall closet. Get them, then go and look.'}];
 export class Wake{
  // pets: {dog, cat} as HousePets. you: the survivor's model, moved to where the scene ends.
- constructor({dog,cat,you}){Object.assign(this,{dog,cat,you,i:-1,t:0,done:false,cues:[],police:null,shook:0,x:COUCH.x,y:COUCH.lie,direction:6,frame:0,phase:0,fade:1,zzz:true,say:'',pose:'lie',path:[]});this.next();}
+ // beats: another script (CRASH), played where you stand instead of from the couch.
+ constructor({dog,cat,you,beats=null}){Object.assign(this,{dog,cat,you,beats,i:-1,t:0,done:false,cues:[],police:null,shook:0,x:COUCH.x,y:COUCH.lie,direction:6,frame:0,phase:0,fade:1,zzz:true,say:'',pose:'lie',path:[]});
+  if(beats)Object.assign(this,{x:you.x,y:you.y,direction:you.direction??2,fade:0,zzz:false,pose:'stand'});this.next();}
  get beat(){return (this.beats||BEATS)[this.i];}
- // Switch to the after-the-intro version, if the night has not started yet.
- afterIntro(){if(this.i===0&&this.t===0){this.beats=AFTER_INTRO;this.i=-1;this.police=null;this.next();}}
  next(){this.i++;this.t=0;const b=this.beat;if(!b){this.finish();return;}if(b.say!==undefined)this.say=b.say;if(b.dir!==undefined)this.direction=b.dir;if(b.walk)this.path=b.walk.map(([x,y])=>({x,y}));if(b.cue)this.cues.push(b.cue);if(b.police)this.police=b.police;if(b.shake)this.shook++;b.start?.(this);}
  update(dt){if(this.done)return;dt=Math.max(0,Math.min(.05,dt||0));this.t+=dt;const b=this.beat,k=Math.min(1,this.t/(b.rise?.6:b.t));
   this.fade=b.fade?b.fade[0]+(b.fade[1]-b.fade[0])*k:0;this.zzz=!!b.zzz;
@@ -44,8 +45,8 @@ export class Wake{
    if(d<=s+.01){this.path.shift();if(!this.path.length)this.frame=0;}this.pose='stand';}
   const waiting=this.path.length||(b.until&&!b.until(this));if(this.t>=b.t||(b.until&&!waiting&&this.t>.2)||(b.walk&&!this.path.length))this.next();}
  // On the couch the sprite is drawn behind it and cut at its foot; past its west end it is the survivor as usual.
- get onCouch(){return this.x>=COUCH.west;}
- skip(){if(this.done)return;this.police='parked';this.dog.goTo(DOG_AT.x,DOG_AT.y,{pose:'sit',face:1});this.dog.teleport();this.cat.goTo(CAT_AT.x,CAT_AT.y,{pose:'sit',face:4});this.cat.teleport();this.finish();}
- finish(){if(this.done)return;this.done=true;this.say='';this.fade=0;this.zzz=false;Object.assign(this.you,{x:WAKE_END.x,y:WAKE_END.y,direction:WAKE_END.direction,frame:0,phase:0,moving:false});this.x=WAKE_END.x;this.y=WAKE_END.y;
+ get onCouch(){return !this.beats&&this.x>=COUCH.west;}
+ skip(){if(this.done)return;if(this.beats){this.police='parked';this.finish();return;}this.dog.goTo(DOG_AT.x,DOG_AT.y,{pose:'sit',face:1});this.dog.teleport();this.cat.goTo(CAT_AT.x,CAT_AT.y,{pose:'sit',face:4});this.cat.teleport();this.finish();}
+ finish(){if(this.done)return;this.done=true;this.say='';this.fade=0;this.zzz=false;if(this.beats){Object.assign(this.you,{direction:this.direction,frame:0,moving:false});return;}Object.assign(this.you,{x:WAKE_END.x,y:WAKE_END.y,direction:WAKE_END.direction,frame:0,phase:0,moving:false});this.x=WAKE_END.x;this.y=WAKE_END.y;
   this.dog.release();this.cat.release();}
 }

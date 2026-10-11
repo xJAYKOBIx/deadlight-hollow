@@ -27,9 +27,12 @@ export const ZOMBIE_LOOKS={cop:{...DEFAULT_APPEARANCE,...POLICE,...Z,hair:1,skin
  runner:{...DEFAULT_APPEARANCE,...Z,body:1,top:6,shirt:5,bottom:4,shoes:1,hair:2,color:2,skin:1,decay:1,eyes:1,wounds:2,rot:3},
  brute:{...DEFAULT_APPEARANCE,...Z,top:3,coat:2,bottom:5,pants:3,shoes:0,hair:4,beard:3,color:0,skin:5,decay:1,eyes:2,wounds:3,rot:1},
  // The special dead, in the Master Creator's looks for them: a screamer in a nightgown, a bloater in a tank top, a spitter.
- screamer:{...DEFAULT_APPEARANCE,...Z,...SPECIAL_LOOKS.screamer},bloater:{...DEFAULT_APPEARANCE,...Z,...SPECIAL_LOOKS.bloater},spitter:{...DEFAULT_APPEARANCE,...Z,...SPECIAL_LOOKS.spitter}};
+ screamer:{...DEFAULT_APPEARANCE,...Z,...SPECIAL_LOOKS.screamer},bloater:{...DEFAULT_APPEARANCE,...Z,...SPECIAL_LOOKS.bloater},spitter:{...DEFAULT_APPEARANCE,...Z,...SPECIAL_LOOKS.spitter},
+ // The man you started as, after: his own clothes and pack, freshly dead (TUTORIAL_LOOK is how he looked alive).
+ you:{...DEFAULT_APPEARANCE,zombie:1,rot:1,decay:0,eyes:0,wounds:2}};
+export const TUTORIAL_LOOK=DEFAULT_APPEARANCE;
 // Runners' sheets hold the lurching run in place of the walk; brutes never come apart, so they have no pieces.
-const RUN_LOOKS=new Set(['runner']),WHOLE=new Set(['brute','bloater']);
+const RUN_LOOKS=new Set(['runner']),WHOLE=new Set(['brute','bloater','you']);
 // The special dead's sheets have one more row: the act (the scream, the swell, the spit), frame 9.
 const SPECIAL=new Set(['screamer','bloater','spitter']),SCALE={brute:BRUTE.scale,bloater:BLOATER.scale};
 const SHEET_OF={neighbour2:'neighbour'};
@@ -63,7 +66,7 @@ export const BEAM={len:240,half:24*Math.PI/180,pool:36,col:[255,244,220]};
 export const STEP=1/60,MAX_STEPS=4;
 // What a shot does to the picture: how long its flash lights the street and how far, how far the gun kicks back in your hands
 // and the view jolts away from the shot, and how many casings stay on the ground.
-export const KICK={'light-pistol':{light:.06,glow:3,arms:2,cam:2.4,flash:7},'pump-shotgun':{light:.09,glow:4.6,arms:4,cam:6,flash:12}};
+export const KICK={'light-pistol':{light:.06,glow:3,arms:2,cam:2.4,flash:7},'heavy-pistol':{light:.07,glow:3.6,arms:3,cam:3.4,flash:9},'pump-shotgun':{light:.09,glow:4.6,arms:4,cam:6,flash:12}};
 export const BRASS={keep:60,pump:.38};
 // How the dead take a hit: a flinch for a moment, and a topple onto the ground (the hips drop this far as they go over).
 export const TOPPLE={time:.32,hips:26.4,flinch:.14};
@@ -167,6 +170,8 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   const b=this.fight.beam=bridge.flash?.()&&!this.fight.down&&armed(this.look)?{x:model.x,y:model.y,a:model.aim??model.direction*Math.PI/4}:null;
   if(b){const mz=muzzle(b.a,this.look.gun),add=Phaser.BlendModes.ADD;rt.stamp('nb-pool',undefined,(model.x-ox)/L,(model.y-14-oy)/L,{blendMode:add});
    rt.stamp('nb-beam',undefined,(model.x+mz.x-ox)/L,(model.y+mz.y-oy)/L,{originX:0,originY:.5,rotation:b.a,blendMode:add});}
+  // His flashlight, where it fell with him, still on: it lights what happens to him, and lies there until you take his gear back.
+  const T=this.fight.torch;if(T)rt.stamp('nb-beam',undefined,(T.x-ox)/L,(T.y-oy)/L,{originX:0,originY:.5,rotation:T.a,blendMode:Phaser.BlendModes.ADD,alpha:.75,scaleX:.8,scaleY:.8}),rt.stamp('nb-pool',undefined,(T.x-ox)/L,(T.y-4-oy)/L,{blendMode:Phaser.BlendModes.ADD,scale:1.6,alpha:.55});
   // The work light, once the generator runs: a wide warm pool in front of it. The flare: a red pool that flickers. The truck's
   // headlights: two beams ahead of it, to the west.
   const add=Phaser.BlendModes.ADD,f=this.fight,ev=f.evac,flick=.8+.2*Math.sin(this.time.now/47)*Math.sin(this.time.now/131);
@@ -199,6 +204,8 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
  // cycles (the pistol's slide snaps back as it fires; the shotgun's pump is worked a moment later). A dive swaps the layers for
  // the dive's own frames: the leap, the slide along the ground and the rise.
  placeActor(){const p=pose(model),gun=armed(this.look),down=!!this.fight.down,K=this.kick,v=this.fight.dive,half=n=>Math.round(n*2)/2,f=this.fight;
+  // Gone: what is left of him is one of the dead now (the fight's body), so you are not drawn at all.
+  if(f.dead){this.diveImg.setVisible(false);for(const k of ORDER)this.parts[k].setVisible(false);return;}
   let kx=0,ky=0;if(K){const k=Math.max(0,1-K.t/K.dur);kx=-Math.cos(K.a)*K.n*k*k;ky=-Math.sin(K.a)*K.n*k*k*.6;}
   const t=f.sinceShot,rk=gun&&!v&&(f.gunId==='pump-shotgun'?t>.22&&t<.5:t<.06);if(rk!==this.racked){this.racked=rk;this.parts.arms.setTexture((rk?this.sheets.racked:this.sheets.arms).key,p.arms);}
   if(v){const T=DIVE.time,ph=v.t<.1?0:v.t<T?1:2,hop=v.t<T*.55?Math.sin(v.t/(T*.55)*Math.PI)*5:0,d=(Math.round(Math.atan2(v.dy,v.dx)/(Math.PI/4))+8)%8;
@@ -316,10 +323,14 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
    const white=z.flash>0,half=n=>Math.round(n*2)/2;if(white!==!!s.white){s.white=white;if(white)s.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);else if(s.grey)s.clearTint().setTint(0x9a8a8a);else s.clearTint();}
    if(z.kind==='crawler'){const col=CRAWL_COL[z.direction]??CRAWL_FLIP[z.direction];s.setVisible(!(z.hatch>0)).setFlipX(z.direction in CRAWL_FLIP).setFrame(col+(z.hp>0?z.frame:0)*5).setPosition(half(z.x),half(z.y)).setDepth(z.y-4);
     if(z.hp<=0&&!s.grey){s.grey=true;if(!white)s.setTint(0x9a8a8a);}if(z.hp>0){const m=Math.hypot(z.x-(z.tx??z.x),z.y-(z.ty??z.y));if(m>16||z.tx===undefined){if(z.tx!==undefined)this.stain('drops',z.x,z.y+1);z.tx=z.x;z.ty=z.y;}}continue;}
+   // Him getting back up: the topple played backwards, the grey going out of him. Twitching first.
+   if(z.kind==='risen'&&z.hp<=0&&(z.rise!=null||z.twitch)){const e=z.rise!=null?z.rise*z.rise*(3-2*z.rise):0,sc=1;if(!s.laid){s.laid=true;s.setFrame(z.direction).setOrigin(.5,.62);}if(s.grey&&e>.3){s.grey=false;if(!white)s.clearTint();}
+    s.setAngle(90*(z.fall||1)*(1-e)+(z.twitch?(z.fall||1)*-4:0)).setPosition(half(z.x+(z.twitch?.5:0)),half(z.y-(6+(TOPPLE.hips-6)*e)*sc)).setDepth(z.y-10*(1-e));continue;}
    if(z.hp<=0){if(!s.laid){s.laid=true;if(z.gore)s.setTexture('street-zp-'+(SHEET_OF[z.look]||z.look),z.direction+(z.gore==='half'?8:24));else s.setFrame(z.direction);s.setOrigin(.5,.62);}z.fallT=Math.min(1,(z.fallT||0)+dt/TOPPLE.time);const k=z.fallT*z.fallT;
     const sc=SCALE[z.kind]||1;s.setAngle(90*z.fall*k).setPosition(half(z.x),half(z.y-(TOPPLE.hips+(6-TOPPLE.hips)*k)*sc)).setDepth(z.y-10*k);
     if(k>=1&&!s.grey){s.grey=true;if(!white)s.setTint(0x9a8a8a);if(!z.thud){z.thud=true;this.juice.puff(z.x+z.fall*14,z.y-2,.6,0x6a6458,.5,-4);}}
     if(z._pool&&!z.vx&&!z.vy&&k>=1){z._pool=false;this.stain('pool',z.x+z.fall*(z.gore==='half'?6:14),z.y+2);}continue;}
+   if(s.laid){s.laid=false;s.grey=false;if(!white)s.clearTint();s.setTexture('street-z-'+(SHEET_OF[z.look]||z.look),0).setOrigin((FRAME.w/2-ZF.x)/ZF.w,(FRAME.footY*2-ZF.y)/ZF.h);}
    const fl=z.flinch>0?z.flinch/TOPPLE.flinch:0;if(fl)z.flinch-=dt;s.setAngle(fl?Math.sign(z.flinchX||1)*7*fl:0);
    s.setPosition(half(z.x+(z.flinchX||0)*1.5*fl),z.y).setDepth(z.y).setFrame(z.direction+z.frame*8);}
   // The light bar turns; the cruiser's own lamps swap with it.
@@ -362,7 +373,10 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
    g.lineStyle(1.5,0xffb347,1).beginPath().arc(x,y,7,a0,a0+k*Math.PI*2,false).strokePath();}
   const target=f.down?null:paused&&this.target?this.target:model.target(t=>bridge.usable?.(t)!==false);this.target=target;
   if(target){const bob=Math.round(Math.sin(now/180)*2*2)/2;this.marker.setVisible(true).setPosition(target.mx??target.x,target.my+bob);}else this.marker.setVisible(false);
-  const cam=this.cameras.main;cam.setZoom(this.zoom());cam.centerOn(model.x+this.jolt.x,model.y-20+this.jolt.y);bridge.tick(now,this);}
+  const cam=this.cameras.main;
+  // From the window across the street: closer in on him, held by a hand that is not quite steady.
+  if(f.dead){const b=f.dead.body,t=f.dead.t,sw=Math.sin(t*.9)*3+Math.sin(t*2.3)*1.1,sy=Math.cos(t*.7)*1.8+Math.sin(t*3.1)*.6;cam.setZoom(this.zoom()*(1.75+Math.min(.25,t*.016)));cam.centerOn(b.x+sw,b.y-24+sy);}
+  else{cam.setZoom(this.zoom());cam.centerOn(model.x+this.jolt.x,model.y-20+this.jolt.y);}bridge.tick(now,this);}
  // Acid pools bubbling and drying, globs in the air with their shadow and the mark where they will land, gas hanging and drifting,
  // and the rings off a screamer mid-scream. Pictures are kept per hazard and let go when it is gone.
  hazardStep(now,g){const f=this.fight,half=n=>Math.round(n*2)/2,keep=new Set(),img=(o,n,make)=>{let a=this.hz.get(o);if(!a){a=Array.from({length:n},make);this.hz.set(o,a);}keep.add(o);return a;};

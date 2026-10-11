@@ -5,10 +5,12 @@ const DOOR={x:517,y:452},near=(s,p,r)=>Math.hypot(s.x-p.x,s.y-p.y)<r;
 const gun=(s,id)=>!!s.kit?.guns?.[id],armed=s=>gun(s,'light-pistol')||gun(s,'pump-shotgun');
 // In order: when two are ready together, the first one wins. delay is how long the moment must last first.
 export const THOUGHTS=[
+ // The house in the dark, before the flashlight.
+ {id:'dark',at:'home',delay:20,when:s=>!s.kit.light,say:'Kitchen. Junk drawer. It\'s always in the junk drawer.'},
  // The house, after the crash. Find something, then go.
- {id:'door-empty',at:'home',delay:.4,when:s=>!armed(s)&&near(s,DOOR,70),say:'I\'m not opening that door empty-handed. The pistol\'s in the nightstand.'},
- {id:'wake',at:'home',delay:2.5,when:s=>!armed(s),say:'Okay. Breathe. Whatever that was, I\'m not walking out there with nothing.'},
- {id:'where',at:'home',delay:16,when:s=>!armed(s)&&s.said.has('wake'),say:'Think. Bedroom, nightstand, top drawer. The pistol\'s still in there.'},
+ {id:'door-empty',at:'home',delay:.4,when:s=>s.kit.light&&!armed(s)&&near(s,DOOR,70),say:'I\'m not opening that door empty-handed. The pistol\'s in the nightstand.'},
+ {id:'wake',at:'home',delay:5,when:s=>s.kit.light&&!armed(s),say:'Okay. Breathe. Whatever that was, I\'m not walking out there with nothing.'},
+ {id:'where',at:'home',delay:16,when:s=>s.kit.light&&!armed(s)&&s.said.has('wake'),say:'Think. Bedroom, nightstand, top drawer. The pistol\'s still in there.'},
  {id:'both',at:'home',delay:1.2,when:s=>gun(s,'light-pistol')&&gun(s,'pump-shotgun'),say:'That\'s everything. Front door.'},
  {id:'pistol',at:'home',delay:1.2,when:s=>gun(s,'light-pistol')&&!gun(s,'pump-shotgun'),say:'There\'s that shotgun in the hall closet, too. Heavier, but I\'d feel better with it.'},
  {id:'shotgun',at:'home',delay:1.2,when:s=>gun(s,'pump-shotgun')&&!gun(s,'light-pistol'),say:'Still loaded. The pistol\'s in the nightstand if I want a backup.'},
@@ -19,13 +21,19 @@ export const THOUGHTS=[
  {id:'cruiser',at:'street',delay:.2,when:s=>s.kit.street==='start'&&!s.fight?.alert&&s.cruiser<400,say:'That\'s a police car. Straight into the pole.'},
  {id:'contact',at:'street',delay:.6,when:s=>s.kit.street==='start'&&s.fight?.alert,say:'He\'s walking. Why is he walking like that?'},
  {id:'bitten',at:'street',delay:.2,when:s=>s.seen.hurt>0,say:'It bit me. It actually bit me!'},
- {id:'kill',at:'street',delay:.5,when:s=>s.seen.kill>0,say:'He didn\'t stop. Not until… Don\'t think about it. Not yet.'},
+ {id:'kill',at:'street',delay:.5,when:s=>s.seen.kill>0&&s.kit.phase!=='own',say:'He didn\'t stop. Not until… Don\'t think about it. Not yet.'},
  {id:'hurt',at:'street',delay:.2,when:s=>s.fight?.alert&&s.fight.hp>0&&s.fight.hp<=s.fight.maxHp*.35,say:'Back off. Get some distance.'},
  {id:'shells',at:'street',delay:.2,when:s=>s.seen.nospare>0,say:'Out of shells. The pistol, then.'},
  {id:'again',at:'street',delay:1,when:s=>s.seen.restart>0,say:'Not like that. Keep my distance this time.'},
  {id:'clear',at:'street',delay:2.2,when:s=>s.kit.street==='cleared',say:'Is that all of them? The cruiser. There might be something in it.'},
  {id:'more',at:'street',delay:2.2,when:s=>s.kit.street==='looted'&&s.fight?.alert,say:'That was too loud. Here come more of them.'},
- {id:'done',at:'street',delay:2.4,when:s=>s.kit.street==='done',say:'What is happening to everyone?'}];
+ {id:'done',at:'street',delay:2.4,when:s=>s.kit.street==='done'&&s.kit.phase!=='own',say:'What is happening to everyone?'},
+ {id:'overrun',at:'street',delay:.5,when:s=>s.seen.overrun>0&&s.kit.phase!=='own',say:'There are too many. There are too many of them!'},
+ // Your own survivor, after watching him die and get up.
+ {id:'own',at:'street',delay:1.5,when:s=>s.kit.phase==='own'&&!s.kit.corpse?.taken,say:'He\'s still out there. I watched him get up.'},
+ {id:'gear',at:'street',delay:7,when:s=>s.kit.phase==='own'&&!s.kit.corpse?.taken&&s.said.has('own'),say:'Everything he had is still on him. I need it more than he does now.'},
+ {id:'sorry',at:'street',delay:.6,when:s=>s.seen.fallen>0&&!s.kit.corpse?.taken,say:'I\'m sorry. I\'m so sorry.'},
+ {id:'run',at:'street',delay:.8,when:s=>s.kit.phase==='own'&&s.kit.corpse?.taken,say:'Now run.'}];
 // How long a line stays up: long enough to read twice.
 export const showFor=say=>Math.min(6.5,Math.max(3,2+say.split(/\s+/).length*.3));
 export class Thoughts{

@@ -7,7 +7,9 @@ import {iconArt,ICON,ICONS} from '../camp/art.js';
 import {PET_FRAME,PET_FRAME_COUNT,paintPetSheet} from '../companion/pet.js';
 import {drawHearts} from '../companion/sprite.js';
 import {HousePet} from '../companion/house.js';
-import {Wake,COUCH} from './wake.js';
+import {Wake,COUCH,CRASH} from './wake.js';
+// The flashlight: how far its beam reaches, how wide it is, and how fast it swings round to where you face.
+const TORCH={len:150,half:22*Math.PI/180,turn:12};
 const inRect=(x,y,r,b)=>{const dx=x-Math.max(b.x,Math.min(x,b.x+b.w)),dy=y-Math.max(b.y,Math.min(y,b.y+b.h));return dx*dx+dy*dy<r*r;};
 // Horizontal walls you can be behind. They thin out while you are, so you never lose yourself or a pet behind one.
 const FADES=new Set(['wall','window','doorway','frontdoor']);
@@ -37,11 +39,21 @@ export function makeHomeScene(model,bridge){return class Home extends Phaser.Sce
   this.zzz=this.add.graphics().setDepth(7002);this.fade=this.add.rectangle(-200,-200,HOME.w+400,HOME.h+400,0x000000,1).setOrigin(0).setDepth(9000).setVisible(!!this.wake);
   // Night: the light map multiplies everything under it; the candle's glow, the hearts and the markers sit above it.
   this.texture('home-light',Math.ceil(HOME.w/LIGHT_SCALE),Math.ceil(HOME.h/LIGHT_SCALE),lightArt,true);this.add.image(0,0,'home-light').setOrigin(0).setScale(LIGHT_SCALE).setDepth(6000).setBlendMode(Phaser.BlendModes.MULTIPLY);
+  // The power cut: the whole house goes dark except round the candle. Before the flashlight it is near black; after, your eyes have
+  // adjusted and the rooms read again, but only the beam really lights anything.
+  this.texture('home-dark',Math.ceil(HOME.w/8),Math.ceil(HOME.h/8),c=>{const W=c.canvas.width,H=c.canvas.height,x=CANDLE.x/8,y=(CANDLE.y+8)/8,g=c.createRadialGradient(x,y,0,x,y,150/8);
+   c.fillStyle='rgb(52,58,84)';c.fillRect(0,0,W,H);g.addColorStop(0,'rgba(255,236,206,1)');g.addColorStop(.3,'rgba(214,190,166,.9)');g.addColorStop(1,'rgba(52,58,84,0)');c.fillStyle=g;c.fillRect(0,0,W,H);});
+  this.textures.get('home-dark').setFilter(Phaser.Textures.FilterMode.LINEAR);this.dark=this.add.image(0,0,'home-dark').setOrigin(0).setScale(8).setDepth(6000).setBlendMode(Phaser.BlendModes.MULTIPLY);
   this.texture('home-glow',128,128,glowArt);this.textures.get('home-glow').setFilter(Phaser.Textures.FilterMode.LINEAR);
   this.glow=this.add.image(CANDLE.x,CANDLE.y+8,'home-glow').setScale(1.4,1).setDepth(6001).setBlendMode(Phaser.BlendModes.ADD);
   // The police car's light bar: a red and a blue glow that sweep past the front windows as it passes, then keep turning down the street.
   this.texture('home-glow-w',128,128,c=>{const gr=c.createRadialGradient(64,64,0,64,64,64);gr.addColorStop(0,'rgba(255,255,255,.8)');gr.addColorStop(.45,'rgba(255,255,255,.22)');gr.addColorStop(1,'rgba(255,255,255,0)');c.fillStyle=gr;c.fillRect(0,0,128,128);});this.textures.get('home-glow-w').setFilter(Phaser.Textures.FilterMode.LINEAR);
   this.police=[0xff3a3a,0x3a6aff].map(col=>this.add.image(0,0,'home-glow-w').setDepth(6001).setBlendMode(Phaser.BlendModes.ADD).setTint(col).setVisible(false));this.pm=null;this.passT=0;this.shook=0;
+  // The flashlight, once you have it: a cone of white light ahead of you over the dark, and a little spill round your feet.
+  this.texture('home-beam',256,128,c=>{const g=c.createRadialGradient(0,64,0,0,64,256);g.addColorStop(0,'rgba(255,240,205,.7)');g.addColorStop(.45,'rgba(255,232,190,.3)');g.addColorStop(1,'rgba(255,226,180,0)');
+   c.beginPath();c.moveTo(0,64);c.lineTo(256*Math.cos(TORCH.half),64-256*Math.sin(TORCH.half));c.arc(0,64,256,-TORCH.half,TORCH.half);c.closePath();c.fillStyle=g;c.fill();});this.textures.get('home-beam').setFilter(Phaser.Textures.FilterMode.LINEAR);
+  this.beam=this.add.image(0,0,'home-beam').setOrigin(0,.5).setScale(TORCH.len/256).setDepth(6001).setBlendMode(Phaser.BlendModes.ADD).setVisible(false);this.beamA=null;
+  this.spill=this.add.image(0,0,'home-glow-w').setScale(.5,.35).setDepth(6001).setBlendMode(Phaser.BlendModes.ADD).setAlpha(.25).setVisible(false);
   this.flame=this.add.graphics().setDepth(6002);this.petFx=this.add.graphics().setDepth(7003);
   const icons=this.texture('camp-icons',ICON.w*2*ICONS.length,ICON.h*2,iconArt);ICONS.forEach((k,i)=>{if(!icons.has(k))icons.add(k,0,i*ICON.w*2,0,ICON.w*2,ICON.h*2);});
   this.marker=this.add.image(0,0,'camp-icons','chevron').setScale(.5).setOrigin(.5,1).setDepth(7001).setVisible(false);
@@ -51,6 +63,8 @@ export function makeHomeScene(model,bridge){return class Home extends Phaser.Sce
  // Open the nightstand or the closet (and show what is in it), and keep it that way.
  setProp(id,patch){const o=PROPS.find(p=>p.id===id);if(!o)return;this.opts[id]={...this.opts[id],...patch};const t=this.textures.get('home-'+id),c=t.context;c.clearRect(0,0,t.width,t.height);propArt(c,{...o,...this.opts[id]});t.refresh();}
  skipWake(){this.wake?.skip();}
+ // The flashlight is on: sirens, and the police car down the street (wake.js CRASH), where you stand.
+ crash(){if(this.wake)return;const [dog,cat]=this.pets.map(p=>p.pet);this.wake=new Wake({dog,cat,you:model,beats:CRASH});}
  setPlayerLook(look){const t=this.textures.get('survivor-01'),c=t.context;c.clearRect(0,0,FRAME.w*8,FRAME.h*FRAME_COUNT);c.imageSmoothingEnabled=false;for(let f=0;f<FRAME_COUNT;f++)for(let d=0;d<8;d++){c.save();c.translate(d*FRAME.w,f*FRAME.h);c.scale(2,2);survivor(c,d,f,true,{...look,zombie:0,gun:bridge.held?.()||'none',grenade:null});c.restore();}t.refresh();}
  setPetLook(){}
  // Never show past the yard: on a wide screen the camera zooms in until the house and yard fill it.
@@ -58,7 +72,7 @@ export function makeHomeScene(model,bridge){return class Home extends Phaser.Sce
  update(now,delta){const dt=Math.min(.05,delta/1000),paused=bridge.paused();
   const w=this.wake;
   // The night waits in the dark for a first tap or key, so its sounds can play (browsers only start sound after one).
-  const waiting=w&&bridge.started&&!bridge.started();
+  const waiting=w&&!w.beats&&bridge.started&&!bridge.started();
   if(w){if(!paused&&!waiting)w.update(dt);Object.assign(model,{x:w.x,y:w.y,direction:w.direction,frame:w.frame,moving:!!w.path.length});bridge.cine?.(waiting?{say:'Tap anywhere, or press any key, to begin.',waiting:true}:w);
    if(w.done){this.wake=null;bridge.cine?.(null);bridge.wokeUp?.();}}
   else if(!paused)model.update(dt,bridge.input());bridge.step?.(dt);
@@ -76,13 +90,17 @@ export function makeHomeScene(model,bridge){return class Home extends Phaser.Sce
   if(target){const bob=Math.round(Math.sin(now/180)*2*2)/2;this.marker.setVisible(true).setPosition(target.mx??target.x,target.my+bob);}else this.marker.setVisible(false);
   // The candle flickers, and its glow breathes with it.
   // The light bar: during the pass it runs along the front of the house; parked, it turns at the east end of the street.
-  const pm=w?w.police:bridge.kit?.()?.woke?'parked':null;if(pm!==this.pm){this.pm=pm;this.passT=0;}if(!paused)this.passT+=dt;
+  const kit=bridge.kit?.(),pm=w?w.police:kit?.light?'parked':null;
+  // The flashlight swings round to where you face, and goes where you go.
+  if(kit?.light){const want=model.direction*Math.PI/4;if(this.beamA===null)this.beamA=want;let d=want-this.beamA;d=Math.atan2(Math.sin(d),Math.cos(d));this.beamA+=d*Math.min(1,dt*TORCH.turn);
+   const bx=model.x+Math.cos(this.beamA)*4,by=model.y-14+Math.sin(this.beamA)*2;this.beam.setVisible(true).setPosition(bx,by).setRotation(this.beamA).setAlpha(.62+.04*Math.sin(now/130));this.spill.setVisible(true).setPosition(model.x+Math.cos(this.beamA)*16,model.y-4+Math.sin(this.beamA)*10);}
+  else{this.beam.setVisible(false);this.spill.setVisible(false);}this.dark.setAlpha(kit?.light?.62:1);if(pm!==this.pm){this.pm=pm;this.passT=0;}if(!paused)this.passT+=dt;
   this.police.forEach((img,i)=>{if(!pm){img.setVisible(false);return;}const on=Math.floor(now/(pm==='pass'?90:260))%2===i;
    if(pm==='pass'){const k=Math.min(1,this.passT/2.6);img.setVisible(k<1).setPosition(HOUSE.x-120+k*(HOUSE.w+260),HOUSE.y+HOUSE.h-70).setScale(5.5,2.6).setAlpha(on?.55*Math.sin(Math.PI*k):.06);}
    else img.setVisible(true).setPosition(HOUSE.x+HOUSE.w+40,HOUSE.y+HOUSE.h+20).setScale(2.8,1.8).setAlpha(on?.34:.05);});
   // Sounds and the shake the wake-up scene asks for.
   if(w){for(const id of w.cues.splice(0))bridge.sound?.(id);if(w.shook>this.shook){this.shook=w.shook;this.cameras.main.shake(520,.009);bridge.buzz?.(160);}}
-  const t=now/1000,fl=.5+.28*Math.sin(t*11.3)+.16*Math.sin(t*31.7+1)+.06*Math.sin(t*67+2);this.glow.setAlpha(.32+.16*fl).setScale(1.3+.12*fl,.95+.08*fl);
+  const t=now/1000,fl=.5+.28*Math.sin(t*11.3)+.16*Math.sin(t*31.7+1)+.06*Math.sin(t*67+2);this.glow.setAlpha(.2+.14*fl).setScale(1.05+.12*fl,.78+.08*fl);
   const g=this.flame;g.clear();g.fillStyle(0xff9a52,1);g.fillRect(CANDLE.x,CANDLE.y-(fl>.6?.5:0),1.5,2.5);g.fillStyle(0xffe4a0,1);g.fillRect(CANDLE.x+.5,CANDLE.y-.5-(fl>.6?.5:0),.5,1);
   this.petFx.clear();for(const p of this.pets)drawHearts(this.petFx,p.pet,p.target.my+6,now);
   const cam=this.cameras.main;cam.setZoom(this.zoom());cam.centerOn(model.x,model.y-20);bridge.tick(now,this);}
