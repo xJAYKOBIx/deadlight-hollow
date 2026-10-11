@@ -15,12 +15,13 @@ export function cameraAt(t,P=TITLE_PATH){const pts=P.pts,lens=[0];for(let i=1;i<
  const a=pts[i-1],b=pts[i],k=(s-lens[i-1])/((lens[i]-lens[i-1])||1);return {x:a[0]+(b[0]-a[0])*k,y:a[1]+(b[1]-a[1])*k,z:a[2]+(b[2]-a[2])*k};}
 
 const LETTERS='DEADLIGHT';
-// The menu, top to bottom. sub is the line under each; Continue's comes from the save.
-const ITEMS=[['continue','Continue'],['new','New Game','Night one, from the start'],['survivor','Survivor','Who you are out there'],['settings','Settings','Sound, effects, gore, camera'],['credits','Credits']];
+// The menu, top to bottom. sub is the line under each; Continue's comes from the save, and Marcus's Night shows his night when one
+// is going. New Game is the operation from the briefing (v0.66); Marcus's night in the house is its own story now.
+const ITEMS=[['continue','Continue'],['new','New Game','Operation Bell Jar, from the briefing'],['marcus','Marcus\'s Night','The night it all went wrong'],['survivor','Survivor','Who you are out there'],['settings','Settings','Sound, effects, gore, camera'],['credits','Credits']];
 const CREDITS=[['Deadlight Hollow',''],['Created by','Jaykobi'],['Art, sound and code','Made in the Master Creator library, with Claude'],['Engine','Phaser'],['Type','Saira Stencil One, Barlow Condensed'],['Thanks for playing','Stay off the main roads.']];
 
 // o: version, audio (study/audio.js), device() ('touch', 'keys' or 'pad'), save() (null, or {label, detail} for Continue),
-// onContinue, onNew, onSurvivor, settings ([{label(), press()}]), controls() (the controls list's HTML), dialogOpen() (a game dialog
+// opSave() (the operation going, if any: New Game asks first), marcusSave() (his night going, if any), onContinue, onNew, onMarcus, onSurvivor, settings ([{label(), press()}]), controls() (the controls list's HTML), dialogOpen() (a game dialog
 // over the title takes the keys), buzz(ms).
 export function mountTitle(o){
  const el=document.createElement('div');el.id='title';el.hidden=true;el.setAttribute('role','dialog');el.setAttribute('aria-label','Deadlight Hollow');
@@ -54,7 +55,7 @@ export function mountTitle(o){
    b.addEventListener('click',()=>{if(!b.disabled&&!leaving)pick(r.id,b);});box.append(b);}
   const first=[...box.querySelectorAll('.ti-item')].find(b=>!b.disabled);first?.focus({preventScroll:true});}
  function showMenu(focus){state='menu';panel.hidden=true;menu.hidden=false;el.classList.add('ti-menuing');el.classList.remove('ti-paneled');const s=o.save();
-  list(menu,ITEMS.map(([id,label,sub])=>id==='continue'?{id,label,sub:s?`${s.label} · ${s.detail}`:'No night in progress',off:!s}:{id,label,sub}),choose);
+  const m=o.marcusSave?.();list(menu,ITEMS.map(([id,label,sub])=>id==='continue'?{id,label,sub:s?`${s.label} · ${s.detail}`:'Nothing in progress',off:!s}:id==='marcus'&&m?{id,label,sub:`${m.label} · ${m.detail}`}:{id,label,sub}),choose);
   if(focus)menu.querySelector(`[data-id="${focus}"]`)?.focus({preventScroll:true});}
  function showPanel(kind,title,rows,pick,html=''){state=kind;menu.hidden=true;panel.hidden=false;el.classList.add('ti-menuing','ti-paneled');panel.innerHTML=`<h2>${title}</h2>${html}<div class="ti-list"></div>`;
   list(panel.querySelector('.ti-list'),rows,pick);}
@@ -63,9 +64,9 @@ export function mountTitle(o){
   if(focus)panel.querySelector(`[data-id="${focus}"]`)?.focus({preventScroll:true});}
  function controls(){showPanel('controls','Controls',[{id:'back',label:'Back'}],()=>{sound('menu-select');settings('controls');},`<div class="ti-scroll">${o.controls()}</div>`);}
  function credits(){showPanel('credits','Credits',[{id:'back',label:'Back'}],()=>{sound('menu-select');showMenu('credits');},`<dl class="ti-credits">${CREDITS.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join('')}</dl>`);}
- function confirmNew(){showPanel('confirm','Start over?',[{id:'yes',label:'Start night one',sub:'The night you have going will be lost'},{id:'back',label:'Back'}],id=>{sound('menu-select');if(id==='back')showMenu('new');else leave(o.onNew);});}
+ function confirmNew(){showPanel('confirm','Start over?',[{id:'yes',label:'Start the operation',sub:'The operation you have going will be lost'},{id:'back',label:'Back'}],id=>{sound('menu-select');if(id==='back')showMenu('new');else leave(o.onNew);});}
  function choose(id){sound('menu-select');o.buzz?.(18);
-  if(id==='continue')return leave(o.onContinue);if(id==='new')return o.save()?confirmNew():leave(o.onNew);
+  if(id==='continue')return leave(o.onContinue);if(id==='new')return o.opSave?.()?confirmNew():leave(o.onNew);if(id==='marcus')return leave(o.onMarcus);
   if(id==='survivor')return o.onSurvivor();if(id==='settings')return settings();if(id==='credits')return credits();}
  // Going in: the menu goes, the screen goes black, the game is set up behind it, and the black lifts on the place.
  function leave(fn){leaving=true;state='leaving';el.classList.add('ti-leaving');hush();setTimeout(()=>{fn();setTimeout(close,250);},760);}

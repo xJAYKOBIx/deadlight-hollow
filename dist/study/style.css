@@ -630,7 +630,7 @@ html body.deck .topbar #menu::after{background-image:var(--gore-wipe);background
 .home #vitals .chips{flex-direction:column;align-items:flex-start}
 /* The goal line: a tag (the job being followed, or Goal), the one step to do now on a single line, and a chevron. It opens the
    jobs list, so it takes taps though the panel it sits in does not. */
-.home #goalChip:not([hidden]),.street #goalChip:not([hidden]){display:flex;align-items:center;gap:7px;max-width:min(62vw,320px);min-height:0;margin:0;padding:5px 6px 5px 8px;color:var(--bone);border:1px solid var(--edge);border-left:2px solid var(--ember);border-radius:0;background:#141311cc;font:500 11px/1.2 var(--body);letter-spacing:.01em;text-transform:none;text-align:left;pointer-events:auto;cursor:pointer;box-shadow:none}
+.home #goalChip:not([hidden]),.street #goalChip:not([hidden]),.base #goalChip:not([hidden]){display:flex;align-items:center;gap:7px;max-width:min(62vw,320px);min-height:0;margin:0;padding:5px 6px 5px 8px;color:var(--bone);border:1px solid var(--edge);border-left:2px solid var(--ember);border-radius:0;background:#141311cc;font:500 11px/1.2 var(--body);letter-spacing:.01em;text-transform:none;text-align:left;pointer-events:auto;cursor:pointer;box-shadow:none}
 #goalChip b{flex:none;font:700 9.5px/1 var(--ui);letter-spacing:.16em;text-transform:uppercase;color:var(--ember-hi)}
 #goalChip span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #goalChip i{flex:none;margin-left:1px;font:700 14px/1 var(--ui);font-style:normal;color:var(--dust)}
@@ -1049,3 +1049,5 @@ dialog.jobs{width:min(560px,calc(100% - 24px))}
 .job-steps .now::before{background:var(--ember);border-color:var(--ember-hi);box-shadow:0 0 8px var(--ember)}
 .jobs-hint{margin:0;font:600 11px/1.35 var(--ui);letter-spacing:.07em;text-transform:uppercase;color:var(--dust)}
 @media(prefers-reduced-motion:reduce){#goalChip:active{transform:none}}
+/* v0.66: Harlan Field has no fish to count, and its goal is one step with no jobs list behind it. */
+body.base #fishChip{display:none}body.base #goalChip{pointer-events:none}body.base #goalChip i{display:none}
