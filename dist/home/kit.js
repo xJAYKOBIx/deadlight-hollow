@@ -44,12 +44,12 @@ export const TRUNK=[['shells',12],['rounds',30]];
 export const FINDS={'light-pistol':{at:'nightstand',ammo:15,bag:[]},'pump-shotgun':{at:'closet',ammo:8,bag:[['shells',16],['gun-oil',1]]}};
 // Supplies in the house, found by searching. Nothing here is needed to leave; it is what a careful person takes.
 export const SUPPLIES={counter:[['scrap',3],['electronics',1]],sink:[['solvent',1]],laundry:[['cloth',2]]};
-// The guns a kit can hold: the two in the house, and the heavy pistol your own survivor comes out with.
-const ORDER=[...Object.keys(FINDS),'heavy-pistol'];
+// The guns a kit can hold: the two in the house, the heavy pistol your own survivor comes out with, and the rifle LEET AF issues.
+const ORDER=[...Object.keys(FINDS),'heavy-pistol','tactical-ar'];
 // Whose night it is. tutorial: the man on the couch, start to finish. own: after he dies in the hold-out, the survivor you make, who
 // watched it from across the street; corpse is what he had on him when he went down (his guns, rounds and bag) and where, and taken
-// once you have it back.
-export const PHASES=['tutorial','own'];
+// once you have it back. op: Operation Bell Jar (v0.68), you on the ground in the Hollow with LEET AF's kit (opKit, below).
+export const PHASES=['tutorial','own','op'];
 const BIGGEST=Object.values(BAGS).reduce((a,b)=>a.cols*a.rows>=b.cols*b.rows?a:b);
 // What your own survivor has when they come out of the house across the street: their own heavy pistol, nothing else.
 export const OWN_GUN='heavy-pistol';
@@ -67,9 +67,23 @@ export function normalizeHome(v,grid=carrying({})){const guns={};for(const id of
  const drops=[];for(const d of Array.isArray(M?.drops)?M.drops:[])if(PARTS.includes(d?.item)&&!drops.some(e=>e.item===d.item)&&Number.isFinite(Number(d.x))&&Number.isFinite(Number(d.y)))drops.push({item:d.item,x:Number(d.x),y:Number(d.y)});
  const mission={done,out:M?.out===true,step,have:[...new Set((Array.isArray(M?.have)?M.have:[]).filter(h=>HAVE.includes(h)))],carry:PARTS.includes(M?.carry)&&!drops.some(d=>d.item===M.carry)?M.carry:null,drops,track:JOBS.includes(M?.track)&&!done.includes(M.track)?M.track:null};
  const phase=PHASES.includes(v?.phase)?v.phase:'tutorial',c=v?.corpse,corpse=phase==='own'&&c?{guns:normGuns(c.guns),held:c.held??null,bag:normalizeBag(c.bag,BIGGEST),x:Number(c.x)||0,y:Number(c.y)||0,dir:Number(c.dir)>=0&&Number(c.dir)<8?Number(c.dir)|0:2,taken:c.taken===true}:null;
- return {woke:v?.woke===true,light:v?.light===true,guns,held,bag,searched,street,looted,mission,phase,corpse};}
+ return {woke:v?.woke===true,light:v?.light===true,guns,held,bag,searched,street,looted,mission,phase,corpse,...(phase==='op'?{bell:{step:BELL.includes(v?.bell?.step)?v.bell.step:BELL[0]}}:{})};}
 export function readHome(storage,grid,fresh=FRESH){if(fresh)return normalizeHome(null,grid);try{return normalizeHome(JSON.parse(storage.getItem(HOME_KEY)),grid);}catch{return normalizeHome(null,grid);}}
-export function saveHome(storage,v){try{storage.setItem(HOME_KEY,JSON.stringify(v));return true;}catch{return false;}}
+// The operation's kit is saved on its own (OP_KIT_KEY), so the night in the house keeps its own; saveHome sends each where it belongs.
+export function saveHome(storage,v){try{storage.setItem(v?.phase==='op'?OP_KIT_KEY:HOME_KEY,JSON.stringify(v));return true;}catch{return false;}}
+// Operation Bell Jar on the ground (street/op.js): the steps, in order (out once you are back on the truck), and the kit you carry
+// in: the rifle loaded with three more magazines in your pack, the sidearm, the light on the rifle. The street is past its night-one
+// fight, so the dead out there are only the town's.
+export const OP_KIT_KEY='deadlight-opkit-v1',BELL=['crash','samples','beacon','uplink','truck','out'];
+export const OP_ISSUE={guns:{'tactical-ar':30,'light-pistol':15},bag:[['rounds',90]]};
+export function opKit(grid=carrying({})){const k=normalizeHome({woke:true,light:true,street:'done',phase:'op',held:'tactical-ar',guns:Object.fromEntries(Object.entries(OP_ISSUE.guns).map(([id,ammo])=>[id,{ammo}]))},grid);return {...k,bag:pack(k,grid,OP_ISSUE.bag)};}
+export function readOpKit(storage,grid){try{const v=JSON.parse(storage.getItem(OP_KIT_KEY));if(v?.phase==='op')return normalizeHome(v,grid);}catch{}return opKit(grid);}
+export const bellStep=k=>k.bell?.step||BELL[0];
+// A step done: on to the next. Getting on the truck is the end of it (the mission's out, so the street stops sending the dead).
+export function bellOn(k,from){if(bellStep(k)!==from)return k;const i=BELL.indexOf(from)+1,step=BELL[Math.min(BELL.length-1,i)];return {...k,bell:{step},...(step==='out'?{mission:{...k.mission,out:true}}:{})};}
+// What each step asks of you, for the goal line and the list.
+export const BELL_GOALS={crash:'Get to the crash, down Juniper Lane at Route 9',samples:'Recover the samples from the wreck',beacon:'Plant the beacon at the crash',
+ uplink:'Guard the beacon until the uplink is done',truck:'Get on the truck',out:'Hollow Six is out'};
 const pack=(k,grid,list)=>list.reduce((b,[id,n])=>add(b,grid,id,n),k.bag);
 // Picking a gun up puts it in your hands, and what came with it in your bag.
 export function take(k,id,grid=carrying({})){if(!FINDS[id]||k.guns[id])return k;const f=FINDS[id];return {...k,guns:{...k.guns,[id]:{ammo:f.ammo}},held:id,bag:pack(k,grid,f.bag)};}
@@ -106,7 +120,7 @@ export const JOB_NAMES={radio:'find a radio',power:'start the generator',supplie
 export const STEP_GOALS={radio:{battery:'get the battery out of the Castillos\' car',carry:'carry the battery to Curtis Webb\'s',wire:'wire up Curtis\'s radio',tune:'find the Guard on the radio'},
  power:{fuel:'find fuel for Ray\'s generator',carry:'carry the fuel to Ray\'s generator',start:'start the generator',hold:'stay by the light while it warms up'},
  supplies:{note:'go to Mrs. Hargrove\'s house',hunt:'find Mrs. Hargrove in the park, or force her shed',shed:'open her shed with her key',bag:'take the go-bag'}};
-export function goal(k,outside=false){if(!k.woke)return '';const p=found(k,'light-pistol'),s=found(k,'pump-shotgun');
+export function goal(k,outside=false){if(!k.woke)return '';if(k.phase==='op')return BELL_GOALS[bellStep(k)];const p=found(k,'light-pistol'),s=found(k,'pump-shotgun');
  if(k.phase==='own'){if(k.mission?.out)return 'You made it out';return k.corpse&&!k.corpse.taken?'Put him down, and take back what he carried':'Get to the truck at the east end of the street';}
  if(!k.light&&!outside)return 'Find the flashlight in the kitchen';
  if(!p&&!s)return 'Find something to protect yourself with';
@@ -119,15 +133,17 @@ export function goal(k,outside=false){if(!k.woke)return '';const p=found(k,'ligh
 // the night itself; then the three jobs in any order, and the way out once they are done. After he dies, there is only yours.
 // Each job: id, title, what it is for, its steps ({text, done, now}), done, locked (the way out, before the jobs) and tracked
 // (the one the goal line and the marker follow; mission.track, chosen in the list).
-export const JOB_TITLES={night:'Night one',radio:'The radio',power:'The generator',supplies:'The go-bag',out:'The way out',own:'His gear'};
-export const JOB_SHORT={night:'Goal',radio:'Radio',power:'Generator',supplies:'Go-bag',out:'Way out',own:'Goal'};
+export const JOB_TITLES={night:'Night one',radio:'The radio',power:'The generator',supplies:'The go-bag',out:'The way out',own:'His gear',op:'Operation Bell Jar'};
+export const JOB_SHORT={night:'Goal',radio:'Radio',power:'Generator',supplies:'Go-bag',out:'Way out',own:'Goal',op:'Goal'};
 const JOB_FOR={night:'Something crashed down the street. Find out what.',radio:'Curtis Webb\'s ham radio, to reach the Guard',power:'Ray\'s generator, for light the truck can see',
- supplies:'Mrs. Hargrove\'s go-bag, packed and waiting',out:'The truck from the school bus lot, at the east end of your street',own:'He went down. What he carried is still out there'};
+ supplies:'Mrs. Hargrove\'s go-bag, packed and waiting',out:'The truck from the school bus lot, at the east end of your street',own:'He went down. What he carried is still out there',
+ op:'Hollow Six: Marrow\'s samples and the containment beacon, at the crash on Route 9'};
 const up=t=>t[0].toUpperCase()+t.slice(1);
 export const tracked=k=>{const t=k.mission?.track;return JOBS.includes(t)&&!k.mission.done.includes(t)?t:null;};
 export const trackJob=(k,id)=>k.mission?{...k,mission:{...k.mission,track:JOBS.includes(id)&&!k.mission.done.includes(id)?id:null}}:k;
 export function jobList(k,outside=false){if(!k.woke)return [];const row=(id,steps,e={})=>{const n=steps.findIndex(s=>!s.done);return {id,title:JOB_TITLES[id],for:JOB_FOR[id],
   steps:steps.map((s,i)=>({...s,now:i===n})),done:n<0,locked:false,tracked:false,...e};},S=(text,done)=>({text,done:!!done});
+ if(k.phase==='op'){const n=BELL.indexOf(bellStep(k));return [row('op',BELL.slice(0,-1).map((id,i)=>S(BELL_GOALS[id],i<n)))];}
  if(k.phase==='own'){const m=k.mission?.out;return [row('own',[...(k.corpse?[S('Put him down, and take back what he carried',k.corpse.taken)]:[]),S('Get to the truck at the east end of the street',m)])];}
  const st=STREET_STAGES.indexOf(k.street),armed=found(k,'light-pistol')||found(k,'pump-shotgun');
  const night=row('night',[...(outside&&!k.light?[]:[S('Find the flashlight in the kitchen',k.light)]),S('Find something to protect yourself with',armed),
@@ -137,7 +153,7 @@ export function jobList(k,outside=false){if(!k.woke)return [];const row=(id,step
  const out=row('out',[S('Call the truck from the school bus lot',m.out),S('Get in the back',m.out)],{locked:!jobsDone(k)});
  return [...jobs.filter(j=>!j.done),out,...jobs.filter(j=>j.done),{...night,done:true}];}
 // The goal line: a short tag and the one step to do now. With a job tracked it is that job's step; with none, how many are left.
-export function goalLine(k,outside=false){const text=goal(k,outside);if(!text)return null;
+export function goalLine(k,outside=false){const text=goal(k,outside);if(!text)return null;if(k.phase==='op')return {tag:JOB_SHORT.op,text};
  if(k.phase==='own'||k.street!=='done'||!k.mission||k.mission.out||jobsDone(k))return {tag:jobsDone(k)&&!k.mission?.out&&k.phase!=='own'?JOB_SHORT.out:'Goal',text};
  if(k.mission.carry)return {tag:JOB_SHORT[k.mission.carry==='battery'?'radio':'power'],text};
  const t=tracked(k),left=JOBS.filter(id=>!k.mission.done.includes(id));

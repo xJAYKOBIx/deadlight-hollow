@@ -61,9 +61,11 @@ const inRect=(x,y,r,b)=>{const dx=x-Math.max(b.x,Math.min(x,b.x+b.w)),dy=y-Math.
 // The first solid a circle of radius r at (x, y) touches, if any.
 // MOVING holds anything solid that is not always there (the truck, once it has pulled up).
 export const MOVING=[];
-export function solidAt(x,y,r){let hit=null;cells({x:x-r,y:y-r,w:r*2,h:r*2},k=>{if(hit)return;for(const s of grid.get(k)||[])if(inRect(x,y,r,s)){hit=s;return;}});if(!hit)for(const s of MOVING)if(inRect(x,y,r,s))return s;return hit;}
+// still: only what is always there (the paths keep that, and ask about MOVING each time).
+export function solidAt(x,y,r,still=false){let hit=null;cells({x:x-r,y:y-r,w:r*2,h:r*2},k=>{if(hit)return;for(const s of grid.get(k)||[])if(inRect(x,y,r,s)){hit=s;return;}});if(!hit&&!still)for(const s of MOVING)if(inRect(x,y,r,s))return s;return hit;}
 // What would stop a bullet at this point.
-export function coverAt(x,y){for(const s of grid.get(key(Math.floor(x/CELL),Math.floor(y/CELL)))||[])if(s.z>=20&&!s.see&&x>=s.x&&x<=s.x+s.w&&y>=s.y&&y<=s.y+s.h)return s;return null;}
+export function coverAt(x,y){for(const s of grid.get(key(Math.floor(x/CELL),Math.floor(y/CELL)))||[])if(s.z>=20&&!s.see&&x>=s.x&&x<=s.x+s.w&&y>=s.y&&y<=s.y+s.h)return s;
+ for(const s of MOVING)if(s.cover&&x>=s.x&&x<=s.x+s.w&&y>=s.y&&y<=s.y+s.h)return s;return null;}
 // Where you come out, on your step, and the door back in.
 const H=(x,y)=>({x:HOME.x+x,y:HOME.y+y});
 export const START={...H(717,162),direction:2};
@@ -117,6 +119,24 @@ const CHAIN_SPOTS=[C('chain-keys','keys','radio','Search','The Castillo house','
 const JOB_SPOTS=[...CHAIN_SPOTS,
  {id:'evac',job:'evac',verb:'Call',name:'The bus lot',role:'Call the truck in',x:EVAC.x,y:EVAC.y,mx:EVAC.x,my:EVAC.y-26,range:40,mark:'Call the truck'},
  {id:'board',job:'board',verb:'Get in',name:'The truck',role:'Time to go',x:TRUCK.x+TRUCK.w+12,y:TRUCK.y+TRUCK.h/2,mx:TRUCK.x+TRUCK.w-10,my:TRUCK.y-TRUCK.z+4,range:46,mark:'Truck'}];
+// Operation Bell Jar on the ground (v0.68, street/op.js), on the east side: Hollow Six's truck drops you on your street just short
+// of Juniper Lane, nose east with its ramp down at the back and two ammo cans by the ramp; the Marrow courier went off Route 9 a
+// little west of Juniper Lane and rolled onto the verge by the ball fields; the beacon is planted on the sidewalk in front of it; and
+// the truck comes back along Route 9 from the west and pulls up past the crash to take you out. The spots are only usable then.
+const R9=ROADS.find(rd=>rd.j===7);
+export const OP_APC={w:230,h:66,z:72,mark:'H6',ramp:27};
+export const OP_DROP={x:5400,y:HOME_ROAD.y+56},OP_PICKUP={x:5330,y:R9.y+R9.h-OP_APC.h,from:4140};
+export const OP_WRECK={id:'op-wreck',kind:'wreck',x:5180,y:R9.y-88,w:180,h:58,z:62,open:true};
+export const OP_BEACON={id:'op-beacon',kind:'beacon',x:5262,y:R9.y-4,w:16,h:12,z:46};
+export const OP_CANS={id:'op-cans',kind:'ammocan',x:OP_DROP.x-66,y:OP_DROP.y+2,w:30,h:10,z:11,n:2};
+// Where you and Aaron come down the ramp, and where you come off it at the pickup.
+export const OP_START={x:OP_DROP.x-40,y:OP_DROP.y+46,direction:1},OP_MATE={x:OP_DROP.x-76,y:OP_DROP.y+40,direction:1};
+const atRamp=(T,dx=0)=>({x:T.x-OP_APC.ramp-14+dx,y:T.y+OP_APC.h/2+6});
+export const OP_SPOTS=[{id:'op-samples',op:'samples',verb:'Recover',name:'The courier',role:'Marrow\'s samples, in the torn hold',x:OP_WRECK.x+34,y:OP_WRECK.y+OP_WRECK.h+16,mx:OP_WRECK.x+30,my:OP_WRECK.y-6,range:40,mark:'Samples'},
+ {id:'op-plant',op:'beacon',verb:'Plant',name:'The crash',role:'The containment beacon goes here',x:OP_BEACON.x+40,y:OP_BEACON.y+OP_BEACON.h+8,mx:OP_BEACON.x+8,my:OP_BEACON.y-10,range:40,mark:'Beacon'},
+ {id:'op-ammo',op:'ammo',verb:'Restock',name:'Ammo cans',role:'Spare magazines for the rifle',x:OP_CANS.x+OP_CANS.w/2,y:OP_CANS.y+OP_CANS.h+12,mx:OP_CANS.x+OP_CANS.w/2,my:OP_CANS.y-OP_CANS.z-6,range:34},
+ {id:'op-board',op:'board',verb:'Board',name:'Hollow Six\'s truck',role:'Up the ramp and home',...atRamp(OP_PICKUP),mx:OP_PICKUP.x-12,my:OP_PICKUP.y-OP_APC.z+10,range:48,mark:'Truck'}];
+export const opRamp=atRamp;
 // The big buildings' doors: shut tonight, every one.
 const door=(id,name,role,dx,lines,verb='Try')=>{const o=PROPS.find(q=>q.id===id);return {id:'door-'+id,prop:id,verb,name,role,x:o.x+dx,y:o.y+o.h+16,mx:o.x+dx,my:o.y+o.h-Math.min(o.z,80)-6,range:36,lines};};
 const DOORS=[door('d01-church','St. Brendan\'s','The church doors',130,['Barred from the inside.','Somebody in there is praying. Out loud. Over and over.'],'Knock'),
@@ -129,7 +149,7 @@ export const OBJECTS=[
  {id:'door-w',prop:'west',verb:'Knock',name:'The corner house',role:'Next door',...H(157,150),mx:HOME.x+157,my:HOME.y+FRONT-Z-6,range:34,lines:['Door\'s open a crack. Pitch black in there, and it smells wrong.','I\'m pulling it shut.']},
  ...BLOCKS.filter(b=>!b.home).flatMap(b=>b.houses.map((h,k)=>{if(h===RADIO_HOUSE||h.id==='b00-h3'||h.id==='d02-hargrove')return null;const d=h.door0+17,s=(b.i*5+b.j)*3+k,at={x:d,y:b.y+FRONT+WALL_T+20,mx:d,my:b.y+FRONT-Z-6,range:34,name:NAMED[h.id.split('-').pop()]||NAMES[s%NAMES.length]};
   return s%3&&!NAMED[h.id.split('-').pop()]?{id:'search-'+h.id,prop:h.id,loot:'house',verb:'Search',role:'The door is not locked',...at}:{id:'door-'+h.id,prop:h.id,verb:'Knock',role:'A neighbour',...at,lines:KNOCKS[(s*7+3)%KNOCKS.length]};})),
- ...DOORS,...SPOTS,...JOB_SPOTS].filter(Boolean);
+ ...DOORS,...SPOTS,...JOB_SPOTS,...OP_SPOTS].filter(Boolean);
 // The dead. Each has a look (zombie looks in street/scene.js), where it starts, and when it comes: wave 1 is the cop at the cruiser
 // and the five the noise brings out of the dark one after another; wave 2, once you open the trunk, is a crowd of twelve in three
 // rushes (from the west, then the east, then all round) and one that lost its legs before tonight, dragging itself up from the

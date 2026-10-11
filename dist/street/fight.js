@@ -12,6 +12,7 @@ import {ammoOf,advance,loot,scavenge,alarmed,DROPS,jobsDone,board,reclaim,reclai
 import {MAP,WAVES,ROAMERS,NOTICE,HEAR,WALK,roadNear,EVAC,TRUCK,MOVING,OBJECTS,BREACHES,solidAt,coverAt,vary} from './data.js';
 import {Flow,clearLine} from './paths.js';
 import {Jobs,CARRY} from './jobs.js';
+import {Bell,OP_DROPS} from './op.js';import {MATE} from './mate.js';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),facing=(dx,dy)=>(Math.round(Math.atan2(dy,dx)/(Math.PI/4))+8)%8;
 // Wanderers: how far they stroll from where they started and how slowly, when they give up on you, and how far off they stop
 // being thought about every frame. Groans only carry so far. A horde (which comes from further off) gives up half as far again away.
@@ -30,7 +31,7 @@ export const ZOMBIE={hp:{cop:80,neighbour:60,jogger:55,robe:60,worker:70,neighbo
 export const GRAB={hold:1.1,slow:.15,chew:.6};
 // How hard each gun shoves what it hits (per pellet for the shotgun), and for how long a hit stops a zombie in its tracks. A
 // killing hit throws the body further, and a shotgun blast from close up hits harder still.
-export const SHOVE={'light-pistol':{push:80,stagger:.22},'pump-shotgun':{push:58,stagger:.4},kill:1.8,close:{range:70,push:1.6}};
+export const SHOVE={'light-pistol':{push:80,stagger:.22},'pump-shotgun':{push:58,stagger:.4},'tactical-ar':{push:44,stagger:.16},kill:1.8,close:{range:70,push:1.6}};
 // How much a shot and a reload slow you down: a little, so you stand and fight but can still back off while you do.
 export const SLOW={shot:.9,after:.2,reload:.82};
 // The shove (it took the dive's place): both hands out the way you aim (or move, or face), costing stamina. Everything in front of you
@@ -53,7 +54,7 @@ export const LOOT={pop:.4,reach:60,pull:60,accel:900,max:520};
 // tutorial's fight is over it brings the dead to you: patrols of a few drift through, more often the hotter it is, and at the top
 // a horde comes from one side, already hunting. levels are where Stirring, Hunted and Swarming start; patrol is seconds between
 // patrols at each level. Extra dead are capped, and the ones well away that have not seen you are let go.
-export const HEAT={shot:{'light-pistol':3,'pump-shotgun':6},kill:1,alarm:30,quiet:8,fall:2.5,levels:[0,25,50,80],names:['Quiet','Stirring','Hunted','Swarming'],
+export const HEAT={shot:{'light-pistol':3,'pump-shotgun':6,'tactical-ar':1.5},kill:1,alarm:30,quiet:8,fall:2.5,levels:[0,25,50,80],names:['Quiet','Stirring','Hunted','Swarming'],
  patrol:[90,50,30,20],size:[3,5],horde:{every:45,size:[10,14]},after:40,cap:40,spawn:{near:620,far:820},gone:1500,walk:26};
 const LOOKS=['neighbour','jogger','robe','worker','neighbour2'],SPECIALS=new Set(['runner','brute','screamer','bloater','spitter']);
 // Runners: fast and frail. Once they have you they sprint; close in, with a clear line, they crouch for an instant (the tell) and
@@ -112,11 +113,13 @@ export const RISEN={hp:150,notice:230,search:2};
 export const CRAWLER={hp:25,speed:22,reach:16,windup:.55,damage:11,hold:.9,slow:.3,rise:.6,cool:1.4};
 export class Fight{
  constructor(model,{kit,setKit,grid}){Object.assign(this,{model,kit,setKit,grid,traces:[],fields:[],events:[],zombies:[],hp:PLAYER_HP,maxHp:PLAYER_HP,down:0,cooldown:0,reloadTime:0,throwCooldown:0,sinceShot:9,sinceHurt:9,bash:null,bashCool:0,alert:false,wave:-1,seed:1,held:null,grab:0,grabber:null,grabSlow:1,carried:null,daze:0,blind:0,inAcid:false,specialT:SPECIAL.first,gore:true,searching:null,drops:[],heat:0,quiet:99,level:0,patrolT:30,hordeT:0,vault:null,push:0,evac:null,powerT:0,globs:[],pools:[],clouds:[],burnT:0,pv:{x:0,y:0},stats:{kills:0,shots:0,found:0,downs:0,time:0}});
-  this.drill={bots:this.zombies,holdout:false,downed:false};this.flow=new Flow();this.jobs=new Jobs(this);}
+  this.drill={bots:this.zombies,holdout:false,downed:false};this.flow=new Flow();this.jobs=new Jobs(this);this.bell=new Bell(this);}
  // Sets the street up for where the kit says you are: the cop waiting at the cruiser, the second wave coming, or nothing.
  start(){const k=this.kit();this.snapshot=k;this.hp=PLAYER_HP;this.down=0;this.bash=null;this.grab=0;this.grabber=null;this.carried=null;this.daze=0;this.blind=0;this.inAcid=false;this.specialT=SPECIAL.first;this.searching=null;this.drops=[];this.heat=0;this.quiet=99;this.level=0;this.patrolT=30;this.hordeT=0;this.vault=null;this.push=0;this.evac=null;this.powerT=0;this.globs=[];this.pools=[];this.clouds=[];this.burnT=0;MOVING.length=0;this.bashCool=0;this.alert=false;this.traces=[];this.reloadTime=0;this.cooldown=0;this.held=k.held;this.zombies.length=0;
-  this.overrun=null;this.dead=null;this.remains=null;this.warn=null;this.opened=new Set(k.phase==='own'?BREACHES.map(b=>b.prop).filter(Boolean):[]);this.torch=k.phase==='own'&&k.corpse&&!k.corpse.taken?this.torch:null;this.model.spawn=k.phase==='own'?this.model.spawn:null;
-  this.jobs.start();if(k.phase==='own'){this.own(k);return;}
+  this.overrun=null;this.dead=null;this.remains=null;this.warn=null;this.opened=new Set(k.phase==='own'?BREACHES.map(b=>b.prop).filter(Boolean):[]);this.torch=k.phase==='own'&&k.corpse&&!k.corpse.taken?this.torch:null;const fromOp=!!this.model.spawn?.op;this.model.spawn=k.phase==='own'&&!fromOp?this.model.spawn:null;if(fromOp)this.model.reset();
+  // A different night (or the operation) is a different street: the wanderers you put down are back on their feet.
+  if(this.night!==k.phase){this.night=k.phase;this.fallen=new Set();this.roamList=null;}
+  this.jobs.start();this.bell.start();if(k.phase==='own'){this.own(k);return;}if(k.phase==='op'){this.wave=-1;this.alert=true;this.zombies.push(...this.roamers());return;}
   if(k.street==='start')this.spawn(0);else if(k.street==='looted'){this.spawn(1);this.alert=true;}else{this.wave=-1;this.zombies.length=0;this.zombies.push(...this.roamers());}}
  // Your own survivor's street: the wanderers, him standing where he got up (until you have your gear back off him), and the truck,
  // held up until then and on its way after.
@@ -183,11 +186,12 @@ export class Fight{
  // A shot that just misses one of the dead bends onto it: a few degrees at most, whatever you aim with.
  magnet(angle){const g=this.gun;if(!g)return angle;const t=this.zombies.filter(z=>this.out(z)).map(z=>this.aimAt(z));return pick(angle,t,{...AIM,cone:MAGNET.cone,lock:.6,range:g.range}).a;}
  // A hit: damage, a shove along the shot and a stagger. The shotgun's shove breaks a bite that is winding up.
- hit(z,dmg,dx,dy){const s=SHOVE[this.gunId]||SHOVE['light-pistol'],m=this.model,big=z.kind==='brute';if(big&&z.stun>0)dmg*=BRUTE.charge.weak;z.hp=Math.max(0,z.hp-dmg);z.flash=.07;
-  const push=s.push*(this.gun?.pellets&&Math.hypot(z.x-m.x,z.y-m.y)<SHOVE.close.range?SHOVE.close.push:1)*(z.hp<=0?SHOVE.kill:1)*(big?BRUTE.shove:1);z.vx+=dx*push;z.vy+=dy*push;if(!big)z.stagger=Math.max(z.stagger,s.stagger);z.idle=false;if(z.roam!==undefined)z.hunt=true;
-  if((z.state==='windup'||z.state==='crouch'||z.state==='spit')&&this.gun?.pellets&&!big){z.state='chase';z.tell=0;z.cool=.5;}
+ // by: Aaron's rifle ('mate') or the truck ('truck') rather than your gun.
+ hit(z,dmg,dx,dy,by=null){const id=by==='mate'?MATE.gun:this.gunId,g=by?GUNS[id]:this.gun,s=SHOVE[id]||SHOVE['light-pistol'],m=this.model,big=z.kind==='brute';if(big&&z.stun>0)dmg*=BRUTE.charge.weak;z.hp=Math.max(0,z.hp-dmg);z.flash=.07;
+  const push=(by==='truck'?260:s.push)*(g?.pellets&&Math.hypot(z.x-m.x,z.y-m.y)<SHOVE.close.range?SHOVE.close.push:1)*(z.hp<=0?SHOVE.kill:1)*(big?BRUTE.shove:1);z.vx+=dx*push;z.vy+=dy*push;if(!big)z.stagger=Math.max(z.stagger,s.stagger);z.idle=false;if(z.roam!==undefined)z.hunt=true;
+  if((z.state==='windup'||z.state==='crouch'||z.state==='spit')&&(g?.pellets||by==='truck')&&!big){z.state='chase';z.tell=0;z.cool=.5;}
   if(z.state==='scream'&&z.hp>0){z.state='chase';z.tell=0;z.scool=SCREAMER.scream.again;this.emit('miss',{z});}
-  if(z.hp<=0){this.stats.kills++;z.died=this.deaths=(this.deaths||0)+1;if(z.roam!==undefined)this.fallen.add(z.roam);z.state='dead';z.tell=0;z.frame=0;z._popped=true;z.fall=dx>=0?1:-1;
+  if(z.hp<=0){if(by)this.stats[by]=(this.stats[by]||0)+1;else this.stats.kills++;z.died=this.deaths=(this.deaths||0)+1;if(z.roam!==undefined)this.fallen.add(z.roam);z.state='dead';z.tell=0;z.frame=0;z._popped=true;z.fall=dx>=0?1:-1;
    if(z.kind==='risen'){this.remains={x:z.x,y:z.y};this.emit('fallen',{z});}
    this.drop(z,dx,dy);this.noise(HEAT.kill);if(z.kind==='bloater')this.pop(z);const gore=z.gore=this.goreOf(z),crawler=gore==='half'&&this.rand()<GORE_KILL.crawl?this.crawler(z,dx,dy):null;this.emit('kill',{z,dx,dy,gore,crawler});this.check();}else this.emit('hit',{z,dx,dy});}
  // Too many bodies: the oldest ordinary ones start to fade (never a named one, or him, who the story still needs), and once faded
@@ -201,15 +205,15 @@ export class Fight{
  noise(n){if(!this.swarmLeft())this.heat=Math.min(100,this.heat+n);this.quiet=0;}
  swarmLeft(){let n=0;for(const z of this.zombies)if(z.swarm&&z.hp>0)n++;return n;}
  // Sometimes something falls out of a pocket.
- drop(z,dx,dy){if(z.kind==='crawler'||z.kind==='risen')return;for(const [id,p,a,b] of DROPS[z.look]||DROPS[z.kind]||DROPS.any)if(this.rand()<p){this.drops.push({id,n:a+Math.floor(this.rand()*(b-a+1)),x:z.x+dx*10+(this.rand()-.5)*8,y:z.y+dy*6+(this.rand()-.5)*6,age:0});return;}}
+ drop(z,dx,dy){if(z.kind==='crawler'||z.kind==='risen')return;for(const [id,p,a,b] of this.kit().phase==='op'?OP_DROPS:DROPS[z.look]||DROPS[z.kind]||DROPS.any)if(this.rand()<p){this.drops.push({id,n:a+Math.floor(this.rand()*(b-a+1)),x:z.x+dx*10+(this.rand()-.5)*8,y:z.y+dy*6+(this.rand()-.5)*6,age:0});return;}}
  // Starts searching a spot; the search finishes in update, if you stay put.
  scavenge(t){if(this.down||this.vault||this.searching||this.jobs.carry||!t?.loot||this.kit().looted?.includes(t.id))return false;this.searching={t,time:0,need:SEARCH.time};this.emit('search',{t});return true;}
  // A job spot: the radio, the generator, the go-bag, the call for the truck, the truck itself.
  work(t){if(t.remains){if(this.down||this.vault||this.searching||!this.remains)return false;this.searching={t,time:0,need:RISEN.search};this.emit('search',{t});return true;}
-  if(t.use)return this.jobs.use(t);if(this.down||this.vault||this.searching||!this.can(t))return false;
+  if(t.op)return this.bell.use(t);if(t.use)return this.jobs.use(t);if(this.down||this.vault||this.searching||!this.can(t))return false;
   if(t.job==='evac'){this.call();return true;}if(t.job==='board'){this.setKit(board(this.kit()));this.emit('extract',{stats:{...this.stats}});return true;}return false;}
  // Which job spots can be used now: the three until each is done, then the call, then the truck once it is waiting.
- can(t){if(t.use)return this.jobs.can(t);const k=this.kit();if(k.street!=='done'||!k.mission||k.mission.out)return false;if(t.job==='evac')return jobsDone(k)&&!this.evac;if(t.job==='board')return this.evac?.state==='wait';return false;}
+ can(t){if(t.op)return this.bell.can(t);if(t.use)return this.jobs.can(t);const k=this.kit();if(k.phase==='op'||k.street!=='done'||!k.mission||k.mission.out)return false;if(t.job==='evac')return jobsDone(k)&&!this.evac;if(t.job==='board')return this.evac?.state==='wait';return false;}
  // A job finished: from here, going down puts you back on your step with what you have now.
  done(id){const k=this.kit();this.snapshot=this.jobs.safe(k);this.emit('job',{job:id,all:jobsDone(k)});}
  // The generator catches: everything for a mile heard it, and a horde is on its way.
@@ -355,9 +359,10 @@ export class Fight{
   // A search under way: stop if you move, shoot or shove; otherwise, once it is done, what was there goes in your bag.
   const S=this.searching;if(S){if(Math.hypot(Number(input.x)||0,Number(input.y)||0)>.25||input.fire||this.down){this.searching=null;this.emit('searchstop');}
    else if((S.time+=dt)>=S.need&&S.t.remains){this.searching=null;this.reclaim();}
+   else if(S.time>=S.need&&S.t.op){this.searching=null;this.bell.finish(S.t);}
    else if(S.time>=S.need&&S.t.use){this.searching=null;this.jobs.finish(S.t);}
    else if(S.time>=S.need){this.searching=null;this.stats.found++;const r=scavenge(this.kit(),S.t,this.grid()),alarm=alarmed(S.t);this.setKit(r.k);this.emit('found',{t:S.t,items:r.items,alarm});if(alarm)this.alarm(S.t.x,S.t.y);}}
-  this.jobs.update(dt,input);
+  this.jobs.update(dt,input);this.bell.update(dt);
   // The heat cools once it has been quiet a while; out on a quiet street, it sends patrols, and at the top, hordes.
   // A swarm cleared: the street drops back to Stirring and the next swarm is a full wait away.
   const sw=this.swarmLeft();if(this.inSwarm&&!sw){this.heat=Math.min(this.heat,HEAT.after);this.quiet=0;this.hordeT=HEAT.horde.every;this.emit('swarm-over',{});}this.inSwarm=sw>0;
@@ -365,7 +370,7 @@ export class Fight{
   this.hazards(dt);
   // The job: the clock, the generator's horde, the hold-out and the truck.
   const K=this.kit();if(K.street==='done'&&!K.mission?.out){this.stats.time+=dt;if(this.powerT>0&&(this.powerT-=dt)<=0&&!this.down)this.patrol(true);if(this.evac&&!this.down)this.holding(dt);}
-  if(this.kit().street==='done'&&!this.down&&!this.kit().mission?.out&&!(this.evac?.state==='hold'&&!this.evac.paused)){if((this.patrolT-=dt)<=0){this.patrolT=HEAT.patrol[this.level]*(.8+this.rand()*.4);this.patrol(false);}if((this.specialT-=dt)<=0)this.specialT=this.lone()?SPECIAL.gap[this.level]*(.8+this.rand()*.4):SPECIAL.retry;if(this.level===3&&!sw&&(this.hordeT-=dt)<=0){this.hordeT=HEAT.horde.every;this.patrol(true);}}
+  if(this.kit().street==='done'&&!this.down&&!this.kit().mission?.out&&!(this.evac?.state==='hold'&&!this.evac.paused)&&!this.bell.holding){if((this.patrolT-=dt)<=0){this.patrolT=HEAT.patrol[this.level]*(.8+this.rand()*.4);this.patrol(false);}if((this.specialT-=dt)<=0)this.specialT=this.lone()?SPECIAL.gap[this.level]*(.8+this.rand()*.4):SPECIAL.retry;if(this.level===3&&!sw&&(this.hordeT-=dt)<=0){this.hordeT=HEAT.horde.every;this.patrol(true);}}
   // Extra dead well away from you that are not after you are let go, and so are their bodies.
   if(this.zombies.some(z=>z.extra&&(z.hp<=0||!z.hunt)&&Math.hypot(z.x-m.x,z.y-m.y)>HEAT.gone)){const keep=this.zombies.filter(z=>!(z.extra&&(z.hp<=0||!z.hunt)&&Math.hypot(z.x-m.x,z.y-m.y)>HEAT.gone));this.zombies.length=0;this.zombies.push(...keep);}
   this.bodies(dt);

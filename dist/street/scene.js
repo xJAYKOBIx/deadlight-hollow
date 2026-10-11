@@ -17,6 +17,7 @@ import {ACID_BOX,acidArt,GLOB,globArt,GAS_BOX,gasArt} from '../mc/assets/effects
 import {ITEM_IDS,itemArt} from '../mc/assets/gear/items.js';
 import {painter} from '../mc/assets/core/paint.js';
 import {zombiePiece,GORE_PARTS,crawlArt,CRAWL,gibArt,GIBS,bloodArt,BLOOD_BOX} from '../mc/assets/effects/gore.js';
+import {OpView} from './opview.js';
 // The dead on this street. Everyone is a neighbour; the cop came with the cruiser.
 const POLICE=UNIFORMS.find(u=>u.id==='police').look,Z={zombie:1,pack:1,rot:1,decay:1,eyes:0,wounds:1};
 export const ZOMBIE_LOOKS={cop:{...DEFAULT_APPEARANCE,...POLICE,...Z,hair:1,skin:2,wounds:1},
@@ -83,7 +84,7 @@ export const STEP=1/60,MAX_STEPS=4;
 export const RING={rx:11,ry:4.5,gap:.6,alpha:.6,cols:[0x5fd3c6,0xf2c46a,0xc28ff0,0x8fc4ff],me:0};
 // What a shot does to the picture: how long its flash lights the street and how far, how far the gun kicks back in your hands
 // and the view jolts away from the shot, and how many casings stay on the ground.
-export const KICK={'light-pistol':{light:.06,glow:3,arms:2,cam:2.4,flash:7},'heavy-pistol':{light:.07,glow:3.6,arms:3,cam:3.4,flash:9},'pump-shotgun':{light:.09,glow:4.6,arms:4,cam:6,flash:12}};
+export const KICK={'light-pistol':{light:.06,glow:3,arms:2,cam:2.4,flash:7},'tactical-ar':{light:.05,glow:3.2,arms:1.6,cam:1.6,flash:8},'heavy-pistol':{light:.07,glow:3.6,arms:3,cam:3.4,flash:9},'pump-shotgun':{light:.09,glow:4.6,arms:4,cam:6,flash:12}};
 export const BRASS={keep:60,pump:.38};
 // How the dead take a hit: a flinch for a moment, and a topple onto the ground (the hips drop this far as they go over).
 export const TOPPLE={time:.32,hips:26.4,flinch:.14};
@@ -146,6 +147,8 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   this.flood=this.add.image(FLOOD.x+FLOOD.w/2,FLOOD.y-FLOOD.z+6,'tg-glow-warm').setDepth(6001).setBlendMode(Phaser.BlendModes.ADD).setScale(.7,.5).setAlpha(.8).setVisible(false);
   this.marker=this.add.image(0,0,'camp-icons','chevron').setScale(.5).setOrigin(.5,1).setDepth(7001).setVisible(false);
   this.cameras.main.setBackgroundColor('#07080b').setBounds(0,0,MAP.w,MAP.h).setZoom(this.zoom());
+  // Operation Bell Jar: Aaron, the truck, the crash and the rest (opview.js).
+  this.op=new OpView(this);
   this.events.on('wake',()=>this.enter());this.enter();bridge.ready(this);}
  // Each time you step out of the door: the street as the kit says it is, you on your step.
  enter(){model.reset();this.fight.start();for(const L of this.dropImgs.values())for(const i of Object.values(L))i.destroy();this.dropImgs.clear();for(const v of this.hz.values())for(const i of v)i.destroy();this.hz.clear();for(const i of [...this.stains,...this.bits.map(b=>b.img),...this.lain])i.destroy();this.stains.length=0;this.bits.length=0;this.lain.length=0;this.brass.length=0;this.lying.length=0;this.pumps.length=0;this.floorG.clear();this.kick=null;this.jolt={x:0,y:0};for(const z of [...this.zs.keys()])this.free(z);this.setPlayerLook(bridge.look());this.setTrunk(bridge.kit().street!=='start'&&bridge.kit().street!=='cleared');this.setPower(['hold','done'].includes(stepOf(bridge.kit(),'power')));for(const b of BREACHES)if(b.prop)this.repaint(b.prop);this.cameras.main.centerOn(model.x,model.y-20);this.stream(true);}
@@ -201,26 +204,29 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   const K=KICK[this.fight.gunId],t=this.fight.sinceShot;if(K&&t<K.light&&this.shotA!==undefined){const mz=muzzle(this.shotA,this.look.gun),k=1-t/K.light;
    const x=(model.x+mz.x*.6-ox)/L,y=(model.y+mz.y*.4-oy)/L,add=Phaser.BlendModes.ADD;rt.stamp('nb-pool',undefined,x,y,{blendMode:add,scale:K.glow*(.8+.2*k),alpha:k,tint:0xffd49a});
    for(let i=0;i<2;i++)rt.stamp('nb-pool',undefined,x,y,{blendMode:add,scale:K.glow*.45,alpha:k,tint:0xfff0d0});}
-  rt.render();}
+  this.op?.light(rt,ox,oy,L,V);rt.render();}
  // A prop's picture for the talk box, painted fresh, since the one on screen may only live on the graphics card.
  face(id){const o=PROPS.find(p=>p.id===id);if(!o)return null;const c=document.createElement('canvas');c.width=(o.w+PROP_PAD*2)*2;c.height=(o.h+o.z+PROP_PAD*2)*2;propArt(c.getContext('2d'),o.id==='cruiser'?{...o,lit:1,trunk:this.trunk}:o);return c;}
  setTrunk(open){this.trunk=open;}
- // Your layers, painted once for each gun you hold, so swapping does not repaint.
- // With the flashlight found it rides under the barrel of whatever gun you hold, and the beam comes out of it.
- setPlayerLook(look){const gun=bridge.held?.()||'none',light=!!bridge.kit?.()?.light,key=JSON.stringify(look)+gun+light;this.look={...look,zombie:0,gun,grenade:null,light};
-  if(!this.gunSheets[key]){const sheets={};for(const k of ORDER){const L=LAYERS[k],t=this.textures.createCanvas(`st-${Object.keys(this.gunSheets).length}-${k}`,...sheetSize(L));for(let i=0;i<L.count;i++)t.add(i,0,(i%L.cols)*L.w,Math.floor(i/L.cols)*L.h,L.w,L.h);sheets[k]=t;}
-   const ctx={};for(const k of ORDER)ctx[k]=sheets[k].context;sheets.turned=paintLayers(ctx,this.look);for(const k of ORDER)sheets[k].refresh();
-   // The gun mid-action: the arms layer with the slide or pump back.
-   const n=Object.keys(this.gunSheets).length,A=LAYERS.arms,rk=this.textures.createCanvas(`st-${n}-racked`,...sheetSize(A));for(let i=0;i<A.count;i++)rk.add(i,0,(i%A.cols)*A.w,Math.floor(i/A.cols)*A.h,A.w,A.h);paintRacked(rk.context,this.look);rk.refresh();sheets.racked=rk;
-   this.gunSheets[key]=sheets;}
-  const sheets=this.gunSheets[key];this.sheets=sheets;this.racked=false;for(const k of ORDER){const L=LAYERS[k];if(!this.parts[k])this.parts[k]=this.add.image(model.x,model.y,sheets[k].key,0).setOrigin(...origin(L)).setScale(.5);else this.parts[k].setTexture(sheets[k].key,0);}}
+ // A look's layers, painted once and kept by look (with its gun and light), so swapping guns does not repaint: a sheet per layer,
+ // whether it has the turned frames, and the arms with the gun mid-action. You are drawn from these, and so is Aaron (opview.js).
+ layerSheets(look){const key=JSON.stringify(look);if(this.gunSheets[key])return this.gunSheets[key];
+  const n=Object.keys(this.gunSheets).length,sheets={},cut=(t,L)=>{for(let i=0;i<L.count;i++)t.add(i,0,(i%L.cols)*L.w,Math.floor(i/L.cols)*L.h,L.w,L.h);};
+  for(const k of ORDER){const L=LAYERS[k],t=this.textures.createCanvas(`st-${n}-${k}`,...sheetSize(L));cut(t,L);sheets[k]=t;}
+  const ctx={};for(const k of ORDER)ctx[k]=sheets[k].context;sheets.turned=paintLayers(ctx,look);for(const k of ORDER)sheets[k].refresh();
+  // The gun mid-action: the arms layer with the slide or pump back.
+  const A=LAYERS.arms,rk=this.textures.createCanvas(`st-${n}-racked`,...sheetSize(A));cut(rk,A);paintRacked(rk.context,look);rk.refresh();sheets.racked=rk;
+  return this.gunSheets[key]=sheets;}
+ // Your layers. With the flashlight found it rides under the barrel of whatever gun you hold, and the beam comes out of it.
+ setPlayerLook(look){const gun=bridge.held?.()||'none',light=!!bridge.kit?.()?.light;this.look={...look,zombie:0,gun,grenade:null,light};
+  const sheets=this.layerSheets(this.look);this.sheets=sheets;this.racked=false;for(const k of ORDER){const L=LAYERS[k];if(!this.parts[k])this.parts[k]=this.add.image(model.x,model.y,sheets[k].key,0).setOrigin(...origin(L)).setScale(.5);else this.parts[k].setTexture(sheets[k].key,0);}}
  zoom(){const s=this.scale;return Math.max(bridge.zoom(),s.width/MAP.w,s.height/MAP.h);}
  // You: the layers in the pose the model is in. A shot kicks your arms and head back along the shot for a moment, and the gun
  // cycles (the pistol's slide snaps back as it fires; the shotgun's pump is worked a moment later). A shove throws the arms and
  // shoulders forward and back.
  placeActor(){const gun=armed(this.look),p=pose(model,gun&&!!this.sheets?.turned),down=!!this.fight.down,K=this.kick,v=this.fight.bash,half=n=>Math.round(n*2)/2,f=this.fight;
   // Gone: what is left of him is one of the dead now (the fight's body), so you are not drawn at all.
-  if(f.dead||this.sc){for(const k of ORDER)this.parts[k].setVisible(false);return;}
+  if(f.dead||this.sc||this.op?.inside){for(const k of ORDER)this.parts[k].setVisible(false);return;}
   let kx=0,ky=0;if(K){const k=Math.max(0,1-K.t/K.dur);kx=-Math.cos(K.a)*K.n*k*k;ky=-Math.sin(K.a)*K.n*k*k*.6;}
   if(v){const k=Math.sin(Math.min(1,v.t/BASH.time)*Math.PI);kx+=Math.cos(v.a)*6*k;ky+=Math.sin(v.a)*6*k*.6;}
   const t=f.sinceShot,rk=gun&&!v&&(f.gunId==='pump-shotgun'?t>.22&&t<.5:t<.06);if(rk!==this.racked){this.racked=rk;this.parts.arms.setTexture((rk?this.sheets.racked:this.sheets.arms).key,p.arms);}
@@ -339,11 +345,13 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
    else if(b.id==='drain')j.puff(b.x,b.y-2,.8,0x4a4a48,.6,-6);}
   else if(e.type==='overrun'){for(const b of BREACHES)if(b.prop)this.repaint(b.prop);}
   else if(e.type==='sputter')j.puff(GEN.x+4,GEN.y-10,.6,0x6a6a66,.5,-10);
+  else if(this.op&&['mateshot','dropped','planted','truckstop','truckwait'].includes(e.type))this.op.react(now,e);
   else if(e.type==='fixmiss'&&e.kind==='wire')j.bits(5,model.x,model.y,{dir:-Math.PI/2,spread:2.6,speed:70,lift:40,z:20,col:0xfff1a8,life:.25,kind:'spark',len:2});
   bridge.event?.(e);}
- // A casing out of the right side of the gun: brass from the pistol, a red hull from the shotgun.
- eject(a,hull){const side=a+Math.PI/2+(Math.random()-.5)*.5,v=48+Math.random()*24;
-  this.brass.push({x:model.x+Math.cos(a)*5,y:model.y+Math.sin(a)*3,z:26,vx:Math.cos(side)*v-Math.cos(a)*14,vy:(Math.sin(side)*v-Math.sin(a)*14)*.6,vz:55+Math.random()*30,spin:Math.random()*4,hull});}
+ // A casing out of the right side of the gun: brass from the pistol and the rifles, a red hull from the shotgun; from you, or from
+ // whoever else fired (Aaron).
+ eject(a,hull,from=model){const side=a+Math.PI/2+(Math.random()-.5)*.5,v=48+Math.random()*24;
+  this.brass.push({x:from.x+Math.cos(a)*5,y:from.y+Math.sin(a)*3,z:26,vx:Math.cos(side)*v-Math.cos(a)*14,vy:(Math.sin(side)*v-Math.sin(a)*14)*.6,vz:55+Math.random()*30,spin:Math.random()*4,hull});}
  // Casings arc, bounce twice or so and lie where they stop, oldest first to go.
  brassStep(dt){const g=this.brassG;g.clear();let landed=false;
   this.brass=this.brass.filter(c=>{c.vz-=320*dt;c.x+=c.vx*dt;c.y+=c.vy*dt;c.z+=c.vz*dt;c.spin+=dt*24;
@@ -372,7 +380,7 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   if(this.kick&&(this.kick.t+=dt)>this.kick.dur)this.kick=null;const jk=Math.exp(-dt*16);this.jolt.x*=jk;this.jolt.y*=jk;
   this.brassStep(dt);this.bitStep(held?0:dt);this.fight.gore=this.goreOn;
   // Dust kicked up along the ground as you slide.
-  this.placeActor();this.stream();this.light();this.cull(dt);this.buildLooks();
+  this.placeActor();this.op.update(now,dt);this.stream();this.light();this.cull(dt);this.buildLooks();
   // The dead near the screen: walking, winding up, or lying where they fell.
   const V=grow(this.view(),120),live=new Set(f.zombies);for(const z of this.zs.keys())if(!live.has(z))this.free(z);
   for(const z of f.zombies){if(z.delay>0&&!z.idle||z.x<V.x||z.x>V.x+V.w||z.y<V.y||z.y>V.y+V.h+100){this.free(z);continue;}const s=this.sprite(z);if(z.gone||s.alpha<1)s.setAlpha(1-(z.gone||0));
@@ -414,6 +422,7 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   // The muzzle flash itself: a hard little star of fire out of the barrel for the first frames of a shot.
   const K=KICK[f.gunId];if(K&&f.sinceShot<.045&&this.shotA!==undefined&&!f.down){const a=this.shotA,mz=muzzle(a,this.look.gun),x=model.x+mz.x,y=model.y+mz.y,c=Math.cos(a),s=Math.sin(a),n=K.flash*(1-f.sinceShot/.09);
    g.lineStyle(2,0xffb347,.9).lineBetween(x,y,x+c*n,y+s*n);g.lineStyle(1,0xfff6d8,1).lineBetween(x,y,x+c*n*.8,y+s*n*.8);g.lineStyle(1,0xffd27a,.85).lineBetween(x+c*2,y+s*2,x+c*2-s*n*.35,y+s*2+c*n*.35).lineBetween(x+c*2,y+s*2,x+c*2+s*n*.35,y+s*2-c*n*.35);}
+  this.op.fx(g,now);
   // The laser (v0.65.3), on every device whenever you have a gun out: it points the way the shot will go (with the same small pull onto
   // one of the dead the shot takes), reaches as far as the gun does, and stops on what the shot would hit, a body, a crawler or cover,
   // with a ring round one of the dead. The shotgun's spread shows as a faint fan.

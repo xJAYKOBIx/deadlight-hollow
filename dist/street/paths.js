@@ -1,14 +1,16 @@
 // How the dead find you. A coarse grid over the map knows which squares a zombie fits in; a few times a second a flow map is
 // spread out from every player across the squares near them, so each square knows the next step toward the nearest one. A zombie
 // with a clear line walks straight at you; one behind a fence follows the flow round it and through the gap. Same for 4 players.
-import {MAP,solidAt} from './data.js';
+import {MAP,solidAt,MOVING} from './data.js';
 // CELL: one square, in world units. CLEAR: how much room a zombie needs round a square's middle. REACH: how far the flow spreads
 // from each player (past it, zombies just walk straight). EVERY: how often it is spread again.
 export const PATH={cell:16,clear:7,reach:960,every:.25};
 const W=Math.ceil(MAP.w/PATH.cell),H=Math.ceil(MAP.h/PATH.cell),FAR=0xffff;
-// 1 open, 2 blocked, 0 not looked at yet: each square is only checked against the props the first time something asks.
-const room=new Uint8Array(W*H);
-export function open(cx,cy){if(cx<0||cy<0||cx>=W||cy>=H)return false;const i=cx+cy*W;if(!room[i])room[i]=solidAt((cx+.5)*PATH.cell,(cy+.5)*PATH.cell,PATH.clear)?2:1;return room[i]===1;}
+// 1 open, 2 blocked, 0 not looked at yet: each square is only checked against the props the first time something asks. What is not
+// always there (MOVING: a truck pulled up, the wreck on the operation) is asked about every time, so it never sticks in the grid.
+const room=new Uint8Array(W*H),C=PATH.clear;
+export function open(cx,cy){if(cx<0||cy<0||cx>=W||cy>=H)return false;const i=cx+cy*W,x=(cx+.5)*PATH.cell,y=(cy+.5)*PATH.cell;if(!room[i])room[i]=solidAt(x,y,C,true)?2:1;if(room[i]!==1)return false;
+ for(const s of MOVING)if(x>s.x-C&&x<s.x+s.w+C&&y>s.y-C&&y<s.y+s.h+C)return false;return true;}
 const cellOf=v=>Math.floor(v/PATH.cell);
 // Nothing in the way along a straight line, checked every half square.
 export function clearLine(x0,y0,x1,y1){const d=Math.hypot(x1-x0,y1-y0),n=Math.ceil(d/(PATH.cell/2));for(let k=1;k<n;k++){const t=k/n;if(!open(cellOf(x0+(x1-x0)*t),cellOf(y0+(y1-y0)*t)))return false;}return true;}

@@ -21,7 +21,7 @@ export const OP={
    ['calloway','Samples. Beacon. Pickup. One step at a time, and nobody plays hero.']],
   dismissed:[['calloway','Quartermaster has your rifles. Trucks roll in ten.'],['calloway','Dismissed.']]},
  // Gearing up: Okafor issues your rifle at the armory window, then your truck is waiting on the apron with its ramp down.
- okafor:{issue:['Hollow Six. Rifle, four magazines, a sling and a light. Sign here.','Bring it back clean. It\'s on my books, not yours.'],
+ okafor:{issue:['Hollow Six. Rifle, four magazines, a sidearm, a sling and a light. Sign here.','Bring it back clean. It\'s on my books, not yours.'],
   wait:['Rifles are issued at this window. That\'s all I do tonight.'],done:['You\'ve got yours. Your truck\'s waiting.']},
  // What you say looking round the hangar.
  look:{board:[['you','Sixteen names on the board. Ours is the only sector with a red ring round it.']],coffee:[['you','Coffee\'s cold. Somebody already took the last good doughnut.']],
@@ -45,8 +45,22 @@ export const OP={
   hit:[['gadget','Hold on!'],['gadget','That was a person. Aaron, that was a person.'],['aaron','It was one of them. Keep driving.']],
   close:[['gadget','Juniper Lane. Two minutes.'],['aaron','When the ramp drops, we go out together and we stay together.'],['gadget','I\'ll be on the radio the whole way. Bring them back cold.']],
   ramp:[['aaron','Ready?'],['you','Ready.']]},
- // The end of part two, until the operation itself is built.
- end:['To be continued','Juniper Lane']};
+ // Part 3. On the ground (v0.68, street/op.js): out of the truck at the top of Juniper Lane, down to the crash on Route 9, the samples
+ // into Aaron's cold case, the beacon and its uplink with everything in earshot coming, and the truck back in to take you out. Each
+ // step's lines wait for a tap; air is Gadget over the radio while you fight, one line at a time.
+ ground:{title:['Juniper Lane','0412 · Hollow Six'],
+  out:[['gadget','Ramp\'s down and my drone\'s up. I\'ve got you both.'],['gadget','The crash is straight down Juniper Lane, where it meets Route 9.'],['aaron','You lead. I\'ve got your back.']],
+  crash:[['gadget','That\'s it. That\'s the courier.'],['aaron','On its roof, like the Director said. The side\'s torn wide open.'],['you','The cases are still in there. I can see them.'],
+   ['aaron','I\'ve got the cold case. Get them out and I\'ll seal it.']],
+  samples:[['aaron','Two samples. Sealed and cold.'],['gadget','Copy, two samples. Now the beacon, right there at the crash.']],
+  beacon:[['gadget','Beacon\'s on, and it\'s talking to my drone. Keep it standing until the uplink\'s done.'],['aaron','And that strobe just told every one of them where we are.'],['aaron','Here they come. Stay close to it.']],
+  uplinked:[['gadget','Uplink\'s solid. The line\'s drawn.'],['gadget','I\'m bringing the truck to you, along Route 9. Hold on.']],
+  truck:[['gadget','Ramp\'s down! In, in, in!']],
+  aboard:[['aaron','Hollow Six, both aboard.'],['gadget','Hold on to something.']]},
+ air:{quarter:'Uplink\'s a quarter of the way.',half:'Halfway. Keep them off the beacon.',most:'Three quarters. Nearly there.',away:'You\'re too far from the beacon. It\'s losing the link.',
+  ammo:'You\'re running low. Drone\'s dropping you a can.',coming:'Truck\'s two streets out.',more:'More of them coming. Big group.',down:'Six is down! Aaron, get them back to the truck.'},
+ // Where it ends, until the rest of the operation is built.
+ end:['Operation Bell Jar','To be continued']};
 // The people in the hangar, and what each says when you walk up. lines rotate; a second visit gets the next one.
 export const OP_TALK={
  calloway:{gear:['Rifle first, Six. Okafor\'s at the armory.','Questions go through your partner. Your partner\'s on the truck.'],armed:['Your truck\'s on the apron. Ramp\'s down. Go.']},

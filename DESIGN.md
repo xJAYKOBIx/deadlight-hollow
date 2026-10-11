@@ -544,6 +544,34 @@ Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack),
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
 
+## v0.68.0 — Operation Bell Jar, part three: on the ground
+
+**Off the truck.** The ride no longer ends on a card. When the ramp comes down you are out on the street at the top of Juniper Lane (0412, Hollow Six), with Aaron beside you and Gadget on the radio. On the ground you carry the operation's own kit (`home/kit.js` `opKit`): the Tactical AR with thirty in it, three more magazines (90 rifle rounds) in a canvas daypack, the Light Pistol on your hip, and your helmet on. It saves on its own (`deadlight-opkit-v1`), so Marcus's night is never touched, and each step is saved as it is done. The operation's save gains two stages, op and done, and Continue's line names the step you are on. Going down puts you back at the truck with what is done still done. Start the operation over (in the menu) starts again from the ramp, and `?op` opens the ground part straight away.
+
+**The steps** (`street/op.js`, the lines in `story/op.js`). The goal line and a mark over the next place say where to go.
+- Get to the crash, down Juniper Lane to Route 9. Close to it the camera goes to the Marrow courier on its roof by the ball fields, its hazard lights still blinking and cold mist drifting out of its torn side.
+- Recover the samples: a few seconds standing at the torn hold. Aaron seals them in the cold case.
+- Plant the beacon in front of the crash. Its strobe starts, and every one of the dead for blocks around sees it.
+- Guard the uplink: fifty seconds near the beacon. A ring on the ground shows how near you have to be and fills as the link builds (amber and pulsing once you have strayed), and the readout gives the percent. Away from it the link slips back. A horde comes every 12 to 16 seconds and two of the special dead on the way, while the street's usual patrols wait. Gadget calls out a quarter, half and three quarters.
+- The truck comes in along Route 9 from the west with its headlights on, running down whatever is in its way, and drops its ramp past the crash. Board it, and you and Aaron are inside with the ramp up. Then a debrief (time on the ground, your kills, Aaron's, any under the truck, shots, times down), the end card (Operation Bell Jar: To be continued) and the title.
+
+**Aaron** (`street/mate.js`). Your partner on foot, drawn in his own layers just as you are, so he walks and aims the same way. He keeps behind you and to one side, runs to catch up, and goes round anything solid in his way. He shoots the dead hunting you, those nearest you first. He fires in short bursts once he has a clear line and a moment to bring the rifle round, and never through cover or through you. He reloads, his brass flies, and his flashlight shows where he is looking. If he is left far behind out of sight, he catches up. Walk into him and he steps out of your way. He cannot be hurt yet and nothing goes for him; that, and him getting you back up when you go down, come in part four.
+
+**Gadget.** She is on the radio the whole way, one line at a time, each up long enough to read: the uplink's progress, when you leave the beacon, when a big group is coming, and the truck on its way. When your rifle and your pack are down to thirty rounds between them, her drone comes in low with a can of sixty and drops it near you; it flies to you like anything the dead drop. Another comes only once that one is picked up. The dead out here drop rifle rounds now and then, and the ammo cans by the ramp at the drop fill your pack back to ninety.
+
+**Under the hood.**
+- The path cache only remembers what never moves; a parked truck is checked live, which also keeps paths round Marcus's evac truck right.
+- People on foot no longer walk through each other.
+- Leaving the operation for Marcus's night puts you back on his step.
+- `tests/op.test.mjs` plays the whole operation through with a bot on three seeds, and checks the kit, each step's spot, Aaron's aim and manners, going down mid-uplink, the drone and the art.
+
+**Master Creator 849db33.** For the Base set:
+- the courier wreck: on its roof with its underside to the sky, MARROW and "Nobody has to stay dead" upside down, the hold torn open with two cold cases misting, or with them gone;
+- ammo cans, shut or open on rows of brass;
+- Gadget's drone, in two frames of rotor, with a can slung under it or without.
+
+Five new sounds: the rifle (in Combat), and in a new Operation group the beacon arming, uplink chatter, the cold case sealing and a drone going over.
+
 ## v0.67.0 — Operation Bell Jar, part two: the ride in
 
 **Getting on the truck.** Boarding at Harlan Field no longer ends on a card. The hangar goes black and the ride in plays, and Continue at that point (Route 9, On the truck) starts the ride again. At the end of the ride, the card reads "To be continued: Juniper Lane" and the title comes back. The operation itself is the next part. The operation's save gains a fifth stage, arrived, and Continue's line names the Hollow.

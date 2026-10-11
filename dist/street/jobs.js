@@ -32,7 +32,7 @@ export class Jobs{
  get kit(){return this.f.kit();}
  get carry(){return this.kit.mission?.carry||null;}
  has(h){return !!this.kit.mission?.have.includes(h);}
- on(){const k=this.kit;return k.street==='done'&&!!k.mission&&!k.mission.out;}
+ on(){const k=this.kit;return k.phase!=='op'&&k.street==='done'&&!!k.mission&&!k.mission.out;}
  // Mrs. Hargrove: walking about the park, or down.
  her(){return this.f.zombies.find(z=>z.who==='hargrove'&&z.hp>0)||null;}
  body(){return this.f.zombies.find(z=>z.who==='hargrove'&&z.hp<=0)||null;}
