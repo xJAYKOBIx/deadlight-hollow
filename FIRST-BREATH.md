@@ -12,13 +12,13 @@ Uses the repository's vendored Phaser 4.2.1 with no runtime network dependencies
 - 10.7–12.1 seconds: the relative's worried expression relaxes once the face is visible.
 - 12.1–14 seconds: hold on the family, with subtle breathing and a regular monitor rhythm.
 
-The revised room includes a visitor's coat, paper cup, family card, medical wristband, folded bedding and directional window light. The two subtitle phrases follow the edit. Spoken narration, breath/cloth Foley and music are not recorded yet. Monitor sound is enabled by the initial play gesture.
+The room and figures were rebuilt after the anatomy review. The bed now has a finite mattress, articulated backrest, lift column, footboard and caster base. The patient has a supported head, connected neck/shoulders/arms, and a full-length body under the blanket. The seated visitor has two bent legs, planted shoes, a resting hand and a reaching arm. The cabinet, IV stand and chair meet the floor with contact shadows. Breathing moves the patient and bedding only; the bed frame stays fixed. The two subtitle phrases follow the edit. Spoken narration, breath/cloth Foley and music are not recorded yet. Monitor sound is enabled by the initial play gesture.
 
 Pause/resume, replay, seeking and background-tab pausing remain available. Reduced-motion mode uses fixed compositions and a cut to the family instead of a moving pullback. Illustration remains specific to this scene and does not modify shared `dist/mc` assets.
 
 ## Verification
 
-`node --test tests/first-breath.test.mjs` checks edit boundaries, finger poses, subtitle timing, camera bounds, seeking, pause/replay and sound-cue crossings. New JavaScript files pass syntax checks. Offline Canvas renders were visually reviewed for the monitor, hand insert and family composition. Browser/WebGL and device playback could not be verified in this environment because browser control was unavailable.
+`node --test tests/first-breath.test.mjs` checks edit boundaries, finger poses, subtitle timing, camera bounds, seeking, pause/replay and sound-cue crossings. New JavaScript files pass syntax checks. Offline Canvas renders were visually reviewed for the monitor, hand insert and complete family composition, including legs/feet and the bed supports. Browser/WebGL and device playback could not be verified in this environment because browser control was unavailable.
 
 ## Next integration step
 

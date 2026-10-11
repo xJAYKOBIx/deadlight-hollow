@@ -23,7 +23,7 @@ export function makeFirstBreathScene(bridge) {
    }
    atlas.refresh();this.owned.push(handKey);
    this.hand=this.add.image(hx,hy,handKey,0).setOrigin(0).setScale(.5).setDepth(4);
-   const depths={room:0,bed:1,relative:2,relieved:3,foreground:5,atmosphere:8,warmLight:9};
+   const depths={room:0,bed:1,patient:1.5,relative:2,relieved:3,foreground:5,atmosphere:8,warmLight:9};
    for(const [name,depth] of Object.entries(depths))this.layers[name].setDepth(depth);
    this.trace=this.add.graphics().setDepth(6);
    this.readout=this.add.text(267,249,'—',{fontFamily:'monospace',fontSize:'21px',color:'#a7dcc0'}).setOrigin(1,0).setDepth(7);
@@ -37,7 +37,7 @@ export function makeFirstBreathScene(bridge) {
    const f=frameAt(t,bridge.reduced());
    this.cameras.main.setZoom(f.zoom).centerOn(f.focusX,f.focusY);
    this.hand.setFrame(f.fingerFrame);
-   this.layers.bed.y=f.breath;this.hand.y=324+f.breath;
+   this.layers.patient.y=f.breath;this.hand.y=324+f.breath;
    this.layers.relative.setAlpha(1-f.relief);this.layers.relieved.setAlpha(f.relief);
    this.layers.warmLight.setAlpha(f.warm);
    this.black.setAlpha(f.fade).setScale(2); // Overscan covers the zoomed camera at every time.
