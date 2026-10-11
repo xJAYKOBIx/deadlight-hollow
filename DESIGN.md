@@ -523,6 +523,22 @@ Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack),
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
 
+## v0.43.0 — Scavenging
+
+From the build order (2026-10-11): ammo, scavenging, caches, drops from the dead, bigger loads.
+
+**Search the neighbourhood.** Every parked car, trash bin and garden shed can be searched, and so can two in three of the neighbours' houses (the rest you still knock on). Press Use at one and you start going through it: it takes about a second standing still, with a ring filling over it. Moving, shooting, diving or getting bitten stops it, and nothing is taken. What turns up is in your bag and on screen ("Parked car: 4 shotgun shells, scrap metal"). 175 spots in all; each is searched once.
+
+**What is where.** Each kind of spot has its own odds (`LOOT` in `home/kit.js`): cars are the best bet for shells, sheds for scrap, powder and solvent, houses for shells and cloth, bins for not much. What a spot holds comes from its id, so the neighbourhood holds the same things every night.
+
+**Stashes.** Eleven survivor's stashes sit in back yards round town: an ammo can and a duffel under a tarp, with orange tape on the handle. Each is a big load: 10 to 14 shells, powder, scrap and maybe gun oil.
+
+**Car alarms.** One car in eight has its alarm set. Opening it sets it off: every wanderer within 900 units comes to see, and keeps coming.
+
+**Drops from the dead.** The cop drops a few shells most of the time; a worker sometimes drops scrap; anyone else sometimes a few shells or a rag. Drops lie where the body fell, bobbing with a glint, until you walk over them.
+
+**Master Creator.** A survivor's stash prop in the street set, and three sounds: rummaging, picking something up, and a car alarm.
+
 ## v0.42.0 — Gore
 
 From Jaykobi (2026-10-11): more gore and blood; zombies blown in half; something like ragdolls.

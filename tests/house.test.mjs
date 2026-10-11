@@ -53,14 +53,14 @@ test('walking speed follows real time from the first step, not a smoothed 60 fps
  assert.match(fs.readFileSync(new URL('../dist/study/scene.js',import.meta.url),'utf8'),/delta=Math\.min\(50,delta\)/);});
 test('the first night: you wake, find the pistol and the shotgun with their rounds, and it is saved',async()=>{
  const {readHome,saveHome,normalizeHome,take,swap,goal,useLines,rounds,verbFor,spare,FINDS}=await import('../dist/home/kit.js');
- let k=normalizeHome();assert.deepEqual(k,{woke:false,guns:{},held:null,bag:{items:[],spill:[]},searched:[],street:'start'});assert.equal(goal(k),'');k={...k,woke:true};assert.match(goal(k),/protect yourself/);
+ let k=normalizeHome();assert.deepEqual(k,{woke:false,guns:{},held:null,bag:{items:[],spill:[]},searched:[],street:'start',looted:[]});assert.equal(goal(k),'');k={...k,woke:true};assert.match(goal(k),/protect yourself/);
  assert.equal(useLines(k,'frontdoor').act,undefined);assert.equal(useLines(k,'nightstand').act,'take:light-pistol');
  k=take(k,'light-pistol');assert.equal(k.held,'light-pistol');assert.equal(rounds(k),'15 / ∞','a pistol never runs out of spare rounds');assert.equal(spare(k,'light-pistol'),Infinity);assert.match(goal(k),/crashed down the street/,'one gun is enough to go and look');assert.equal(useLines(k,'frontdoor').act,'leave');assert.match(useLines(k,'frontdoor').lines.at(-1),/shotgun is still in the closet/);assert.equal(verbFor(k,'nightstand'),'Look');assert.equal(useLines(k,'nightstand').act,undefined);
  k=take(k,'pump-shotgun');assert.equal(k.held,'pump-shotgun');assert.equal(rounds(k),'8 / 16','the shotgun starts at 8 and 16');assert.match(goal(k),/crashed down the street/);
  assert.equal(take(k,'pump-shotgun'),k,'taking twice changes nothing');assert.equal(swap(k).held,'light-pistol');assert.equal(swap(swap(k)).held,'pump-shotgun');
  assert.equal(FINDS['pump-shotgun'].ammo,8);assert.deepEqual(FINDS['pump-shotgun'].bag,[['shells',16],['gun-oil',1]],'the shotgun comes with a box of 16 shells and gun oil');
  const store=new Map(),mem={getItem:x=>store.get(x)??null,setItem:(x,v)=>store.set(x,v)};assert.ok(saveHome(mem,k));assert.deepEqual(readHome(mem,undefined,false),k);assert.deepEqual(readHome(mem),normalizeHome(),'while the tutorial is built, every visit starts fresh');
- store.set('deadlight-home-v1','{"woke":true,"guns":{"pump-shotgun":{"ammo":99,"reserve":-3},"bazooka":{}},"held":"bazooka"}');assert.deepEqual(readHome(mem,undefined,false),{woke:true,guns:{'pump-shotgun':{ammo:8}},held:'pump-shotgun',bag:{items:[],spill:[]},searched:[],street:'start'});
+ store.set('deadlight-home-v1','{"woke":true,"guns":{"pump-shotgun":{"ammo":99,"reserve":-3},"bazooka":{}},"held":"bazooka"}');assert.deepEqual(readHome(mem,undefined,false),{woke:true,guns:{'pump-shotgun':{ammo:8}},held:'pump-shotgun',bag:{items:[],spill:[]},searched:[],street:'start',looted:[]});
  store.set('deadlight-home-v1','{"woke":true,"guns":{"pump-shotgun":{"ammo":5,"reserve":16}},"held":"pump-shotgun"}');assert.equal(rounds(readHome(mem,undefined,false)),'5 / 16','an older save moves its spare shells into the bag');
  assert.deepEqual(readHome({getItem(){throw new Error('blocked');}},undefined,false),normalizeHome());});
 test('waking up on the couch plays through, brings both pets over for a pat, and hands control back',async()=>{

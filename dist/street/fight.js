@@ -6,8 +6,8 @@
 // or hear a shot, and give up once you are well away. Far from you they are only thought about twice a second.
 // It changes the kit (ammo, shells, the street stage) only through the setKit it is given, so the game saves as it goes.
 import {GUNS,muzzle} from '../study/equipment.js';
-import {count,remove} from '../home/bag.js';
-import {ammoOf,advance,loot} from '../home/kit.js';
+import {count,remove,add} from '../home/bag.js';
+import {ammoOf,advance,loot,scavenge,alarmed,DROPS} from '../home/kit.js';
 import {MAP,WAVES,ROAMERS,NOTICE,HEAR,WALK,solidAt,coverAt} from './data.js';
 import {Flow,clearLine} from './paths.js';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),facing=(dx,dy)=>(Math.round(Math.atan2(dy,dx)/(Math.PI/4))+8)%8;
@@ -32,12 +32,15 @@ export const DIVE={speed:390,time:.42,rise:.24,cost:24,cool:.25};
 export const GORE_KILL={near:80,far:140,chance:.4,head:.22,crawl:.5};
 // A crawler: the top half of one, or one that lost its legs before tonight. Slow and low; it grabs your ankle instead of biting, which
 // hurts less but holds you nearly still for a moment (a dive tears you free). A top half takes a moment to land before it moves.
+// Scavenging: a search takes this long standing still (moving, shooting, diving or getting hurt stops it), and a car alarm is heard
+// this far. What the dead drop lies where they fell until you walk over it.
+export const SEARCH={time:1.1,alarm:900,pick:18};
 export const CRAWLER={hp:25,speed:22,reach:16,windup:.55,damage:9,hold:.9,slow:.3,rise:.6,cool:1.4};
 export class Fight{
- constructor(model,{kit,setKit,grid}){Object.assign(this,{model,kit,setKit,grid,traces:[],fields:[],events:[],zombies:[],hp:PLAYER_HP,maxHp:PLAYER_HP,down:0,cooldown:0,reloadTime:0,throwCooldown:0,sinceShot:9,sinceHurt:9,dive:null,diveCool:0,alert:false,wave:-1,seed:1,held:null,grab:0,gore:true});
+ constructor(model,{kit,setKit,grid}){Object.assign(this,{model,kit,setKit,grid,traces:[],fields:[],events:[],zombies:[],hp:PLAYER_HP,maxHp:PLAYER_HP,down:0,cooldown:0,reloadTime:0,throwCooldown:0,sinceShot:9,sinceHurt:9,dive:null,diveCool:0,alert:false,wave:-1,seed:1,held:null,grab:0,gore:true,searching:null,drops:[]});
   this.drill={bots:this.zombies,holdout:false,downed:false};this.flow=new Flow();}
  // Sets the street up for where the kit says you are: the cop waiting at the cruiser, the second wave coming, or nothing.
- start(){const k=this.kit();this.snapshot=k;this.hp=PLAYER_HP;this.down=0;this.dive=null;this.grab=0;this.diveCool=0;this.alert=false;this.traces=[];this.reloadTime=0;this.cooldown=0;this.held=k.held;this.zombies.length=0;
+ start(){const k=this.kit();this.snapshot=k;this.hp=PLAYER_HP;this.down=0;this.dive=null;this.grab=0;this.searching=null;this.drops=[];this.diveCool=0;this.alert=false;this.traces=[];this.reloadTime=0;this.cooldown=0;this.held=k.held;this.zombies.length=0;
   if(k.street==='start')this.spawn(0);else if(k.street==='looted'){this.spawn(1);this.alert=true;}else{this.wave=-1;this.zombies.length=0;this.zombies.push(...this.roamers());}}
  // The ones you already put down stay where they fell when the next wave comes.
  spawn(i){this.wave=i;const fell=i>0?this.zombies.filter(z=>z.roam===undefined&&z.hp<=0):[];this.zombies.length=0;this.zombies.push(...fell);for(const s of WAVES[i]){const crawl=s.kind==='crawler',hp=crawl?CRAWLER.hp:ZOMBIE.hp[s.look]||60;this.zombies.push({kind:crawl?'crawler':'shambler',look:s.look,x:s.x,y:s.y,sx:s.x,sy:s.y,direction:s.direction??4,frame:0,phase:0,hp,max:hp,idle:!!s.idle,delay:s.delay||0,state:'chase',t:0,vx:0,vy:0,stagger:0,tell:0,cool:0,flash:0,groan:1+this.rand()*2});}
@@ -86,7 +89,13 @@ export class Fight{
   const push=s.push*(this.gun?.pellets&&Math.hypot(z.x-m.x,z.y-m.y)<SHOVE.close.range?SHOVE.close.push:1)*(z.hp<=0?SHOVE.kill:1);z.vx+=dx*push;z.vy+=dy*push;z.stagger=Math.max(z.stagger,s.stagger);z.idle=false;if(z.roam!==undefined)z.hunt=true;
   if(z.state==='windup'&&this.gun?.pellets){z.state='chase';z.tell=0;z.cool=.5;}
   if(z.hp<=0){if(z.roam!==undefined)this.fallen.add(z.roam);z.state='dead';z.tell=0;z.frame=0;z._popped=true;z.fall=dx>=0?1:-1;
-   const gore=z.gore=this.goreOf(z),crawler=gore==='half'&&this.rand()<GORE_KILL.crawl?this.crawler(z,dx,dy):null;this.emit('kill',{z,dx,dy,gore,crawler});this.check();}else this.emit('hit',{z,dx,dy});}
+   this.drop(z,dx,dy);const gore=z.gore=this.goreOf(z),crawler=gore==='half'&&this.rand()<GORE_KILL.crawl?this.crawler(z,dx,dy):null;this.emit('kill',{z,dx,dy,gore,crawler});this.check();}else this.emit('hit',{z,dx,dy});}
+ // Sometimes something falls out of a pocket.
+ drop(z,dx,dy){if(z.kind==='crawler')return;for(const [id,p,a,b] of DROPS[z.look]||DROPS.any)if(this.rand()<p){this.drops.push({id,n:a+Math.floor(this.rand()*(b-a+1)),x:z.x+dx*10+(this.rand()-.5)*8,y:z.y+dy*6+(this.rand()-.5)*6,age:0});return;}}
+ // Starts searching a spot; the search finishes in update, if you stay put.
+ scavenge(t){if(this.down||this.dive||this.searching||!t?.loot||this.kit().looted?.includes(t.id))return false;this.searching={t,time:0};this.emit('search',{t});return true;}
+ // A car alarm: every wanderer in earshot comes to see, and keeps coming.
+ alarm(x,y){this.emit('alarm',{x,y});for(const z of this.zombies)if(z.roam!==undefined&&z.hp>0&&Math.hypot(z.x-x,z.y-y)<SEARCH.alarm)this.notice(z);this.heard(x,y);}
  // What a killing hit does to the body: nothing more, 'half' (in two at the waist) or 'head' (the head comes off).
  goreOf(z){if(!this.gore||z.kind==='crawler')return null;const m=this.model,d=Math.hypot(z.x-m.x,z.y-m.y),G=GORE_KILL;
   if(this.gun?.pellets)return d<G.near||d<G.far&&this.rand()<G.chance?'half':null;return this.rand()<G.head?'head':null;}
@@ -106,7 +115,7 @@ export class Fight{
   if(!v.landed&&v.t>=T*.55){v.landed=true;this.emit('land',{x:m.x,y:m.y,dx:v.dx,dy:v.dy});}
   if(v.t>=T+DIVE.rise){this.dive=null;this.diveCool=DIVE.cool;}}
  // You, bitten.
- hurt(n,from,shove=true){if(this.down)return;this.dive=null;this.hp=Math.max(0,this.hp-n);this.sinceHurt=0;const m=this.model,dx=m.x-from.x,dy=m.y-from.y,d=Math.hypot(dx,dy)||1;if(shove)this.shove={x:dx/d*ZOMBIE.bite.shove,y:dy/d*ZOMBIE.bite.shove};
+ hurt(n,from,shove=true){if(this.down)return;this.dive=null;if(this.searching){this.searching=null;this.emit('searchstop');}this.hp=Math.max(0,this.hp-n);this.sinceHurt=0;const m=this.model,dx=m.x-from.x,dy=m.y-from.y,d=Math.hypot(dx,dy)||1;if(shove)this.shove={x:dx/d*ZOMBIE.bite.shove,y:dy/d*ZOMBIE.bite.shove};
   this.emit('hurt',{n,hp:this.hp});if(!this.hp){this.down=3;this.reloadTime=0;this.drill.downed=true;this.emit('down');}}
  // The cop turns round and the others come out of the dark.
  wake(){this.alert=true;for(const z of this.zombies)if(z.idle){z.idle=false;this.emit('groan',{z,loud:true});}}
@@ -138,6 +147,12 @@ export class Fight{
   this.aimAngle=!this.down&&Number.isFinite(input.aimX)&&Number.isFinite(input.aimY)&&Math.hypot(input.aimX,input.aimY)>.1?Math.atan2(input.aimY,input.aimX):null;
   this.diveCool=Math.max(0,this.diveCool-dt);if(input.dive)this.diveFrom(input);if(this.dive)this.diving(dt);
   if(input.fire&&!this.down)this.fire();
+  // A search under way: stop if you move, shoot or dive; otherwise, once it is done, what was there goes in your bag.
+  const S=this.searching;if(S){if(Math.hypot(Number(input.x)||0,Number(input.y)||0)>.25||input.fire||this.dive||this.down){this.searching=null;this.emit('searchstop');}
+   else if((S.time+=dt)>=SEARCH.time){this.searching=null;const r=scavenge(this.kit(),S.t,this.grid()),alarm=alarmed(S.t);this.setKit(r.k);this.emit('found',{t:S.t,items:r.items,alarm});if(alarm)this.alarm(S.t.x,S.t.y);}}
+  // Walking over something the dead dropped picks it up.
+  for(const d of this.drops){d.age+=dt;if(Math.hypot(d.x-m.x,(d.y-m.y)*1.3)<SEARCH.pick){const k=this.kit();this.setKit({...k,bag:add(k.bag,this.grid(),d.id,d.n)});d.taken=true;this.emit('pickup',{id:d.id,n:d.n});}}
+  if(this.drops.some(d=>d.taken))this.drops=this.drops.filter(d=>!d.taken);
   if(!this.alert&&this.zombies.some(z=>z.idle&&Math.hypot(z.x-m.x,z.y-m.y)<NOTICE))this.wake();
   // The way to you, spread again while anything is coming.
   if(this.zombies.some(z=>this.out(z)&&(z.roam!==undefined?z.hunt:this.alert)))this.flow.update(dt,[m]);

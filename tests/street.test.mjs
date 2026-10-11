@@ -83,3 +83,12 @@ test('gore: a close shotgun kill cuts one in two and the top half crawls on, gra
 test('gore: a pistol kill sometimes takes the head, and with gore reduced nothing comes apart',()=>{const k=armed();const {box,m,f}=setup({...k,held:'light-pistol'}),z=f.zombies[0];f.rand=()=>0;f.hit(z,999,1,0);
  assert.equal(f.drain().find(e=>e.type==='kill').gore,'head');const g=setup(),z2=g.f.zombies[0];g.f.gore=false;g.f.rand=()=>0;Object.assign(g.m,{x:z2.x-30,y:z2.y});g.f.hit(z2,999,1,0);
  const e=g.f.drain().find(e=>e.type==='kill');assert.equal(e.gore,null);assert.equal(e.crawler,null);});
+test('scavenging: every car, bin, shed and stash and most houses can be searched; a search takes a moment standing still and fills your bag',async()=>{const {LOOT,lootOf,scavenge}=await import('../dist/home/kit.js');const {SEARCH}=await import('../dist/street/fight.js');
+ const spots=OBJECTS.filter(o=>o.loot);for(const k of Object.keys(LOOT))assert.ok(spots.some(o=>o.loot===k),k);for(const o of spots)assert.equal(lootOf(o).length,lootOf(o).length);
+ assert.ok(spots.filter(o=>o.loot==='cache').length>=5,'a few stashes');const cache=spots.find(o=>o.loot==='cache');assert.ok(lootOf(cache).find(([id])=>id==='shells')[1]>=10,'a stash is a big load');
+ const {box,m,f}=setup();const before=count(box.k.bag,'shells');Object.assign(m,{x:cache.x,y:cache.y});assert.ok(f.scavenge(cache));run(f,m,SEARCH.time*.5);assert.ok(f.searching,'still searching');
+ run(f,m,SEARCH.time*.6);assert.equal(f.searching,null);assert.ok(count(box.k.bag,'shells')>=before+10);assert.ok(box.k.looted.includes(cache.id));assert.equal(f.scavenge(cache),false,'only once');
+ // Moving stops a search, and nothing is taken.
+ const car=spots.find(o=>o.loot==='car');assert.ok(f.scavenge(car));run(f,m,.2,()=>({x:1,y:0}));assert.equal(f.searching,null);assert.ok(!box.k.looted.includes(car.id));});
+test('the dead sometimes drop things, and walking over them picks them up',()=>{const {box,m,f}=setup(),z=f.zombies[0];f.rand=()=>0;Object.assign(m,{x:z.x-200,y:z.y});f.hit(z,999,1,0);assert.equal(f.drops.length,1);
+ const d=f.drops[0],had=count(box.k.bag,d.id);Object.assign(m,{x:d.x,y:d.y});run(f,m,.05);assert.equal(f.drops.length,0);assert.equal(count(box.k.bag,d.id),had+d.n);});

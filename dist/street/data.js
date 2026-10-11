@@ -80,7 +80,10 @@ const EDGE_TREES=[];{const R=rng(4242);
  for(let y=MARGIN;y<STREET.h-MARGIN;y+=50+R()*60)for(const x of [30+R()*110,STREET.w-MARGIN+70+R()*110])EDGE_TREES.push(tree(Math.round(x),Math.round(y),Math.round(x*3+y),R()<.7));}
 const FIELD_FENCES=[];for(let i=0;i<COLS;i++){const o=blockAt(i,0),q=blockAt(i,ROWS-1);FIELD_FENCES.push(P(`farm-n${i}`,'chainlink',o.x,o.y+BACK,BLOCK,4,30,{see:true}),P(`farm-s${i}`,'chainlink',q.x,q.y+SIDEWALK_S.y+SIDEWALK_S.h+30,BLOCK,4,30,{see:true}));}
 export const HOUSES=BLOCKS.flatMap(b=>b.houses);
-export const PROPS=[...BLOCKS.flatMap(b=>b.props),...EDGE_TREES,...FIELD_FENCES];
+// Stashes other survivors left: one in about half the other blocks' back yards, under a tarp with orange tape on it.
+const CACHES=[];{const R=rng(5150);for(const b of BLOCKS){if(b.home||R()<.45)continue;for(let t=0;t<30;t++){const x=Math.round(b.x+60+R()*(BLOCK-160)),y=Math.round(b.y+BACK+40+R()*110);
+ if(!b.props.some(o=>!o.flat&&x<o.x+o.w+30&&x+26>o.x-30&&y<o.y+o.h+24&&y+14>o.y-24)){CACHES.push(P(`cache-${b.i}${b.j}`,'cache',x,y,26,14,10));break;}}}}
+export const PROPS=[...BLOCKS.flatMap(b=>b.props),...CACHES,...EDGE_TREES,...FIELD_FENCES];
 // What stops feet: everything standing up, by its footprint or, for a tree, its trunk. What stops bullets: anything 20 or more tall
 // you cannot see through.
 const boxOf=o=>o.box?{x:o.x+o.box[0],y:o.y+o.box[1],w:o.box[2],h:o.box[3]}:{x:o.x,y:o.y,w:o.w,h:o.h};
@@ -99,12 +102,21 @@ export const START={...H(717,162),direction:2};
 export const CRUISER=H(1370,232);
 // Things to use: your door back inside, the cruiser's trunk once it is safe, and every neighbour's door.
 const cr=PROPS.find(p=>p.id==='cruiser');
+// Things to scavenge: every parked car, bin and shed, two in three of the neighbours' houses, and the stashes. What each holds is
+// home/kit.js LOOT; a search takes a moment standing still.
+const SEARCHABLE={car:{verb:'Search',name:'Parked car',role:'The doors are unlocked',range:44},bin:{verb:'Search',name:'Trash bin',role:'Somebody\'s bin',range:28},
+ shed:{verb:'Search',name:'Garden shed',role:'The door hangs open',range:38},cache:{verb:'Search',name:'Survivor\'s stash',role:'Orange tape on the handle',range:32}};
+// You stand in front of it if you can, otherwise beside it or behind it.
+const standAt=o=>{const cx=o.x+o.w/2,below=o.y+o.h+(o.kind==='car'?14:10);for(const [x,y] of [[cx,below],[cx,below+10],[o.x-12,o.y+o.h/2],[o.x+o.w+12,o.y+o.h/2],[cx,o.y-12],[o.x-12,below],[o.x+o.w+12,below]])if(!solidAt(x,y,9))return {x,y};return {x:cx,y:below};};
+const SPOTS=PROPS.filter(o=>SEARCHABLE[o.kind]).map(o=>({id:'search-'+o.id,prop:o.id,loot:o.kind,...SEARCHABLE[o.kind],...standAt(o),mx:o.x+o.w/2,my:o.y-o.z-6}));
 export const OBJECTS=[
  {id:'frontdoor',prop:'yours',verb:'Go in',name:'Your front door',role:'Home',...H(717,146),mx:HOME.x+717,my:HOME.y+FRONT-Z-6,range:34,facing:true},
  {id:'cruiser',prop:'cruiser',verb:'Search',name:'Police cruiser',role:'The trunk',x:cr.x+22,y:cr.y+cr.h+12,mx:cr.x+22,my:cr.y-cr.z-4,range:44},
  {id:'door-e1',prop:'east1',verb:'Knock',name:'The Parks\' house',role:'Next door',...H(1077,150),mx:HOME.x+1077,my:HOME.y+FRONT-Z-6,range:34,lines:['You knock, softly. Nothing.','Through the glass, a candle moves away from the door and goes out.']},
  {id:'door-w',prop:'west',verb:'Knock',name:'The corner house',role:'Next door',...H(157,150),mx:HOME.x+157,my:HOME.y+FRONT-Z-6,range:34,lines:['The door is open a crack. It is completely dark inside, and it smells wrong.','You pull it shut.']},
- ...BLOCKS.filter(b=>!b.home).flatMap(b=>b.houses.map((h,k)=>{const d=h.door0+17,s=(b.i*5+b.j)*3+k;return {id:'door-'+h.id,prop:h.id,verb:'Knock',name:NAMES[s%NAMES.length],role:'A neighbour',x:d,y:b.y+FRONT+WALL_T+20,mx:d,my:b.y+FRONT-Z-6,range:34,lines:KNOCKS[(s*7+3)%KNOCKS.length]};}))];
+ ...BLOCKS.filter(b=>!b.home).flatMap(b=>b.houses.map((h,k)=>{const d=h.door0+17,s=(b.i*5+b.j)*3+k,at={x:d,y:b.y+FRONT+WALL_T+20,mx:d,my:b.y+FRONT-Z-6,range:34,name:NAMES[s%NAMES.length]};
+  return s%3?{id:'search-'+h.id,prop:h.id,loot:'house',verb:'Search',role:'The door is not locked',...at}:{id:'door-'+h.id,prop:h.id,verb:'Knock',role:'A neighbour',...at,lines:KNOCKS[(s*7+3)%KNOCKS.length]};})),
+ ...SPOTS];
 // The dead. Each has a look (zombie looks in street/scene.js), where it starts, and when it comes: wave 1 is the cop at the cruiser
 // and the five the noise brings out of the dark one after another; wave 2, once you open the trunk, is a crowd of twelve in three
 // rushes (from the west, then the east, then all round) and one that lost its legs before tonight, dragging itself up from the

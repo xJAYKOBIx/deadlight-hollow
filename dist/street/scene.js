@@ -10,7 +10,9 @@ import {Juice} from '../study/juice.js';
 import {iconArt,ICON,ICONS} from '../camp/art.js';
 import {MAP,CHUNK,PROPS,LIGHT_BAR,HOME,coverAt} from './data.js';
 import {groundArt,lightArt,LIGHT_SCALE,propArt,PROP_PAD} from './art.js';
-import {Fight,DIVE,CRAWLER} from './fight.js';
+import {Fight,DIVE,CRAWLER,SEARCH} from './fight.js';
+import {ITEM_IDS,itemArt} from '../mc/assets/gear/items.js';
+import {painter} from '../mc/assets/core/paint.js';
 import {zombiePiece,GORE_PARTS,crawlArt,CRAWL,gibArt,GIBS,bloodArt,BLOOD_BOX} from '../mc/assets/effects/gore.js';
 // The dead on this street. Everyone is a neighbour; the cop came with the cruiser.
 const POLICE=UNIFORMS.find(u=>u.id==='police').look,Z={zombie:1,pack:1,rot:1,decay:1,eyes:0,wounds:1};
@@ -81,6 +83,8 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
    for(let i=0;i<20;i++)if(!C.has(i))C.add(i,0,(i%5)*CRAWL.w,Math.floor(i/5)*CRAWL.h,CRAWL.w,CRAWL.h);}
   const GB=this.texture('gore-gibs',20*GIBS.length,60,c=>{GIBS.forEach((k,i)=>{for(let v=0;v<3;v++){c.save();c.translate(i*20,v*20);gibArt(c,k,i*3+v,['#3a3f4a','#4a3b2e','#5a4a3a'][v]);c.restore();}});});
   for(let i=0;i<GIBS.length*3;i++)if(!GB.has(i))GB.add(i,0,Math.floor(i/3)*20,(i%3)*20,20,20);
+  // What the dead drop, from the bag's own icons.
+  const LI=this.texture('loot-icons',24*ITEM_IDS.length,24,c=>ITEM_IDS.forEach((id,i)=>{c.save();c.scale(2,2);c.translate(i*12+6,6);itemArt(painter(c),id);c.restore();}));ITEM_IDS.forEach((id,i)=>{if(!LI.has(id))LI.add(id,0,i*24,0,24,24);});this.dropImgs=new Map();
   const BW=BLOOD_BOX.w*2,BH=BLOOD_BOX.h*2,BS=this.texture('gore-blood',BW*8,BH*Math.ceil(STAINS.length/8),c=>STAINS.forEach(([k,sd,d],i)=>{c.save();c.translate((i%8)*BW,Math.floor(i/8)*BH);bloodArt(c,k,sd*17+i+3,d);c.restore();}));
   for(let i=0;i<STAINS.length;i++)if(!BS.has(i))BS.add(i,0,(i%8)*BW,Math.floor(i/8)*BH,BW,BH);
   this.zs=new Map();this.pool=[];
@@ -103,7 +107,7 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   this.cameras.main.setBackgroundColor('#07080b').setBounds(0,0,MAP.w,MAP.h).setZoom(this.zoom());
   this.events.on('wake',()=>this.enter());this.enter();bridge.ready(this);}
  // Each time you step out of the door: the street as the kit says it is, you on your step.
- enter(){model.reset();this.fight.start();for(const i of [...this.stains,...this.bits.map(b=>b.img),...this.lain])i.destroy();this.stains.length=0;this.bits.length=0;this.lain.length=0;this.brass.length=0;this.lying.length=0;this.pumps.length=0;this.floorG.clear();this.kick=null;this.jolt={x:0,y:0};for(const z of [...this.zs.keys()])this.free(z);this.setPlayerLook(bridge.look());this.setTrunk(bridge.kit().street!=='start'&&bridge.kit().street!=='cleared');this.cameras.main.centerOn(model.x,model.y-20);this.stream(true);}
+ enter(){model.reset();this.fight.start();for(const i of this.dropImgs.values())i.destroy();this.dropImgs.clear();for(const i of [...this.stains,...this.bits.map(b=>b.img),...this.lain])i.destroy();this.stains.length=0;this.bits.length=0;this.lain.length=0;this.brass.length=0;this.lying.length=0;this.pumps.length=0;this.floorG.clear();this.kick=null;this.jolt={x:0,y:0};for(const z of [...this.zs.keys()])this.free(z);this.setPlayerLook(bridge.look());this.setTrunk(bridge.kit().street!=='start'&&bridge.kit().street!=='cleared');this.cameras.main.centerOn(model.x,model.y-20);this.stream(true);}
  // What the camera shows, in world units.
  view(){const s=this.scale,z=this.zoom(),w=s.width/z,h=s.height/z,x=Math.max(0,Math.min(MAP.w-w,model.x-w/2)),y=Math.max(0,Math.min(MAP.h-h,model.y-20-h/2));return {x,y,w,h};}
  // Takes hold of the chunks near the screen and lets go of the ones well past it, then paints: everything on screen now, the rest
@@ -286,6 +290,13 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   const X=bridge.reticle?.();if(X&&!f.down&&armed(this.look)){const big=f.gunId==='pump-shotgun',open=3+Math.max(0,1-f.sinceShot/(big?.3:.16))*(big?7:3),x=Math.round(X.x*2)/2,y=Math.round(X.y*2)/2;
    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const x0=x+dx*open,y0=y+dy*open,w=dx?3:1,h=dy?3:1,rx=dx<0?x0-3:x0,ry=dy<0?y0-3:y0;g.fillStyle(0x111319,.8).fillRect(rx-.5,ry-.5,w+1,h+1);g.fillStyle(0xf2e6c8,.95).fillRect(rx,ry,w,h);}
    g.fillStyle(0x111319,.8).fillRect(x-1,y-1,2,2);g.fillStyle(0xff6a4a,1).fillRect(x-.5,y-.5,1,1);}
+  // What the dead dropped, bobbing a little with a glint now and then, and gone once picked up.
+  for(const [d,img] of this.dropImgs)if(!f.drops.includes(d)){img.destroy();this.dropImgs.delete(d);}
+  for(const d of f.drops){let img=this.dropImgs.get(d);if(!img){img=this.add.image(d.x,d.y,'loot-icons',d.id).setScale(.5).setOrigin(.5,1);this.dropImgs.set(d,img);}const bob=Math.round(Math.sin(now/260+d.x)*1.5*2)/2;img.setPosition(Math.round(d.x*2)/2,Math.round(d.y*2)/2-2+bob).setDepth(d.y);
+   if(Math.floor(now/700+d.x/37)%4===0)g.fillStyle(0xfff6d8,.9).fillRect(Math.round(d.x*2)/2+2,Math.round(d.y*2)/2-8+bob,1,1);}
+  // A search under way: a ring round the spot filling as it goes.
+  const S=f.searching;if(S){const k=Math.min(1,S.time/SEARCH.time),x=S.t.mx??S.t.x,y=(S.t.my??S.t.y)-4,a0=-Math.PI/2;g.lineStyle(3,0x111319,.7).strokeCircle(x,y,7);g.lineStyle(1.5,0xf2e6c8,.35).strokeCircle(x,y,7);
+   g.lineStyle(1.5,0xffb347,1).beginPath().arc(x,y,7,a0,a0+k*Math.PI*2,false).strokePath();}
   const target=f.down?null:paused&&this.target?this.target:model.target(t=>bridge.usable?.(t)!==false);this.target=target;
   if(target){const bob=Math.round(Math.sin(now/180)*2*2)/2;this.marker.setVisible(true).setPosition(target.mx??target.x,target.my+bob);}else this.marker.setVisible(false);
   const cam=this.cameras.main;cam.setZoom(this.zoom());cam.centerOn(model.x+this.jolt.x,model.y-20+this.jolt.y);bridge.tick(now,this);}

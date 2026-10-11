@@ -6,6 +6,7 @@ import {GUNS,unlimited} from '../study/equipment.js';
 import {itemInfo} from '../mc/assets/gear/items.js';
 import {carrying} from '../mc/assets/gear/bags.js';
 import {add,count,normalizeBag} from './bag.js';
+import {rng} from '../mc/assets/core/kit.js';
 export const HOME_KEY='deadlight-home-v1';
 // While the tutorial is being built, the saved night is ignored on load: you wake on the couch with nothing, every time.
 export const FRESH=true;
@@ -27,8 +28,8 @@ export function normalizeHome(v,grid=carrying({})){const guns={};for(const id of
  let bag=normalizeBag(v?.bag,grid);
  // Saves from before the bag kept the shotgun's spare shells on the gun; they move into the bag.
  if(!v?.bag&&guns['pump-shotgun'])bag=add(bag,grid,'shells',Math.max(0,Math.floor(Number(v.guns['pump-shotgun'].reserve)||0)));
- const street=STREET_STAGES.includes(v?.street)?v.street:'start';
- return {woke:v?.woke===true,guns,held,bag,searched,street};}
+ const street=STREET_STAGES.includes(v?.street)?v.street:'start',looted=[...new Set((Array.isArray(v?.looted)?v.looted:[]).filter(id=>typeof id==='string'))];
+ return {woke:v?.woke===true,guns,held,bag,searched,street,looted};}
 export function readHome(storage,grid,fresh=FRESH){if(fresh)return normalizeHome(null,grid);try{return normalizeHome(JSON.parse(storage.getItem(HOME_KEY)),grid);}catch{return normalizeHome(null,grid);}}
 export function saveHome(storage,v){try{storage.setItem(HOME_KEY,JSON.stringify(v));return true;}catch{return false;}}
 const pack=(k,grid,list)=>list.reduce((b,[id,n])=>add(b,grid,id,n),k.bag);
@@ -38,6 +39,23 @@ export function take(k,id,grid=carrying({})){if(!FINDS[id]||k.guns[id])return k;
 export function search(k,id,grid=carrying({})){if(!SUPPLIES[id]||k.searched.includes(id))return k;return {...k,bag:pack(k,grid,SUPPLIES[id]),searched:[...k.searched,id]};}
 // Opening the cruiser's trunk puts its boxes in your bag.
 export function loot(k,grid=carrying({})){if(k.street!=='cleared')return k;return {...k,bag:pack(k,grid,TRUNK),street:'looted'};}
+// Scavenging out on the street: what each kind of spot can hold, as [item, chance, least, most]. A stash someone left is the big
+// one. What is in a spot comes from its id, so the neighbourhood holds the same things every night; one car in eight has its alarm
+// set, and opening it sets it off.
+export const LOOT={car:[['shells',.45,2,4],['scrap',.6,1,2],['electronics',.3,1,1],['gun-oil',.1,1,1],['cloth',.25,1,1]],
+ bin:[['scrap',.45,1,1],['cloth',.4,1,2],['shells',.12,1,2]],
+ shed:[['scrap',.8,2,3],['powder',.4,1,2],['solvent',.35,1,1],['shells',.25,2,4]],
+ house:[['shells',.5,3,6],['cloth',.6,1,2],['electronics',.35,1,1],['powder',.2,1,1],['solvent',.2,1,1],['gun-oil',.15,1,1]],
+ cache:[['shells',1,10,14],['powder',1,2,3],['scrap',1,2,3],['gun-oil',.5,1,1]]};
+export const ALARM=.125;
+const seedOf=id=>[...id].reduce((h,c)=>Math.imul(h^c.charCodeAt(0),16777619)>>>0,2166136261);
+export function lootOf(t){const R=rng(seedOf(t.id));return (LOOT[t.loot]||[]).map(([id,p,a,b])=>{const hit=R()<p,n=a+Math.floor(R()*(b-a+1));return hit?[id,n]:null;}).filter(Boolean);}
+export const alarmed=t=>t.loot==='car'&&rng(seedOf(t.id)+7)()<ALARM;
+export function scavenge(k,t,grid=carrying({})){if(!LOOT[t.loot]||k.looted.includes(t.id))return {k,items:[]};const items=lootOf(t);return {k:{...k,bag:pack(k,grid,items),looted:[...k.looted,t.id]},items};}
+// What the dead sometimes drop: the cop its shells, a worker a bit of scrap, anyone else a few shells or a rag.
+export const DROPS={cop:[['shells',.7,2,4]],worker:[['scrap',.4,1,2],['shells',.15,1,2]],any:[['shells',.2,1,3],['cloth',.12,1,1]]};
+// A list of what you found, for a line on screen.
+export const listOf=list=>list.map(([id,n])=>(n>1?n+' ':'')+itemInfo(id).name.toLowerCase()).join(', ');
 export const advance=(k,stage)=>STREET_STAGES.indexOf(stage)>STREET_STAGES.indexOf(k.street)?{...k,street:stage}:k;
 export function swap(k){const have=ORDER.filter(id=>k.guns[id]);if(have.length<2)return k;return {...k,held:have[(have.indexOf(k.held)+1)%have.length]};}
 export const found=(k,id)=>!!k.guns[id];
@@ -70,6 +88,5 @@ export function useLines(k,id){
 // Once something is taken, the spot is only worth a look.
 export const verbFor=(k,id)=>(id==='nightstand'&&found(k,'light-pistol'))||(id==='closet'&&found(k,'pump-shotgun'))||(SUPPLIES[id]&&k.searched.includes(id))?'Look':null;
 // The line that tells you what you just picked up.
-const listOf=list=>list.map(([id,n])=>(n>1?n+' ':'')+itemInfo(id).name.toLowerCase()).join(', ');
 export function pickupLine(id){const f=FINDS[id];if(f)return `${GUNS[id].name}: ${f.ammo} loaded${ammoOf(id)?'':', unlimited spare'}${f.bag.length?'. In your bag: '+listOf(f.bag):''}`;
  return SUPPLIES[id]?'In your bag: '+listOf(SUPPLIES[id]):'';}
