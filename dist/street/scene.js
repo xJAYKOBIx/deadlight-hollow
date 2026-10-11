@@ -157,7 +157,7 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   this.texture('nb-l-'+k,Math.ceil(R.w/LIGHT_SCALE),Math.ceil(R.h/LIGHT_SCALE),ctx=>lightArt(ctx,R));c.l=true;return true;}
  paintProp(i){const o=PROPS[i],p=this.held.get(i),on=o.job==='power'&&this.power,key=i===CRUISER_I?`street-cruiser-1-${this.trunk?1:0}`:'nb-p-'+o.id+(on?'-on':'');
   if(i!==CRUISER_I)this.texture(key,(o.w+PROP_PAD*2)*2,(o.h+o.z+PROP_PAD*2)*2,c=>propArt(c,on?{...o,on:true}:o));
-  p.img=this.add.image(o.x-PROP_PAD,o.y-o.z-PROP_PAD,key).setOrigin(0).setScale(.5).setDepth(o.flat?0:o.y+o.h+i*1e-5);if(o.fade)this.fades.add(i);}
+  p.img=this.add.image(o.x-PROP_PAD,o.y-o.z-PROP_PAD,key).setOrigin(0).setScale(.5).setDepth(o.flat?0:o.y+o.h-(o.sink||0)+i*1e-5);if(o.fade)this.fades.add(i);}
  forget(key){unbake(key);if(this.textures.exists(key))this.textures.remove(key);}
  drop(k){const c=this.chunks.get(k);this.chunks.delete(k);this.todo.delete(k);c.g?.destroy();this.forget('nb-g-'+k);this.forget('nb-l-'+k);
   for(const i of BY_CHUNK[k]){const p=this.held.get(i);if(!p||--p.n>0)continue;this.held.delete(i);this.todo.delete(-1-i);this.fades.delete(i);if(p.img){p.img.destroy();if(i!==CRUISER_I)this.forget(p.img.texture.key);}}}

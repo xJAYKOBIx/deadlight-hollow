@@ -8,7 +8,7 @@
 import {GUNS,muzzle} from '../study/equipment.js';
 import {count,remove,add} from '../home/bag.js';
 import {ammoOf,advance,loot,scavenge,alarmed,DROPS,job,jobsDone,board,reclaim,reclaimed} from '../home/kit.js';
-import {MAP,WAVES,ROAMERS,NOTICE,HEAR,WALK,ROADS,CROSSES,EVAC,TRUCK,MOVING,OBJECTS,solidAt,coverAt} from './data.js';
+import {MAP,WAVES,ROAMERS,NOTICE,HEAR,WALK,roadNear,EVAC,TRUCK,MOVING,OBJECTS,solidAt,coverAt} from './data.js';
 import {Flow,clearLine} from './paths.js';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),facing=(dx,dy)=>(Math.round(Math.atan2(dy,dx)/(Math.PI/4))+8)%8;
 // Wanderers: how far they stroll from where they started and how slowly, when they give up on you, and how far off they stop
@@ -419,8 +419,7 @@ export class Fight{
  patrol(horde){const m=this.model,H=HEAT,live=this.zombies.filter(z=>z.extra&&z.hp>0).length,[a,b]=horde?H.horde.size:H.size,n=Math.min(a+Math.floor(this.rand()*(b-a+1)),H.cap-live);if(n<=0)return false;
   let at=null;for(let t=0;t<30&&!at;t++){const ang=this.rand()*Math.PI*2,d=H.spawn.near+this.rand()*(H.spawn.far-H.spawn.near),px=m.x+Math.cos(ang)*d,py=m.y+Math.sin(ang)*d;
    // Onto the nearest street or side street, so they come down a road.
-   const rd=ROADS.reduce((q,r)=>Math.abs(r.y+r.h/2-py)<Math.abs(q.y+q.h/2-py)?r:q),cr=CROSSES.reduce((q,c)=>Math.abs(c.x+c.w/2-px)<Math.abs(q.x+q.w/2-px)?c:q);
-   const p=Math.abs(rd.y+rd.h/2-py)<Math.abs(cr.x+cr.w/2-px)?{x:px,y:rd.y+rd.h/2,along:'x'}:{x:cr.x+cr.w/2,y:py,along:'y'};
+   const p=roadNear(px,py);
    if(p.x>WALK.left+40&&p.x<WALK.right-40&&p.y>WALK.top+40&&p.y<WALK.bottom-40&&Math.hypot(p.x-m.x,p.y-m.y)>H.spawn.near*.9&&!solidAt(p.x,p.y,10))at=p;}
   if(!at)return false;const goal={x:m.x+(this.rand()-.5)*160,y:m.y+(this.rand()-.5)*100},pts=[at.along==='x'?{x:goal.x,y:at.y}:{x:at.x,y:goal.y},goal];
   const lv=this.level,brute=horde&&lv===3||!horde&&lv>=2&&this.rand()<.15?Math.floor(this.rand()*n):-1;

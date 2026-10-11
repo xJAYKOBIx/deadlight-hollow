@@ -1,7 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 const {Fight,ZOMBIE,PLAYER_HP,ROAM,SLOW,DIVE,SHOVE,GORE_KILL,CRAWLER}=await import('../dist/street/fight.js');const {StreetModel}=await import('../dist/street/model.js');
 const {normalizeHome,take,goal,useLines,loot,TRUNK}=await import('../dist/home/kit.js');const {count}=await import('../dist/home/bag.js');const {carrying}=await import('../dist/mc/assets/gear/bags.js');
-const {STREET,START,WAVES,COP,NOTICE,HEAR,PROPS,BLOCKS,HOUSES,OBJECTS,ROAMERS,solidAt,coverAt,COLS,ROWS}=await import('../dist/street/data.js');
+const {STREET,START,WAVES,COP,NOTICE,HEAR,PROPS,BLOCKS,HOUSES,OBJECTS,ROAMERS,SOLIDS,DISTRICTS,roadNear,solidAt,coverAt,COLS,ROWS,AREA_NAMES,areaAt}=await import('../dist/street/data.js');
 const grid=carrying({}),armed=(guns=['light-pistol','pump-shotgun'])=>guns.reduce((k,g)=>take(k,g,grid),{...normalizeHome(null),woke:true,light:true});
 function setup(k=armed()){const box={k},m=new StreetModel(),f=new Fight(m,{kit:()=>box.k,setKit:v=>box.k=v,grid:()=>grid});m.zombies=f.zombies;f.start();return {box,m,f};}
 const waves=f=>f.zombies.filter(z=>z.roam===undefined),run=(f,m,s,input=()=>({}))=>{for(let t=0;t<s;t+=1/60){const i=input();m.update(1/60,i);f.update(1/60,i);}};
@@ -41,11 +41,22 @@ test('the street page wires the scene, the sound toggle and the fresh start',asy
  assert.match(app,/makeStreetScene\(streetModel,streetBridge\)/);assert.match(app,/FRESH&&!KEEP/);assert.match(html,/id="sound"/);
  const {SOUNDS}=await import('../dist/mc/assets/sounds/library.js'),ids=new Set(SOUNDS.map(s=>s.id));for(const id of ['car-pass','car-crash','pistol','shotgun','pump','shell-in','mag-in','dry-fire','groan','zombie-hit','bite','distant-siren'])assert.ok(ids.has(id),id);
  for(const id of app.matchAll(/audio\.play\('([a-z-]+)'/g))assert.ok(ids.has(id[1]),id[1]);});
-test('the neighbourhood: five blocks by five, the same every time, and everything you can use stands somewhere you can reach',()=>{
- assert.equal(BLOCKS.length,COLS*ROWS);assert.equal(COLS,5);assert.equal(ROWS,5);assert.ok(HOUSES.length>=90,'a house on every lot');assert.equal(new Set(PROPS.map(o=>o.id)).size,PROPS.length,'every prop has its own id');
+test('the suburbs: nine districts, the same every time, and everything you can use stands somewhere you can reach',()=>{
+ assert.equal(DISTRICTS.length,9);assert.equal(BLOCKS.length,COLS*ROWS);assert.equal(new Set(DISTRICTS.map(d=>d.id)).size,9,'every district is its own kind');
+ assert.ok(HOUSES.length>=25,'the house districts are full of houses');assert.equal(new Set(PROPS.map(o=>o.id)).size,PROPS.length,'every prop has its own id');
  for(const o of OBJECTS){assert.ok(!solidAt(o.x,o.y,8),o.id+' can be reached');}assert.ok(!solidAt(START.x,START.y,10));
- // Houses stop bullets; a chain-link fence does not.
+ // Houses stop bullets; a chain-link fence does not; the creek stops feet but not bullets.
  const h=HOUSES[0];assert.ok(coverAt(h.x+h.w/2,h.y+h.h/2));const cl=PROPS.find(o=>o.kind==='chainlink');assert.equal(coverAt(cl.x+cl.w/2,cl.y+cl.h/2),null);
+ const w=SOLIDS.find(s=>s.kind==='water');assert.ok(w&&solidAt(w.x+w.w/2,w.y+w.h/2,4));assert.equal(coverAt(w.x+w.w/2,w.y+w.h/2),null);
+ // The landmarks you steer by are on the map, and each job sits in its own district.
+ for(const k of ['watertower','church','school','gym','pricesign','lighttower','gazebo','excavator'])assert.ok(PROPS.some(o=>o.kind===k),k);
+ const dist=(x,y)=>DISTRICTS.find(d=>x>=d.x&&x<d.x+d.w&&y>=d.y&&y<d.y+d.h)?.id;
+ assert.equal(dist(...['job-radio'].map(id=>OBJECTS.find(o=>o.id===id)).map(o=>[o.x,o.y])[0]),'maze');assert.equal(dist(...[OBJECTS.find(o=>o.id==='job-power')].map(o=>[o.x,o.y])[0]),'site');
+ assert.equal(dist(...[OBJECTS.find(o=>o.id==='job-supplies')].map(o=>[o.x,o.y])[0]),'park');assert.equal(dist(...[OBJECTS.find(o=>o.id==='evac')].map(o=>[o.x,o.y])[0]),'school');
+ // The corner names the district you are in, starting on your street.
+ assert.equal(areaAt(START.x,START.y),'yours');for(const d of DISTRICTS)assert.ok(AREA_NAMES[d.id]&&AREA_NAMES[d.id].length<=13,d.id);
+ // Every patrol comes down a real street.
+ for(const [x,y] of [[100,100],[3000,3000],[5900,5800],[2100,4500]]){const p=roadNear(x,y);assert.ok(!solidAt(p.x,p.y,10),`a street near ${x},${y}`);}
  assert.ok(ROAMERS.length>=40);for(const r of ROAMERS)assert.ok(!solidAt(r.x,r.y,8),'a wanderer starts in the open');});
 test('wanderers drift round their yards, come for you when they see you or hear a shot, and give up once you are far away',()=>{const {m,f}=setup(),r=f.zombies.find(z=>z.roam!==undefined);
  assert.equal(f.live.length,WAVES[0].length,'the story only counts the waves');run(f,m,8);assert.ok(f.zombies.some(z=>z.roam!==undefined&&Math.hypot(z.x-z.sx,z.y-z.sy)>2),'they wander');
@@ -57,7 +68,7 @@ test('a wanderer you put down stays down for the night, and the rest go back whe
  f.hit(a,999,1,0);b.x+=30;f.start();const now=f.zombies.filter(z=>z.roam!==undefined);assert.ok(now.includes(a)&&a.hp<=0);assert.equal(b.x,b.sx);assert.equal(now.length,ROAMERS.length);});
 test('the dead find a way round: the flow leads round a fence to you, and a clear line goes straight',async()=>{const {Flow,open,clearLine,PATH}=await import('../dist/street/paths.js');
  // A back yard: you on one side of a side fence, the flow spread from you; a square just across the fence is reached the long way round.
- const fence=PROPS.find(o=>o.kind==='woodfenceV'),y=fence.y+fence.h/2,me={x:fence.x+30,y},f=new Flow();f.update(1,[me]);
+ const fence=PROPS.find(o=>o.kind==='woodfenceV'&&clearLine(o.x+20,o.y+o.h/2,o.x+80,o.y+o.h/2)&&clearLine(o.x-60,o.y+o.h/2,o.x-12,o.y+o.h/2)),y=fence.y+fence.h/2,me={x:fence.x+30,y},f=new Flow();f.update(1,[me]);
  const c=v=>Math.floor(v/PATH.cell),near=f.at(c(me.x+16),c(y)),across=f.at(c(fence.x-24),c(y));assert.ok(near<10);assert.ok(across>near+8,'across the fence is further than straight-line');
  assert.equal(clearLine(fence.x-24,y,me.x,y),false,'the fence is in the way');assert.ok(clearLine(me.x,y,me.x+40,y));
  const w=f.way(fence.x-24,y);if(across<0xffff)assert.ok(w&&Math.abs(w.y)>.3,'it heads along the fence, not into it');});

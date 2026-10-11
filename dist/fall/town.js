@@ -11,16 +11,18 @@ const AR={x:HOME.x-1500,y:HOME.y-1300,w:4800,h:2700},SC=.3;
 // When each block's power dies: by distance from the far corner, with a little chance in it; yours goes last.
 const START={x:STREET.w,y:0},far=Math.max(...BLOCKS.map(b=>Math.hypot(b.x-START.x,b.y-START.y)));
 const OFF=new Map(BLOCKS.map(b=>[b,b.i===HOME_BLOCK.i&&b.j===HOME_BLOCK.j?AERIAL.home:AERIAL.first+Math.hypot(b.x-START.x,b.y-START.y)/far*4.4+(hash(b.i*7+b.j*13)-.5)*.5]));
-const FIRES=[BLOCKS.find(b=>b.i===3&&b.j===1),BLOCKS.find(b=>b.i===3&&b.j===3)].map((b,n)=>{const h=b.houses[n?0:2];return {x:h.x+h.w/2,y:h.y+h.h/2,b};});
+const FIRES=[BLOCKS.find(b=>b.i===0&&b.j===2),BLOCKS.find(b=>b.i===1&&b.j===3)].map(b=>{const h=b.houses[b.houses.length-1];return {x:h.x+h.w/2,y:h.y+h.h/2,b};});
 // The town in plain colours: fields, lawns, streets and sidewalks, then every prop drawn small, back to front.
 export function townAssets(){const A={ready:false,jobs:[],map:canvas(AR.w*SC,AR.h*SC),lights:canvas(AR.w/8,AR.h/8),night:canvas(AR.w/16,AR.h/16)},c=A.map.getContext('2d');
  A.jobs.push(()=>{c.save();c.scale(SC,SC);c.translate(-AR.x,-AR.y);const F=(x,y,w,h,col)=>{c.fillStyle=col;c.fillRect(x,y,w,h);};
   F(AR.x,AR.y,AR.w,AR.h,'#3c4a2e');F(TOWN.x,TOWN.y,TOWN.w,TOWN.h,'#33502c');const r=rng(3);for(let i=0;i<9000;i++)F(AR.x+r()*AR.w,AR.y+r()*AR.h,6,6,r()<.5?'#2c4426':'#3a5832');
-  const x0=CROSSES[0].x,x1=CROSSES[CROSSES.length-1].x+CROSS;
+  // Each district's own ground in flat colour: car parks, gravel, dirt, the creek, the infield.
+  const FLAT={asphalt:'#2e3034',concrete:'#6a6a64',gravel:'#4a4a46',dirt:'#4a3f30',water:'#16242a',lawn:'#33502c',field:'#3c4a2e'};
+  for(const b of BLOCKS)for(const q of b.ground){if(FLAT[q.kind])F(q.x,q.y,q.w,q.h,FLAT[q.kind]);else if(q.kind==='poly'){c.fillStyle=q.col;c.beginPath();q.pts.forEach(([x,y],k)=>c[k?'lineTo':'moveTo'](x+q.ox,y+q.oy));c.fill();}}
   for(const b of BLOCKS){for(const px of b.paths)F(px,b.y+FRONT+36,30,82,'#6a6a64');for(const d of b.drives)F(d.x,b.y+FRONT+12,d.w,106,'#6a6a64');}
-  for(const rd of ROADS){F(x0,rd.sn,x1-x0,20,'#6e6e68');F(x0,rd.ss,x1-x0,20,'#6e6e68');}for(const cr of CROSSES){F(cr.x,TOWN.y,20,TOWN.h,'#6e6e68');F(cr.x+CROSS-20,TOWN.y,20,TOWN.h,'#6e6e68');}
-  for(const rd of ROADS)F(AR.x,rd.y,AR.w,rd.h,'#2e3034');for(const cr of CROSSES)F(cr.x+20,AR.y,CROSS-40,AR.h,'#2e3034');
-  for(const rd of ROADS)for(let x=AR.x;x<AR.x+AR.w;x+=48)F(x,rd.y+rd.h/2-1,24,2,'#7a7044');c.restore();});
+  for(const rd of ROADS){F(rd.x,rd.sn,rd.w,20,'#6e6e68');F(rd.x,rd.ss,rd.w,20,'#6e6e68');}for(const cr of CROSSES){F(cr.x,TOWN.y,20,TOWN.h,'#6e6e68');F(cr.x+CROSS-20,TOWN.y,20,TOWN.h,'#6e6e68');}
+  for(const rd of ROADS)F(rd.x,rd.y,rd.w,rd.h,'#2e3034');for(const cr of CROSSES)F(cr.x+20,AR.y,CROSS-40,AR.h,'#2e3034');
+  for(const rd of ROADS)for(let x=Math.max(AR.x,rd.x);x<Math.min(AR.x+AR.w,rd.x+rd.w-24);x+=48)F(x,rd.y+rd.h/2-1,24,2,'#7a7044');c.restore();});
  const list=PROPS.filter(o=>!o.flat&&o.id!=='cruiser'&&o.x<AR.x+AR.w&&o.x+o.w>AR.x&&o.y<AR.y+AR.h+40&&o.y+o.h>AR.y-160).sort((a,b)=>a.y+a.h-(b.y+b.h));
  for(let i=0;i<list.length;i+=24)A.jobs.push(()=>{for(const o of list.slice(i,i+24)){c.save();c.scale(SC,SC);c.translate(o.x-PROP_PAD-AR.x,o.y-o.z-PROP_PAD-AR.y);c.scale(.5,.5);propArt(c,o.id==='pole'?{...o,lean:0}:o);c.restore();}});
  // Night: the moon in patches, very dark between them.
