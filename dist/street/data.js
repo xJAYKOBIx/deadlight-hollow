@@ -3,7 +3,7 @@
 // light. Your block is in the middle, as it always was: your house and the neighbours', and the police cruiser up on the curb in
 // the pole a few houses east. The art is the Master Creator's street and town sets; this file only places it.
 import {rng} from '../mc/assets/core/kit.js';
-import {FRONT,WALL_T,Z,BLOCK,BAND,CROSS,BACK,SIDEWALK_N,ROAD,SIDEWALK_S,CENTER,COLS,ROWS,MARGIN,OX,OY,STREET,MAP,TOWN,blockAt,CROSSES,ROADS,THROUGH,roadNear,HOME_BLOCK,HOME,P,BLOCKS,DISTRICTS,PACK_AT,CREEK} from './plan.js';
+import {FRONT,WALL_T,Z,BLOCK,BAND,CROSS,BACK,SIDEWALK_N,ROAD,SIDEWALK_S,CENTER,COLS,ROWS,MARGIN,OX,OY,STREET,MAP,TOWN,blockAt,CROSSES,ROADS,THROUGH,roadNear,HOME_BLOCK,HOME,P,BLOCKS,DISTRICTS,CREEK} from './plan.js';
 export {FRONT,WALL_T,Z,BLOCK,BAND,CROSS,BACK,SIDEWALK_N,ROAD,SIDEWALK_S,CENTER,COLS,ROWS,MARGIN,OX,OY,STREET,MAP,TOWN,blockAt,CROSSES,ROADS,THROUGH,roadNear,HOME_BLOCK,HOME,BLOCKS,DISTRICTS,CREEK};
 // The map is drawn and kept in chunks this big; only the ones near you are held.
 export const CHUNK=512;
@@ -34,14 +34,17 @@ export const HOUSES=BLOCKS.flatMap(b=>b.houses);
 // Stashes other survivors left: one in about half the other blocks, somewhere out of the way, under a tarp with orange tape on it.
 const CACHES=[];{const R=rng(5150);for(const b of BLOCKS){if(b.home||R()<.45)continue;for(let t=0;t<30;t++){const x=Math.round(b.x+60+R()*(BLOCK-160)),y=Math.round(b.y+BACK+40+R()*110);
  if(!b.props.some(o=>!o.flat&&x<o.x+o.w+30&&x+26>o.x-30&&y<o.y+o.h+24&&y+14>o.y-24)&&!b.blockers.some(o=>x<o.x+o.w+20&&x+26>o.x-20&&y<o.y+o.h+20&&y+14>o.y-20)&&!b.ground.some(g=>g.kind==='water'&&x<g.x+g.w+20&&x+26>g.x-20&&y<g.y+g.h&&y+14>g.y)){CACHES.push(P(`cache-${b.i}${b.j}`,'cache',x,y,26,14,10));break;}}}}
-// The first job (street/fight.js): Curtis Webb's ham radio in his house in the back-yard maze to the north-west, Ray Dunham's
-// generator and work light by the site office on the building site to the north-east, and the go-bag Linda Hargrove buried under a
-// tarp in her back yard by the creek, south-west.
+// The first job (street/jobs.js): Curtis Webb's ham radio in his house in the back-yard maze to the north-west, Ray Dunham's
+// generator and work light by the site office on the building site to the north-east, and the go-bag Linda Hargrove keeps in her
+// shed by the creek, south-west. The Castillos' car (its battery is for the radio) and her shed are the job's, not for searching.
 const blockOf=(i,j)=>BLOCKS.find(b=>b.i===i&&b.j===j);
 export const RADIO_HOUSE=blockOf(0,1).houses[1];
 const SO=blockAt(2,0),GEN={x:SO.x+470,y:SO.y+BACK+250};
-const JOB_PROPS=[P('job-gen','generator',GEN.x,GEN.y,22,14,18,{job:'power'}),P('job-light','floodlight',GEN.x+38,GEN.y-2,16,10,44,{job:'power'}),P('job-pack','cache',PACK_AT.x,PACK_AT.y,26,14,10,{job:'supplies'})];
+const JOB_PROPS=[P('job-gen','generator',GEN.x,GEN.y,22,14,18,{job:'power'}),P('job-light','floodlight',GEN.x+38,GEN.y-2,16,10,44,{job:'power'})];
 export const PROPS=[...BLOCKS.flatMap(b=>b.props),...CACHES,...JOB_PROPS,...EDGE_TREES,...FIELD_FENCES];
+for(const [id,job] of [['b00-car3','radio'],['d02-h-shed','supplies']])PROPS.find(o=>o.id===id).job=job;
+// Where you stand guard while the generator warms up: under the work light.
+export const HOLD_AT={x:GEN.x+46,y:GEN.y+3};
 // What stops feet: everything standing up, by its footprint or, for a tree, its trunk. What stops bullets: anything 20 or more tall
 // you cannot see through.
 const boxOf=o=>o.box?{x:o.x+o.box[0],y:o.y+o.box[1],w:o.box[2],h:o.box[3]}:{x:o.x,y:o.y,w:o.w,h:o.h};
@@ -78,13 +81,38 @@ const SPOTS=PROPS.filter(o=>SEARCHABLE[o.kind]&&!o.job).map(o=>({id:'search-'+o.
 // tailgate once it is there. Where the truck pulls up: on your street in the far lane, nose west, just short of the last side street.
 export const EVAC={x:CROSSES[COLS].x-150,y:HOME_ROAD.y+26};
 export const TRUCK={x:EVAC.x-120,y:HOME_ROAD.y+56,w:200,h:60,z:64,from:STREET.w+60};
-const jobAt=(o,e)=>({prop:o.id,...standAt(o),mx:o.x+o.w/2,my:o.y-o.z-6,...e});
-const RH=RADIO_HOUSE,RD=RH.door0+17,RB=BLOCKS.find(b=>b.houses.includes(RH));
-const JOB_SPOTS=[{id:'job-radio',job:'radio',prop:RH.id,verb:'Search',name:'The Webb house',role:'Curtis\'s ham radio',x:RD,y:RB.y+FRONT+WALL_T+20,mx:RD,my:RB.y+FRONT-Z-6,range:34},
- jobAt(PROPS.find(o=>o.id==='job-gen'),{id:'job-power',job:'power',verb:'Start',name:'Ray\'s generator',role:'Pull the cord',range:36}),
- jobAt(PROPS.find(o=>o.id==='job-pack'),{id:'job-supplies',job:'supplies',verb:'Take',name:'Mrs. Hargrove\'s go-bag',role:'Under the tarp',range:32}),
- {id:'evac',job:'evac',verb:'Call',name:'The bus lot',role:'Call the truck in',x:EVAC.x,y:EVAC.y,mx:EVAC.x,my:EVAC.y-26,range:40},
- {id:'board',job:'board',verb:'Get in',name:'The truck',role:'Time to go',x:TRUCK.x+TRUCK.w+12,y:TRUCK.y+TRUCK.h/2,mx:TRUCK.x+TRUCK.w-10,my:TRUCK.y-TRUCK.z+4,range:46}];
+const RH=RADIO_HOUSE,RD=RH.door0+17,RB=BLOCKS.find(b=>b.houses.includes(RH)),RADIO={x:RD,y:RB.y+FRONT+WALL_T+20,mx:RD,my:RB.y+FRONT-Z-6,range:34};
+// The job, a step at a time (street/jobs.js USES says what each use does). The radio: the battery out of the Castillos' car (their
+// keys are in the house; without them, smash the window), carried to Curtis's, wired up and tuned. The generator: Ray's can is
+// empty, so fill it from a parked car's tank or the gas station's, carry it back, pour it in and pull the cord. The go-bag: the note
+// on Mrs. Hargrove's door, then the key off her (she went to the park) or the hasp pried off her shed. A part you set down is
+// picked up where it lies; her body is wherever she fell. mark is what the marker over a spot says while it is the one to go to.
+const houseDoor=id=>{const h=HOUSES.find(o=>o.id===id),b=BLOCKS.find(q=>q.houses.includes(h)),d=h.door0+17;return {x:d,y:b.y+FRONT+WALL_T+20,mx:d,my:b.y+FRONT-Z-6,range:34};};
+const at=id=>{const o=PROPS.find(q=>q.id===id);return {...standAt(o),mx:o.x+o.w/2,my:o.y-o.z-6};},AWAY={x:-1e4,y:-1e4,mx:-1e4,my:-1e4};
+const C=(id,use,job,verb,name,role,where,e={})=>({id,use,job,verb,name,role,range:34,...where,...e});
+// A car's tank, at whichever end of it you can stand.
+const tank=o=>{for(const x of [o.x-12,o.x+o.w+12])if(!solidAt(x,o.y+o.h/2,9))return {x,y:o.y+o.h/2,mx:x<o.x?o.x+12:o.x+o.w-12,my:o.y-o.z+10};return null;};
+const CHAIN_SPOTS=[C('chain-keys','keys','radio','Search','The Castillo house','Their car keys, maybe',houseDoor('b00-h3')),
+ C('chain-smash','smash','radio','Smash','The Castillos\' car','Break a window for the battery. Loud',at('b00-car3'),{range:44,mark:'Battery'}),
+ C('chain-open','open','radio','Open','The Castillos\' car','Their keys work',at('b00-car3'),{range:44,mark:'Battery'}),
+ C('chain-set','set','radio','Set down','The Webb house','Curtis\'s ham radio',RADIO,{mark:'Radio'}),
+ C('chain-wire','wire','radio','Wire','The Webb house','The battery to the radio',RADIO,{mark:'Radio'}),
+ C('job-radio','tune','radio','Tune','The Webb house','Find the Guard',RADIO,{mark:'Radio'}),
+ C('chain-check','check','power','Check','Ray\'s generator','Is there fuel in it?',at('job-gen'),{range:36,mark:'Generator'}),
+ C('chain-store','store','power','Fill','The gas station','The hand pump on the tank',{x:3600,y:4490,mx:3600,my:4466},{mark:'Fuel'}),
+ C('chain-fill','fill','power','Fill','Ray\'s generator','Pour the fuel in',at('job-gen'),{range:36,mark:'Generator'}),
+ C('job-power','start','power','Start','Ray\'s generator','Pull the cord',at('job-gen'),{range:36,mark:'Generator'}),
+ C('chain-note','note','supplies','Read','The Hargrove house','A note on the door',houseDoor('d02-hargrove'),{mark:'Hargrove'}),
+ C('chain-body','body','supplies','Search','Mrs. Hargrove','Her cardigan pockets',AWAY,{range:30,mark:'Her key'}),
+ C('chain-pry','pry','supplies','Pry','Mrs. Hargrove\'s shed','Force the hasp. Slow and loud',at('d02-h-shed'),{range:38}),
+ C('chain-unlock','unlock','supplies','Unlock','Mrs. Hargrove\'s shed','With her key',at('d02-h-shed'),{range:38,mark:'Shed'}),
+ C('job-supplies','bag','supplies','Take','Mrs. Hargrove\'s go-bag','On the shelf, packed',at('d02-h-shed'),{range:38,mark:'Go-bag'}),
+ C('drop-battery','drop','part','Pick up','The car battery','Where you set it down',AWAY,{item:'battery',range:26,mark:'Battery'}),
+ C('drop-fuel','drop','part','Pick up','The gas can','Where you set it down',AWAY,{item:'fuel',range:26,mark:'Fuel'}),
+ ...PROPS.filter(o=>o.kind==='car'&&!o.job).map(o=>{const w=tank(o);return w&&C('siphon-'+o.id,'siphon','power','Siphon','Gas tank','Fill the can. Might set off the alarm',w,{range:26});}).filter(Boolean)];
+const JOB_SPOTS=[...CHAIN_SPOTS,
+ {id:'evac',job:'evac',verb:'Call',name:'The bus lot',role:'Call the truck in',x:EVAC.x,y:EVAC.y,mx:EVAC.x,my:EVAC.y-26,range:40,mark:'Call the truck'},
+ {id:'board',job:'board',verb:'Get in',name:'The truck',role:'Time to go',x:TRUCK.x+TRUCK.w+12,y:TRUCK.y+TRUCK.h/2,mx:TRUCK.x+TRUCK.w-10,my:TRUCK.y-TRUCK.z+4,range:46,mark:'Truck'}];
 // The big buildings' doors: shut tonight, every one.
 const door=(id,name,role,dx,lines,verb='Try')=>{const o=PROPS.find(q=>q.id===id);return {id:'door-'+id,prop:id,verb,name,role,x:o.x+dx,y:o.y+o.h+16,mx:o.x+dx,my:o.y+o.h-Math.min(o.z,80)-6,range:36,lines};};
 const DOORS=[door('d01-church','St. Brendan\'s','The church doors',130,['Barred from the inside.','Somebody in there is praying. Out loud. Over and over.'],'Knock'),
@@ -95,7 +123,7 @@ export const OBJECTS=[
  {id:'cruiser',prop:'cruiser',verb:'Search',name:'Police cruiser',role:'The trunk',x:cr.x+22,y:cr.y+cr.h+12,mx:cr.x+22,my:cr.y-cr.z-4,range:44},
  {id:'door-e1',prop:'east1',verb:'Knock',name:'The Suttons\' house',role:'Next door',...H(1077,150),mx:HOME.x+1077,my:HOME.y+FRONT-Z-6,range:34,lines:['Mrs. Sutton? It\'s me, from next door.','A candle moves away from the glass and goes out.']},
  {id:'door-w',prop:'west',verb:'Knock',name:'The corner house',role:'Next door',...H(157,150),mx:HOME.x+157,my:HOME.y+FRONT-Z-6,range:34,lines:['Door\'s open a crack. Pitch black in there, and it smells wrong.','I\'m pulling it shut.']},
- ...BLOCKS.filter(b=>!b.home).flatMap(b=>b.houses.map((h,k)=>{if(h===RADIO_HOUSE)return null;const d=h.door0+17,s=(b.i*5+b.j)*3+k,at={x:d,y:b.y+FRONT+WALL_T+20,mx:d,my:b.y+FRONT-Z-6,range:34,name:NAMED[h.id.split('-').pop()]||NAMES[s%NAMES.length]};
+ ...BLOCKS.filter(b=>!b.home).flatMap(b=>b.houses.map((h,k)=>{if(h===RADIO_HOUSE||h.id==='b00-h3'||h.id==='d02-hargrove')return null;const d=h.door0+17,s=(b.i*5+b.j)*3+k,at={x:d,y:b.y+FRONT+WALL_T+20,mx:d,my:b.y+FRONT-Z-6,range:34,name:NAMED[h.id.split('-').pop()]||NAMES[s%NAMES.length]};
   return s%3&&!NAMED[h.id.split('-').pop()]?{id:'search-'+h.id,prop:h.id,loot:'house',verb:'Search',role:'The door is not locked',...at}:{id:'door-'+h.id,prop:h.id,verb:'Knock',role:'A neighbour',...at,lines:KNOCKS[(s*7+3)%KNOCKS.length]};})),
  ...DOORS,...SPOTS,...JOB_SPOTS].filter(Boolean);
 // The dead. Each has a look (zombie looks in street/scene.js), where it starts, and when it comes: wave 1 is the cop at the cruiser
@@ -120,6 +148,10 @@ export const ROAMERS=[];{const R=rng(9091),LOOKS=['neighbour','jogger','robe','w
  const near=(id,dx,dy)=>{const o=OBJECTS.find(q=>q.id===id);return [o.x+dx,o.y+dy];};
  put('screamer',...near('job-radio',-160,40));put('bloater',...near('job-power',140,70));put('spitter',...near('job-supplies',120,-60));
  for(const b of BLOCKS){if(b.home||R()>.4)continue;const kind=['screamer','bloater','spitter'][Math.floor(R()*3)];put(kind,b.x+100+R()*(BLOCK-200),b.y+(R()<.6?180+R()*180:BACK+40+R()*100));}}
+// Mrs. Hargrove, who went to the park after her dog and did not come back, and two who were there with her. Last, so every other
+// wanderer keeps its place in the list.
+{const R=rng(2718),put=(look,x,y,who)=>{for(let t=0;t<40;t++){const px=Math.round(x+(R()-.5)*t*10),py=Math.round(y+(R()-.5)*t*8);if(!solidAt(px,py,10)){ROAMERS.push({look,x:px,y:py,...(who?{who}:{})});return;}}};
+ put('hargrove',1000,4480,'hargrove');put('neighbour',1070,4520);put('jogger',940,4440);}
 // The cop turns round when you come this close, or the moment you fire. Wanderers notice you as close, and hear a shot from further.
 export const NOTICE=190,HEAR=420;
 // Light: the moon in patches over everything, a candle in a window here and there, and the cruiser's one working headlight.

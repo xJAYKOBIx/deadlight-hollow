@@ -145,19 +145,57 @@ test('climbing: push into a low fence for a moment and you hop over it, bites mi
  const side=PROPS.find(o=>o.kind==='woodfenceV');Object.assign(m,{x:side.x-m.radius*.85-1,y:side.y+side.h/2});f.vault=null;run(f,m,VAULT.push+VAULT.time+.1,()=>({x:1,y:0}));assert.ok(m.x>side.x+side.w,'over the side fence');
  // The farm fence round the edge of town stays shut.
  const farm=PROPS.find(o=>o.id==='farm-n2');Object.assign(m,{x:farm.x+300,y:farm.y+farm.h+m.radius*.85+1});run(f,m,1,up);assert.ok(m.y>farm.y,'still inside the farm fence');});
-test('the first job: three things anywhere in town in any order, then call the truck, hold out, and get in the back',async()=>{const {JOB}=await import('../dist/street/fight.js');const {jobsDone,GO_BAG}=await import('../dist/home/kit.js');const {TARGETS}=await import('../dist/street/model.js');
- const {box,m,f}=setup({...armed(),street:'done'}),T=id=>TARGETS.find(t=>t.id===id),at=t=>Object.assign(m,{x:t.x,y:t.y});f.zombies.length=0;
- assert.match(goal(box.k,true),/radio.*generator.*go-bag/);assert.equal(f.can(T('evac')),false,'the truck cannot be called yet');assert.equal(f.can(T('board')),false);
- for(const id of ['job-radio','job-power','job-supplies'])assert.ok(!solidAt(T(id).x,T(id).y,8),id+' can be reached');
- // The go-bag first: a moment standing still, then it is in your bag. Moving stops a job.
- at(T('job-supplies'));const shells=count(box.k.bag,'shells');assert.ok(f.work(T('job-supplies')));run(f,m,.3,()=>({x:1,y:0}));assert.equal(f.searching,null,'walking off stops it');
- at(T('job-supplies'));f.work(T('job-supplies'));run(f,m,JOB.time.supplies+.1);assert.deepEqual(box.k.mission.done,['supplies']);assert.equal(count(box.k.bag,'shells'),shells+GO_BAG.find(([id])=>id==='shells')[1]);assert.equal(f.can(T('job-supplies')),false);
- // The generator is loud: the heat jumps and a horde comes a few seconds later.
- at(T('job-power'));f.work(T('job-power'));run(f,m,JOB.time.power+.1);assert.ok(box.k.mission.done.includes('power'));assert.ok(f.heat>=JOB.power.noise);f.drain();run(f,m,JOB.power.horde+.1);assert.ok(f.drain().some(e=>e.type==='horde'),'a horde heard it');
- // Going down after a job keeps the job done.
- at(T('job-radio'));f.work(T('job-radio'));run(f,m,JOB.time.radio+.1);assert.ok(jobsDone(box.k));f.hurt(999,{x:m.x+10,y:m.y});run(f,m,3.2);assert.ok(jobsDone(box.k),'still done after going down');assert.match(goal(box.k,true),/east end/);
- // The call: a hold-out against hordes (on night one it goes wrong; see the next test).
- f.zombies.length=0;at(T('evac'));assert.ok(f.can(T('evac')));f.work(T('evac'));assert.equal(f.evac.state,'hold');f.drain();
+// The first job's helpers: stand at a spot and use it (a moment standing still), or work a fix by tapping when the cursor is in its zone.
+const jobKit=async()=>{const J=await import('../dist/street/jobs.js');const {TARGETS}=await import('../dist/street/model.js');const K=await import('../dist/home/kit.js');
+ const g=setup({...armed(),street:'done'}),{m,f}=g,T=id=>TARGETS.find(t=>t.id===id),calm=()=>{f.zombies.length=0;f.patrolT=999;f.hp=PLAYER_HP;};
+ const use=id=>{calm();const t=T(id);Object.assign(m,{x:t.x,y:t.y});assert.ok(f.work(t),'can use '+id);run(f,m,J.USES[t.use].time+.05);};
+ const fix=id=>{calm();const t=T(id);Object.assign(m,{x:t.x,y:t.y});assert.ok(f.work(t),'can fix '+id);for(let n=0;f.jobs.fix&&n<3000;n++){calm();const v=f.jobs.view();if(!v.zone||v.cur>v.zone[0]+.01&&v.cur<v.zone[1]-.01)f.jobs.tap();run(f,m,1/60);}assert.equal(f.jobs.fix,null,id+' fixed');};
+ return {...g,J,K,T,calm,use,fix,step:id=>K.stepOf(g.box.k,id)};};
+test('the first job is three chains of steps, anywhere in town and in any order, and every spot can be reached',async()=>{const {box,f,T,J}=await jobKit();
+ assert.match(goal(box.k,true),/battery.*fuel.*Hargrove/);assert.equal(f.can(T('evac')),false,'the truck cannot be called yet');assert.equal(f.can(T('board')),false);
+ for(const t of OBJECTS.filter(o=>o.use&&o.x>0))assert.ok(!solidAt(t.x,t.y,8),t.id+' can be reached');
+ assert.ok(OBJECTS.filter(o=>o.use==='siphon').length>20,'nearly every parked car has a tank to siphon');assert.ok(!OBJECTS.some(o=>o.id==='search-b00-car3'||o.id==='search-d02-h-shed'),'the job\'s car and shed are not for searching');
+ assert.equal(ROAMERS.filter(r=>r.who==='hargrove').length,1,'Mrs. Hargrove is out there');for(const id of Object.keys(J.USES))assert.ok(OBJECTS.some(o=>o.use===id),id+' has a spot');});
+test('the radio: the battery out of the car (keys are quiet, a window is not), carried by hand, wired up and tuned',async()=>{const {box,m,f,T,K,J,use,fix,step,calm}=await jobKit();
+ // Smashing the window sets the alarm off; with the keys from the house it is quiet.
+ calm();Object.assign(m,{x:T('chain-smash').x,y:T('chain-smash').y});assert.ok(f.work(T('chain-smash')));assert.ok(f.drain().some(e=>e.type==='alarm'),'a smashed window is an alarm');
+ const q=await jobKit();q.use('chain-keys');assert.ok(q.box.k.mission.have.includes('keys'));assert.equal(q.f.can(q.T('chain-smash')),false,'no need to smash it now');q.f.drain();q.use('chain-open');
+ assert.ok(!q.f.drain().some(e=>e.type==='alarm'),'the keys are quiet');assert.equal(q.box.k.mission.carry,'battery');assert.equal(q.step('radio'),'carry');
+ // In your hands: slower, the pistol out, no searching, no climbing; a dive sets it down and you pick it up again.
+ assert.equal(q.box.k.held,'light-pistol');run(q.f,q.m,.1);assert.equal(q.m.slow,J.CARRY.slow);assert.equal(q.f.scavenge(OBJECTS.find(o=>o.loot)),false);
+ q.f.diveFrom({x:1,y:0});run(q.f,q.m,.8);assert.equal(q.box.k.mission.carry,null);assert.equal(q.box.k.mission.drops[0].item,'battery');assert.ok(q.f.can(q.T('drop-battery')));q.use('drop-battery');assert.equal(q.box.k.mission.carry,'battery');
+ // Going down puts it back where you lifted it.
+ q.f.hurt(999,{x:q.m.x+10,y:q.m.y});run(q.f,q.m,3.2);assert.equal(q.box.k.mission.carry,null);assert.deepEqual(q.box.k.mission.drops.map(d=>[d.item,d.x,d.y]),[['battery',q.T('chain-open').x,q.T('chain-open').y]]);
+ q.use('drop-battery');q.use('chain-set');assert.equal(q.step('radio'),'wire');assert.equal(q.box.k.mission.carry,null);
+ // Wiring: a miss sparks and makes noise; a bite starts it over; walking off keeps your place.
+ q.calm();Object.assign(q.m,{x:q.T('chain-wire').x,y:q.T('chain-wire').y});q.f.work(q.T('chain-wire'));const x=q.f.jobs.fix.g;x.c=.0;const heat=q.f.heat;q.f.jobs.tap();assert.ok(q.f.heat>heat,'a spark is a noise');
+ x.c=J.FIX.wire.posts[0];q.f.jobs.tap();assert.equal(x.k,1);q.f.hurt(5,{x:q.m.x+10,y:q.m.y});assert.equal(q.f.jobs.fix,null);assert.equal(x.k,0,'a bite starts the wiring over');
+ q.f.work(q.T('chain-wire'));q.f.jobs.fix.g.c=J.FIX.wire.posts[0];q.f.jobs.tap();run(q.f,q.m,.2,()=>({x:1,y:0}));assert.equal(q.f.jobs.fix,null,'walking off stops it');q.fix('chain-wire');assert.equal(q.step('radio'),'tune');
+ // Tuning: the static carries, and finding the Guard finishes the job.
+ q.f.drain();q.fix('job-radio');const ev=q.f.drain();assert.ok(ev.some(e=>e.type==='static'));assert.ok(ev.some(e=>e.type==='job'&&e.job==='radio'));assert.ok(q.box.k.mission.done.includes('radio'));});
+test('the generator: Ray\'s can, fuel from a car or the gas station, primed and pulled, then the light held while the dead come',async()=>{const {box,m,f,T,J,use,fix,step,calm}=await jobKit();const {JOB}=await import('../dist/street/fight.js');const {HOLD_AT}=await import('../dist/street/data.js');
+ assert.equal(f.can(T('siphon-d12-car0')),false,'nothing to siphon into yet');use('chain-check');assert.ok(box.k.mission.have.includes('can'));use('chain-store');assert.equal(box.k.mission.carry,'fuel');assert.equal(step('power'),'carry');
+ use('chain-fill');assert.ok(!box.k.mission.have.includes('can'));assert.equal(step('power'),'start');
+ // Priming makes no noise; every pull does, and the third always catches.
+ calm();Object.assign(m,{x:T('job-power').x,y:T('job-power').y});f.work(T('job-power'));const P=f.jobs.fix.g;for(let i=0;i<J.FIX.pull.prime;i++)f.jobs.tap();assert.equal(P.prime,J.FIX.pull.prime);
+ const h0=f.heat;P.c=.1;f.jobs.tap();assert.ok(f.heat>=h0+J.NOISE.pull.heat,'a pull is loud');assert.equal(P.pulls,1);P.c=.1;f.jobs.tap();f.drain();P.c=.1;f.jobs.tap();
+ assert.ok(f.drain().some(e=>e.type==='started'),'the third pull catches');assert.equal(step('power'),'hold');assert.ok(f.heat>=JOB.power.noise);
+ // A horde heard it. Hold the light: time away runs it back down.
+ f.drain();run(f,m,JOB.power.horde+.1,()=>{f.hp=PLAYER_HP;return {};});assert.ok(f.drain().some(e=>e.type==='horde'),'a horde heard it');
+ calm();Object.assign(m,{x:HOLD_AT.x,y:HOLD_AT.y});run(f,m,10,()=>{calm();return {};});const held=f.jobs.hold;Object.assign(m,{x:HOLD_AT.x+J.HOLD.r+200,y:HOLD_AT.y});run(f,m,4,()=>{calm();return {};});assert.ok(f.jobs.hold<held-1.5,'it runs back while you are away');
+ Object.assign(m,{x:HOLD_AT.x,y:HOLD_AT.y});f.drain();run(f,m,J.HOLD.time,()=>{calm();return {};});assert.ok(f.drain().some(e=>e.type==='job'&&e.job==='power'));assert.ok(box.k.mission.done.includes('power'));});
+test('the go-bag: the note on her door, then her key off her in the park or her shed forced open, loud',async()=>{const {box,m,f,T,K,use,step,calm}=await jobKit();
+ assert.equal(f.can(T('chain-pry')),false,'nothing says to go to the shed yet');use('chain-note');assert.equal(step('supplies'),'hunt');
+ // Prying is loud and skips her key.
+ const p=await jobKit();p.use('chain-note');p.calm();Object.assign(p.m,{x:p.T('chain-pry').x,y:p.T('chain-pry').y});const h0=p.f.heat;assert.ok(p.f.work(p.T('chain-pry')));assert.ok(p.f.heat>h0,'prying is loud');run(p.f,p.m,4.1);assert.equal(p.step('supplies'),'bag');
+ // Or find her: put her down and her key is on her.
+ f.start();const her=f.jobs.her();assert.ok(her,'she walks the park');assert.ok(f.jobs.marks().some(k=>k.mark==='Mrs. Hargrove'),'she is marked while you hunt');f.hit(her,999,1,0);assert.equal(her.gore,null,'she stays whole');
+ f.zombies.length=0;f.zombies.push(her);f.jobs.place();const b=T('chain-body');assert.ok(Math.hypot(b.x-her.x,b.y-her.y)<12,'her body is where she fell');Object.assign(m,{x:b.x,y:b.y});f.patrolT=999;assert.ok(f.work(b));run(f,m,1.6);
+ assert.ok(box.k.mission.have.includes('shedkey'));use('chain-unlock');const shells=count(box.k.bag,'shells');use('job-supplies');assert.ok(box.k.mission.done.includes('supplies'));assert.equal(count(box.k.bag,'shells'),shells+K.GO_BAG.find(([id])=>id==='shells')[1]);});
+test('with the three jobs done the truck is called, and the hold-out brings the hordes; going down keeps the jobs done',async()=>{const {JOB}=await import('../dist/street/fight.js');const {jobsDone}=await import('../dist/home/kit.js');const {TARGETS}=await import('../dist/street/model.js');
+ const done={done:['radio','power','supplies'],out:false,step:{},have:[],carry:null,drops:[]},{box,m,f}=setup({...armed(),street:'done',mission:done}),T=id=>TARGETS.find(t=>t.id===id);f.zombies.length=0;
+ f.hurt(999,{x:m.x+10,y:m.y});run(f,m,3.2);assert.ok(jobsDone(box.k),'still done after going down');assert.match(goal(box.k,true),/east end/);
+ f.zombies.length=0;Object.assign(m,{x:T('evac').x,y:T('evac').y});assert.ok(f.can(T('evac')));f.work(T('evac'));assert.equal(f.evac.state,'hold');f.drain();
  run(f,m,JOB.evac.every*3+.5,()=>{f.hp=PLAYER_HP;return {};});assert.ok(f.drain().filter(e=>e.type==='horde').length>=3,'hordes come all through the hold-out');});
 test('night one ends in the hold-out: overrun, he dies and gets up, and the one who watched puts him down and takes his gear to the truck',async()=>{
  const {DEATH,RISEN,JOB}=await import('../dist/street/fight.js');const K=await import('../dist/home/kit.js');const {TARGETS}=await import('../dist/street/model.js');

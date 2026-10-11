@@ -14,13 +14,28 @@ export const FRESH=true;
 // trunk waits; looted: you took what was in it and more are coming; done: the street is quiet.
 export const STREET_STAGES=['start','cleared','looted','done'];
 // The cruiser's trunk: a box of shells and a carton of rifle rounds, for a rifle you do not have yet.
-// The first job, once the street is quiet: three things to do anywhere in town, in any order, then the truck out. done lists the
-// ones finished; out is true once you are on the truck.
+// The first job, once the street is quiet: three jobs anywhere in town, in any order, then the truck out. Each job is a chain of
+// steps (street/jobs.js). done lists the jobs finished and step how far along each one is; have holds what you have found for
+// them (the Castillos' car keys, Ray's empty can, Mrs. Hargrove's shed key); carry is the heavy part in your hands and drops the
+// ones you set down and where; out is true once you are on the truck.
 export const JOBS=['radio','power','supplies'];
+export const CHAINS={radio:['battery','carry','wire','tune'],power:['fuel','carry','start','hold'],supplies:['note','hunt','shed','bag']};
+export const HAVE=['keys','can','shedkey'],PARTS=['battery','fuel'];
+export const stepOf=(k,id)=>k.mission?.done.includes(id)?'done':CHAINS[id][k.mission?.step?.[id]||0];
+// A step done: the next one, or the job finished once the last is.
+export function stepOn(k,id,grid){const m=k.mission,n=(m.step[id]||0)+1;if(n>=CHAINS[id].length)return job(k,id,grid);return {...k,mission:{...m,step:{...m.step,[id]:n}}};}
+// Jumping to a later step (prying the shed open skips her key).
+export const stepTo=(k,id,s)=>({...k,mission:{...k.mission,step:{...k.mission.step,[id]:CHAINS[id].indexOf(s)}}});
+export const give=(k,h)=>k.mission.have.includes(h)?k:{...k,mission:{...k.mission,have:[...k.mission.have,h]}};
+export const spend=(k,h)=>({...k,mission:{...k.mission,have:k.mission.have.filter(x=>x!==h)}});
+// Picking a part up (it goes in your hands; you put the shotgun on your back for the pistol) and setting it down where you stand.
+export const lift=(k,item)=>({...k,held:k.guns['light-pistol']?'light-pistol':k.held,mission:{...k.mission,carry:item,drops:k.mission.drops.filter(d=>d.item!==item)}});
+export const setDown=(k,x,y)=>{const c=k.mission.carry;return c?{...k,mission:{...k.mission,carry:null,drops:[...k.mission.drops.filter(d=>d.item!==c),{item:c,x,y}]}}:k;};
+export const delivered=k=>({...k,mission:{...k.mission,carry:null}});
 // What the survivor's go-bag holds.
 export const GO_BAG=[['shells',12],['cloth',2],['gun-oil',1],['powder',2]];
 // Finishing a job, and getting on the truck.
-export function job(k,id,grid=carrying({})){if(!JOBS.includes(id)||k.mission.done.includes(id))return k;return {...k,bag:id==='supplies'?pack(k,grid,GO_BAG):k.bag,mission:{...k.mission,done:[...k.mission.done,id]}};}
+export function job(k,id,grid=carrying({})){if(!JOBS.includes(id)||k.mission.done.includes(id))return k;return {...k,bag:id==='supplies'?pack(k,grid,GO_BAG):k.bag,mission:{...k.mission,done:[...k.mission.done,id],step:{...k.mission.step,[id]:CHAINS[id].length}}};}
 export const jobsDone=k=>JOBS.every(id=>k.mission?.done.includes(id));
 export const board=k=>({...k,mission:{...k.mission,out:true}});
 export const TRUNK=[['shells',12],['rounds',30]];
@@ -47,7 +62,10 @@ export function normalizeHome(v,grid=carrying({})){const guns={};for(const id of
  // Saves from before the bag kept the shotgun's spare shells on the gun; they move into the bag.
  if(!v?.bag&&guns['pump-shotgun'])bag=add(bag,grid,'shells',Math.max(0,Math.floor(Number(v.guns['pump-shotgun'].reserve)||0)));
  const street=STREET_STAGES.includes(v?.street)?v.street:'start',looted=[...new Set((Array.isArray(v?.looted)?v.looted:[]).filter(id=>typeof id==='string'))];
- const mission={done:[...new Set((Array.isArray(v?.mission?.done)?v.mission.done:[]).filter(id=>JOBS.includes(id)))],out:v?.mission?.out===true};
+ const M=v?.mission,done=[...new Set((Array.isArray(M?.done)?M.done:[]).filter(id=>JOBS.includes(id)))],step={};
+ for(const id of JOBS)step[id]=done.includes(id)?CHAINS[id].length:Math.max(0,Math.min(CHAINS[id].length-1,Math.floor(Number(M?.step?.[id])||0)));
+ const drops=[];for(const d of Array.isArray(M?.drops)?M.drops:[])if(PARTS.includes(d?.item)&&!drops.some(e=>e.item===d.item)&&Number.isFinite(Number(d.x))&&Number.isFinite(Number(d.y)))drops.push({item:d.item,x:Number(d.x),y:Number(d.y)});
+ const mission={done,out:M?.out===true,step,have:[...new Set((Array.isArray(M?.have)?M.have:[]).filter(h=>HAVE.includes(h)))],carry:PARTS.includes(M?.carry)&&!drops.some(d=>d.item===M.carry)?M.carry:null,drops};
  const phase=PHASES.includes(v?.phase)?v.phase:'tutorial',c=v?.corpse,corpse=phase==='own'&&c?{guns:normGuns(c.guns),held:c.held??null,bag:normalizeBag(c.bag,BIGGEST),x:Number(c.x)||0,y:Number(c.y)||0,dir:Number(c.dir)>=0&&Number(c.dir)<8?Number(c.dir)|0:2,taken:c.taken===true}:null;
  return {woke:v?.woke===true,light:v?.light===true,guns,held,bag,searched,street,looted,mission,phase,corpse};}
 export function readHome(storage,grid,fresh=FRESH){if(fresh)return normalizeHome(null,grid);try{return normalizeHome(JSON.parse(storage.getItem(HOME_KEY)),grid);}catch{return normalizeHome(null,grid);}}
@@ -84,12 +102,17 @@ export const spare=(k,id)=>ammoOf(id)?count(k.bag,ammoOf(id)):Infinity;
 export function rounds(k,id=k.held){const g=k.guns[id];if(!g)return '';const s=spare(k,id);return `${g.ammo} / ${s===Infinity?'∞':s}`;}
 // What to do next, shown under the place name. outside is true on the street.
 export const JOB_NAMES={radio:'find a radio',power:'start the generator',supplies:'get the go-bag'};
+// What each step asks of you, as the goal line says it.
+export const STEP_GOALS={radio:{battery:'get the battery out of the Castillos\' car',carry:'carry the battery to Curtis Webb\'s',wire:'wire up Curtis\'s radio',tune:'find the Guard on the radio'},
+ power:{fuel:'find fuel for Ray\'s generator',carry:'carry the fuel to Ray\'s generator',start:'start the generator',hold:'stay by the light while it warms up'},
+ supplies:{note:'go to Mrs. Hargrove\'s house',hunt:'find Mrs. Hargrove in the park, or force her shed',shed:'open her shed with her key',bag:'take the go-bag'}};
 export function goal(k,outside=false){if(!k.woke)return '';const p=found(k,'light-pistol'),s=found(k,'pump-shotgun');
  if(k.phase==='own'){if(k.mission?.out)return 'You made it out';return k.corpse&&!k.corpse.taken?'Put him down, and take back what he carried':'Get to the truck at the east end of the street';}
  if(!k.light&&!outside)return 'Find the flashlight in the kitchen';
  if(!p&&!s)return 'Find something to protect yourself with';
  if(k.street==='done'&&k.mission){const m=k.mission;if(m.out)return 'You made it out';if(jobsDone(k))return 'Call the truck at the east end of your street';
-  return 'Get ready to leave: '+JOBS.filter(id=>!m.done.includes(id)).map(id=>JOB_NAMES[id]).join(', ');}
+  if(m.carry)return STEP_GOALS[m.carry==='battery'?'radio':'power'].carry[0].toUpperCase()+STEP_GOALS[m.carry==='battery'?'radio':'power'].carry.slice(1);
+  return 'Get ready to leave: '+JOBS.filter(id=>!m.done.includes(id)).map(id=>STEP_GOALS[id][stepOf(k,id)]).join(', ');}
  if(outside||k.street!=='start')return {start:'See what crashed down the street',cleared:'Search the police cruiser',looted:'Hold them off',done:'The street is quiet, for now'}[k.street];
  return 'Go and see what crashed down the street';}
 // What the nightstand, the closet, the searchable spots and the front door say, and what using them does. act names what

@@ -191,7 +191,6 @@ function park(i,r){const K=kit(i,r,'park'),{Q,G,B}=K,f=FW(1);
  Q('h-rear','woodfence',1230,604,390,4,30);Q('h-side','woodfenceV',1229,608,6,f-150-614,30);Q('h-shed','shed',1500,640,64,44,46,{fade:true});
  K.woods('ne',1220,20,400,560,110);K.woods('s',20,1220,BLOCK-40,560,120,[[CREEK.x-80,1200,200,600]]);Q('rock-2','boulder',600,1400,40,24,18,{variant:1});Q('rock-3','boulder',1400,1620,40,24,18,{variant:2});K.poles(1);
  return K.bands;}
-export const PACK_AT=(()=>{const o=blockAt(0,6);return {x:o.x+1300,y:o.y+BACK+640};})();
 // Shops and the gas station, south: a strip of four shops facing their car park, the service lot behind them on the street to the
 // north, the gas station at the corner with its canopy, pumps and tall sign, a car that hit the pumps with its lights still on,
 // and over the road a used-car lot full of alarms.

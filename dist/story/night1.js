@@ -38,9 +38,17 @@ export const SCRIPT={
  trunk:[['marcus','Trunk release is under the dash...'],['marcus','Shells. Rifle rounds. Flares. Taking all of it.']],
  // Scene 5. The radio once the street is quiet, and the three jobs.
  radio:[['guard','...anyone still on the east side, this is Guard two-six.'],['guard','One truck comes through the Hollow tonight. East end of the middle street.'],['guard','We won\'t drive into a dark town blind. Get on a radio and light us a way in.'],
-  ['marcus','That\'s our street. And this handset\'s smashed.'],['marcus','Curtis Webb has a ham radio. Two blocks north-west.'],['marcus','Ray Dunham keeps a generator and a work light, out north-east.'],
-  ['marcus','And Mrs. Hargrove buried a go-bag in her yard, south-west. "For when it happens."'],['marcus','Well. It happened.']],
- job:{radio:[['marcus','Curtis? ...Nobody home. His handheld still charges, though.']],power:[['marcus','Here goes nothing.']],powerOn:[['marcus','Everything for a mile heard that.']],supplies:[['marcus','Mrs. Hargrove, you beautiful, paranoid woman.']]},
+  ['marcus','That\'s our street. And this handset\'s smashed.'],['marcus','Curtis Webb has a ham radio. Two blocks north-west.'],['marcus','With the power out it\'ll want a car battery.'],['marcus','Ray Dunham keeps a generator and a work light, out north-east.'],
+  ['marcus','And Mrs. Hargrove keeps a go-bag in her shed, south-west. "For when it happens."'],['marcus','Well. It happened.']],
+ job:{radio:[['guard','...station on the east side, you\'re weak but readable. Go ahead.'],['marcus','This is the east side. There are still people here.'],['guard','Copy, east side. Light us a way in and we\'ll come.']],
+  power:[['marcus','That\'ll burn all night. Anyone up there can see it.']],powerOn:[['marcus','Everything for a mile heard that.']],supplies:[['marcus','Mrs. Hargrove, you beautiful, paranoid woman.']]},
+ // Draft (v0.60): the steps of each job. One line from Marcus goes by over his head; more than one opens the box.
+ chain:{keys:[['marcus','Spare\'s on the hook by the door. They never locked anything.']],smash:[['marcus','Sorry, Castillos.']],open:[['marcus','Heavier than it looks.']],
+  set:[['marcus','Okay, Curtis. Let\'s see if this thing still works.']],wire:[['marcus','Red to red. Don\'t touch both.']],tune:[['marcus','Come on. Somebody be out there.']],
+  check:[['marcus','Bone dry. And his can\'s empty.'],['marcus','Any car\'s tank will do. Or the gas station, if the hand pump works.']],siphon:[['marcus','Ugh. Never doing that again.']],store:[['marcus','Hand pump still works.']],
+  fill:[['marcus','Fuel\'s in. Now the cord.']],pull:[['marcus','Prime it first. Ray always said prime it first.']],hold:[['marcus','Come on, warm up. Just keep burning.']],
+  note:[['marcus','A note, taped inside the glass.'],['marcus','"Biscuit got out. Gone to the park to find him. Shed key\'s on me. Back soon. L.H."'],['marcus','That was hours ago.']],
+  body:[['marcus','I\'m sorry, Mrs. Hargrove.'],['marcus','The shed key. On a ribbon round her wrist.']],pry:[['marcus','Hasp\'s off. Half the street heard that.']],unlock:[['marcus','Key fits.']]},
  // Over the radio during play: nothing waits for these.
  air:{jobs:'We see your light, east side. Get to the end of your street and pop a flare when you\'re ready.',called:'Copy your flare. We\'re a minute out.',minute:'Fifty seconds. Keep that corner clear.',overrun:'Hold on, we\'re seeing a lot of movement on your...',
   leaving:'Anyone still out there, the truck leaves the east end in sixty seconds.'},

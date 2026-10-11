@@ -729,6 +729,18 @@ html body.deck #thought{top:calc(var(--vy) + var(--gh) * .64);font-size:14px}
 #drillHud .heat.h3 b{color:#ff6a50;animation:heatPulse 1s ease-in-out infinite}
 @keyframes heatPulse{50%{opacity:.55}}
 @media(prefers-reduced-motion:reduce){#drillHud .heat.h3 b{animation:none}}
+/* A fix's dial: the zone to hit, the cursor running over it, and a diamond for each part of it done. The hold fills the same bar. */
+#drillHud .fix{display:flex;gap:10px;align-items:center}
+#drillHud .fix>i{position:relative;display:block;width:180px;height:12px;background:#0d0c0b;border:1px solid #000;box-shadow:0 0 0 1px #e8e0d126;transform:skewX(-16deg);overflow:hidden}
+#drillHud .fix .zone{position:absolute;top:0;bottom:0;background:linear-gradient(#c4f08a,#73c46a 50%,#3f7a2a);opacity:.85}
+#drillHud .fix.tune .zone{background:linear-gradient(#b8e0ff,#5a9ad8 50%,#2a5a8a)}
+#drillHud .fix .cur{position:absolute;top:0;bottom:0;width:3px;margin-left:-1.5px;background:#fff6d8;box-shadow:0 0 6px #ffd27a}
+#drillHud .fix .fill{display:block;height:100%;background:linear-gradient(#ffe0a0,#d8a040 50%,#8a5a1c);transition:width .2s}
+#drillHud .fix.hold .fill{background:linear-gradient(#fff6d0,#f2d27a 50%,#a8822a)}
+#drillHud .dots{display:flex;gap:6px}
+#drillHud .dots i{display:block;width:7px;height:7px;transform:rotate(45deg);background:#2a2722;box-shadow:0 0 0 1px #000}
+#drillHud .dots i.on{background:var(--ember)}
+html body.deck #drillHud .fix{gap:6px}html body.deck #drillHud .fix>i{width:110px;height:9px}html body.deck #drillHud .dots{gap:4px}html body.deck #drillHud .dots i{width:5px;height:5px}
 /* The first job: a mark over each spot still to do, pinned to the screen's edge with an arrow and the distance when it is off it. */
 #marks{position:fixed;inset:0;z-index:2;pointer-events:none;overflow:hidden}body:not(.street) #marks{display:none}
 #marks .mark{position:absolute;left:0;top:0;display:flex;flex-direction:column;align-items:center;gap:2px;margin:-9px 0 0 -40px;width:80px;font:700 10px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:#ffcf8a;text-shadow:0 1px 0 #000,0 0 4px #000}

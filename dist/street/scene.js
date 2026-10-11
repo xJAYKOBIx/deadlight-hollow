@@ -11,6 +11,7 @@ import {iconArt,ICON,ICONS} from '../camp/art.js';
 import {MAP,CHUNK,PROPS,LIGHT_BAR,HOME,EVAC,TRUCK,coverAt} from './data.js';
 import {groundArt,lightArt,LIGHT_SCALE,propArt,PROP_PAD} from './art.js';
 import {Fight,DIVE,CRAWLER,SEARCH,BRUTE,JOB,SCREAMER,BLOATER,SPITTER} from './fight.js';
+import {stepOf} from '../home/kit.js';
 import {special,SPECIAL_LOOKS} from '../mc/assets/characters/specials.js';
 import {ACID_BOX,acidArt,GLOB,globArt,GAS_BOX,gasArt} from '../mc/assets/effects/hazards.js';
 import {ITEM_IDS,itemArt} from '../mc/assets/gear/items.js';
@@ -27,6 +28,8 @@ export const ZOMBIE_LOOKS={cop:{...DEFAULT_APPEARANCE,...POLICE,...Z,hair:1,skin
  runner:{...DEFAULT_APPEARANCE,...Z,body:1,top:6,shirt:5,bottom:4,shoes:1,hair:2,color:2,skin:1,decay:1,eyes:1,wounds:2,rot:3},
  brute:{...DEFAULT_APPEARANCE,...Z,top:3,coat:2,bottom:5,pants:3,shoes:0,hair:4,beard:3,color:0,skin:5,decay:1,eyes:2,wounds:3,rot:1},
  // The special dead, in the Master Creator's looks for them: a screamer in a nightgown, a bloater in a tank top, a spitter.
+ // Mrs. Hargrove: silver hair up in a bun, a sage cardigan and grey slacks, out in her good shoes after her dog.
+ hargrove:{...DEFAULT_APPEARANCE,...Z,body:1,top:2,shirt:5,bottom:3,pants:4,shoes:2,hair:9,color:3,skin:1,decay:1,eyes:0,wounds:1},
  screamer:{...DEFAULT_APPEARANCE,...Z,...SPECIAL_LOOKS.screamer},bloater:{...DEFAULT_APPEARANCE,...Z,...SPECIAL_LOOKS.bloater},spitter:{...DEFAULT_APPEARANCE,...Z,...SPECIAL_LOOKS.spitter},
  // The man you started as, after: his own clothes and pack, freshly dead (TUTORIAL_LOOK is how he looked alive).
  you:{...DEFAULT_APPEARANCE,zombie:1,rot:1,decay:0,eyes:0,wounds:2}};
@@ -59,6 +62,8 @@ export const AHEAD=224,KEEP=480,BUDGET=4,STRIPS=8;
 const CRUISER_I=PROPS.findIndex(o=>o.id==='cruiser');
 // The first job's generator and work light (dark until the generator is running), and the truck out.
 const GEN=PROPS.find(o=>o.id==='job-gen'),FLOOD=PROPS.find(o=>o.id==='job-light');
+// The job's two parts, as the Master Creator's town set draws them: the Castillos' car battery and Ray's gas can.
+const PART_ART={battery:{kind:'carbattery',w:14,h:8,z:10},fuel:{kind:'gascan',w:12,h:6,z:16}};
 // The flashlight: a cone of warm white light from the gun, len long and half wide either side, and a small pool round you. Painted
 // in the light map's own pixels (LIGHT_SCALE world units each), in six steps like the rest of the night's light.
 export const BEAM={len:240,half:24*Math.PI/180,pool:36,col:[255,244,220]};
@@ -103,6 +108,7 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   for(let i=0;i<GIBS.length*3;i++)if(!GB.has(i))GB.add(i,0,Math.floor(i/3)*20,(i%3)*20,20,20);
   // What the dead drop, from the bag's own icons.
   const LI=this.texture('loot-icons',24*ITEM_IDS.length,24,c=>ITEM_IDS.forEach((id,i)=>{c.save();c.scale(2,2);c.translate(i*12+6,6);itemArt(painter(c),id);c.restore();}));ITEM_IDS.forEach((id,i)=>{if(!LI.has(id))LI.add(id,0,i*24,0,24,24);});this.dropImgs=new Map();
+  this.parts=Object.entries(PART_ART).map(([item,o])=>{this.texture('part-'+item,(o.w+PROP_PAD*2)*2,(o.h+o.z+PROP_PAD*2)*2,c=>propArt(c,o));return {item,o,img:this.add.image(0,0,'part-'+item).setOrigin(0).setScale(.5).setVisible(false)};});
   const BW=BLOOD_BOX.w*2,BH=BLOOD_BOX.h*2,BS=this.texture('gore-blood',BW*8,BH*Math.ceil(STAINS.length/8),c=>STAINS.forEach(([k,sd,d],i)=>{c.save();c.translate((i%8)*BW,Math.floor(i/8)*BH);bloodArt(c,k,sd*17+i+3,d);c.restore();}));
   for(let i=0;i<STAINS.length;i++)if(!BS.has(i))BS.add(i,0,(i%8)*BW,Math.floor(i/8)*BH,BW,BH);
   // Acid pools (four frames of bubbling and a dried stain), the glob in flight, and three shades of the bloater's gas.
@@ -136,7 +142,7 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   this.cameras.main.setBackgroundColor('#07080b').setBounds(0,0,MAP.w,MAP.h).setZoom(this.zoom());
   this.events.on('wake',()=>this.enter());this.enter();bridge.ready(this);}
  // Each time you step out of the door: the street as the kit says it is, you on your step.
- enter(){model.reset();this.fight.start();for(const i of this.dropImgs.values())i.destroy();this.dropImgs.clear();for(const v of this.hz.values())for(const i of v)i.destroy();this.hz.clear();for(const i of [...this.stains,...this.bits.map(b=>b.img),...this.lain])i.destroy();this.stains.length=0;this.bits.length=0;this.lain.length=0;this.brass.length=0;this.lying.length=0;this.pumps.length=0;this.floorG.clear();this.kick=null;this.jolt={x:0,y:0};for(const z of [...this.zs.keys()])this.free(z);this.setPlayerLook(bridge.look());this.setTrunk(bridge.kit().street!=='start'&&bridge.kit().street!=='cleared');this.setPower(!!bridge.kit().mission?.done.includes('power'));this.cameras.main.centerOn(model.x,model.y-20);this.stream(true);}
+ enter(){model.reset();this.fight.start();for(const i of this.dropImgs.values())i.destroy();this.dropImgs.clear();for(const v of this.hz.values())for(const i of v)i.destroy();this.hz.clear();for(const i of [...this.stains,...this.bits.map(b=>b.img),...this.lain])i.destroy();this.stains.length=0;this.bits.length=0;this.lain.length=0;this.brass.length=0;this.lying.length=0;this.pumps.length=0;this.floorG.clear();this.kick=null;this.jolt={x:0,y:0};for(const z of [...this.zs.keys()])this.free(z);this.setPlayerLook(bridge.look());this.setTrunk(bridge.kit().street!=='start'&&bridge.kit().street!=='cleared');this.setPower(['hold','done'].includes(stepOf(bridge.kit(),'power')));this.cameras.main.centerOn(model.x,model.y-20);this.stream(true);}
  // What the camera shows, in world units.
  view(){const s=this.scale,z=this.zoom(),w=s.width/z,h=s.height/z,x=Math.max(0,Math.min(MAP.w-w,model.x-w/2)),y=Math.max(0,Math.min(MAP.h-h,model.y-20-h/2));return {x,y,w,h};}
  // Takes hold of the chunks near the screen and lets go of the ones well past it, then paints: everything on screen now, the rest
@@ -290,7 +296,9 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   else if(e.type==='splash'){j.bits(9,e.x,e.y,{dir:-Math.PI/2,spread:3,speed:70,lift:40,z:2,col:0x9ad13a,life:.4,kind:'drop'});j.puff(e.x,e.y-3,.6,0x8fa83a,.5,-10);}
   else if(e.type==='spit')j.bits(4,z.x,z.y,{dir:Math.atan2(e.g.y1-z.y,e.g.x1-z.x),spread:.6,speed:60,lift:20,z:44,col:0x9ad13a,life:.3,kind:'drop'});
   else if(e.type==='screamed'){for(let k=0;k<3;k++)j.ring(z.x,z.y-50,40+k*30,0xe0c8ff,.6+k*.2,2);if(Math.hypot(z.x-model.x,z.y-model.y)<500)j.shake('hurt');}
-  else if(e.type==='job'&&e.job==='power'){this.setPower(true);j.puff(GEN.x+4,GEN.y-12,1,0x6a6a66,.7,-12);}
+  else if(e.type==='started'){this.setPower(true);j.puff(GEN.x+4,GEN.y-12,1,0x6a6a66,.7,-12);j.puff(GEN.x+10,GEN.y-14,.8,0x5a5a58,.6,-16);}
+  else if(e.type==='sputter')j.puff(GEN.x+4,GEN.y-10,.6,0x6a6a66,.5,-10);
+  else if(e.type==='fixmiss'&&e.kind==='wire')j.bits(5,model.x,model.y,{dir:-Math.PI/2,spread:2.6,speed:70,lift:40,z:20,col:0xfff1a8,life:.25,kind:'spark',len:2});
   bridge.event?.(e);}
  // A casing out of the right side of the gun: brass from the pistol, a red hull from the shotgun.
  eject(a,hull){const side=a+Math.PI/2+(Math.random()-.5)*.5,v=48+Math.random()*24;
@@ -368,6 +376,10 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   for(const [d,img] of this.dropImgs)if(!f.drops.includes(d)){img.destroy();this.dropImgs.delete(d);}
   for(const d of f.drops){let img=this.dropImgs.get(d);if(!img){img=this.add.image(d.x,d.y,'loot-icons',d.id).setScale(.5).setOrigin(.5,1);this.dropImgs.set(d,img);}const bob=Math.round(Math.sin(now/260+d.x)*1.5*2)/2;img.setPosition(Math.round(d.x*2)/2,Math.round(d.y*2)/2-2+bob).setDepth(d.y);
    if(Math.floor(now/700+d.x/37)%4===0)g.fillStyle(0xfff6d8,.9).fillRect(Math.round(d.x*2)/2+2,Math.round(d.y*2)/2-8+bob,1,1);}
+  // The job's parts: the one in your hands at your side, the ones you set down where they lie, with a glint now and then.
+  const M=bridge.kit().mission;for(const p of this.parts){const o=p.o,d=M?.drops?.find(q=>q.item===p.item),held=M?.carry===p.item&&!f.dead;p.img.setVisible(held||!!d);
+   if(held){const back=[5,6,7].includes(model.direction),x=model.x+(back?-3:3)-o.w/2,y=model.y-o.h-10;p.img.setPosition(Math.round((x-PROP_PAD)*2)/2,Math.round((y-o.z-PROP_PAD)*2)/2).setDepth(model.y+(back?-1:1));}
+   else if(d){p.img.setPosition(Math.round((d.x-o.w/2-PROP_PAD)*2)/2,Math.round((d.y-o.h/2-o.z-PROP_PAD)*2)/2).setDepth(d.y);if(Math.floor(now/700+d.x/37)%4===0)g.fillStyle(0xfff6d8,.9).fillRect(Math.round(d.x*2)/2+3,Math.round((d.y-o.z)*2)/2-2,1,1);}}
   this.hazardStep(now,g);
   // A search under way: a ring round the spot filling as it goes.
   const S=f.searching;if(S){const k=Math.min(1,S.time/(S.need||SEARCH.time)),x=S.t.mx??S.t.x,y=(S.t.my??S.t.y)-4,a0=-Math.PI/2;g.lineStyle(3,0x111319,.7).strokeCircle(x,y,7);g.lineStyle(1.5,0xf2e6c8,.35).strokeCircle(x,y,7);

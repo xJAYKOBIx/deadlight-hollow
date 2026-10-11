@@ -4,7 +4,7 @@ import {readAppearance,saveAppearance} from './appearance.js';
 import {createCreator} from './creator.js';import {layout as ccLayout,mountConsole,readConsole,saveConsole} from './console.js';import {mountEditor} from './console-edit.js';
 import {StudyModel} from './model.js';import {makeStudyScene} from './scene.js';import {DIRECTIONS,survivor,FRAME} from './character.js';import {mountSay} from './say.js';import {SCRIPT,SPEAKERS} from '../story/night1.js';import {FloatingStick} from '../layout.js';import {mountGrime} from './grime.js';
 import {CampModel} from '../camp/model.js';import {makeCampScene} from '../camp/scene.js';import {PROPS,MAX_CAMPERS} from '../camp/data.js';import {PROP_PAD} from '../camp/art.js';import {createCampPlay} from '../camp/play.js';
-import {HomeModel} from '../home/model.js';import {readHome,saveHome,normalizeHome,take,search,swap,goal,useLines,pickupLine,listOf,rounds,verbFor,reborn,FRESH,TRUNK,GO_BAG,JOBS,JOB_NAMES} from '../home/kit.js';import {StreetModel,TARGETS as STREET_TARGETS} from '../street/model.js';import {makeStreetScene,TUTORIAL_LOOK} from '../street/scene.js';import {HEAT,JOB} from '../street/fight.js';import {paintWindow} from '../street/watch.js';import {PROPS as STREET_PROPS,CRUISER,EVAC,AREA_NAMES,areaAt} from '../street/data.js';import {Audio} from '../audio.js';import {refit,weight,burden} from '../home/bag.js';import {BagScreen} from '../home/bagui.js';import {carrying} from '../mc/assets/gear/bags.js';import {gunArt} from './equipment.js';import {painter} from '../mc/assets/core/paint.js';import {makeHomeScene} from '../home/scene.js';import {PROPS as HOME_PROPS} from '../home/data.js';
+import {HomeModel} from '../home/model.js';import {readHome,saveHome,normalizeHome,take,search,swap,goal,useLines,pickupLine,listOf,rounds,verbFor,reborn,FRESH,TRUNK,GO_BAG,JOBS,JOB_NAMES,stepOf} from '../home/kit.js';import {StreetModel,TARGETS as STREET_TARGETS} from '../street/model.js';import {makeStreetScene,TUTORIAL_LOOK} from '../street/scene.js';import {HEAT,JOB} from '../street/fight.js';import {HOLD} from '../street/jobs.js';import {paintWindow} from '../street/watch.js';import {PROPS as STREET_PROPS,CRUISER,EVAC,AREA_NAMES,areaAt} from '../street/data.js';import {Audio} from '../audio.js';import {refit,weight,burden} from '../home/bag.js';import {BagScreen} from '../home/bagui.js';import {carrying} from '../mc/assets/gear/bags.js';import {gunArt} from './equipment.js';import {painter} from '../mc/assets/core/paint.js';import {makeHomeScene} from '../home/scene.js';import {PROPS as HOME_PROPS} from '../home/data.js';
 import {readCompanion,saveCompanion,normalizeCompanion,petLook,displayName} from '../companion/look.js';import {pet,PET_FRAME,PET_ANIM} from '../companion/pet.js';import {Follower,FOLLOW} from '../companion/follow.js';
 const $=id=>document.getElementById(id),model=new StudyModel(),campModel=new CampModel(),_shared=(model.stamina=campModel.stamina),homeModel=new HomeModel(),_sharedHome=(homeModel.stamina=campModel.stamina),streetModel=new StreetModel(),_sharedStreet=(streetModel.stamina=campModel.stamina),keys=new Set(),stick=new FloatingStick();let game,scene,ready=false,move={x:0,y:0},running=false,padState={move:{x:0,y:0},aim:{x:0,y:0},fire:false,run:false},inspectDirection=1,pose='idle',lastInspect=0,contextMissing=false;// Camera distances. Phones start on Wide so you can see what's coming; a PC starts on Normal.
 const ZOOMS=[{z:.7,name:'Wide'},{z:1,name:'Normal'},{z:1.5,name:'Close'}];
@@ -217,7 +217,7 @@ function travel(to){if(!game||!ready)return;if(to==='street')arrival=performance
  if(activeScene!==to){game.scene.sleep(SCENES[activeScene]);game.scene.run(SCENES[to]);activeScene=to;}if(to==='room'){renderActor();$('loading').hidden=true;}}
 $('travel').onclick=()=>travel(PLACES[place].to);$('travelHome').onclick=()=>{closeDialog('options');travel('home');};
 const verbOf=t=>place==='home'&&verbFor(homeKit,t.id)||(t.kind==='resident'?'Talk':t.kind==='pet'?'Pet':play?.verb(t)||t.verb);
-function interact(){if(place==='home'&&homeScene?.wake||say.open())return;const t=calm()?calmScene()?.target:street()?streetScene?.target:scene?.target;if(!t||talk||play.active()||$('inspection').open||$('options').open)return;
+function interact(){if(place==='home'&&homeScene?.wake||say.open())return;if(street()&&streetScene?.fight.jobs.fix&&!paused()){streetScene.fight.jobs.tap();return;}const t=calm()?calmScene()?.target:street()?streetScene?.target:scene?.target;if(!t||talk||play.active()||$('inspection').open||$('options').open)return;
  if(street()){resetInput();if(t.id==='frontdoor'){travel('home');return;}if(t.job||t.remains){streetScene?.fight.work(t);return;}if(t.loot){streetScene?.fight.scavenge(t);return;}if(t.id==='cruiser'){sayLines(SCRIPT.trunk,{act:'loot'});return;}sayLines(t.lines);return;}if(t.kind==='pet'){if(t.ref){t.ref.pet(homeModel);petLine(t.ref.def.id);}else campPet.pet();return;}if(t.id==='range'){travel('room');return;}if(t.id==='stairs'){travel('camp');return;}resetInput();if(play.use(t)){lastTarget=undefined;return;}const u=place==='home'&&useLines(homeKit,t.id);if(u){reveal(t.id);sayLines(u.lines,{act:u.act||null});return;}talk=t.topics?{t,i:0,lines:[t.lines[(greetings[t.id]=(greetings[t.id]??-1)+1)%t.lines.length]],menu:true,asked:new Set()}:{t,i:0,lines:play.lines(t)||t.lines};paintTalk();($('talkTopics').querySelector('button')||$('talkNext')).focus({preventScroll:true});}
 const greetings={};
 // Petting the dog or the cat: once a night each, a passing thought rather than a box (an armed goodbye for the dog).
@@ -235,7 +235,7 @@ function reveal(id){if(id==='nightstand')homeScene?.setProp('nightstand',{open:t
 function takeGun(id){const spilled=homeKit.bag.spill.length;homeKit=take(homeKit,id,packGrid());saveHome(storage,homeKit);if(id==='light-pistol')homeScene?.setProp('nightstand',{gun:false});else homeScene?.setProp('closet',{box:'empty'});homeScene?.setPlayerLook(heroLook());paintKit();toast(pickupLine(id)+(homeKit.bag.spill.length>spilled?'. Your bag is full; open it to make room.':''));buzz(20);}
 // Searching a drawer or a basket puts what is in it in your bag.
 function searchSpot(id){const spilled=homeKit.bag.spill.length;homeKit=search(homeKit,id,packGrid());saveHome(storage,homeKit);paintKit();toast(pickupLine(id)+(homeKit.bag.spill.length>spilled?'. Your bag is full; open it to make room.':''));buzz(14);}
-function swapHome(){const next=swap(homeKit);if(next===homeKit)return;homeKit=next;saveHome(storage,homeKit);homeScene?.setPlayerLook(heroLook());streetScene?.setPlayerLook(heroLook());paintKit();buzz(8);if(street()){const h=$('weaponHud');h.classList.remove('swapped');void h.offsetWidth;h.classList.add('swapped');}}
+function swapHome(){if(street()&&homeKit.mission?.carry)streetScene?.fight.jobs.putDown();const next=swap(homeKit);if(next===homeKit)return;homeKit=next;saveHome(storage,homeKit);homeScene?.setPlayerLook(heroLook());streetScene?.setPlayerLook(heroLook());paintKit();buzz(8);if(street()){const h=$('weaponHud');h.classList.remove('swapped');void h.offsetWidth;h.classList.add('swapped');}}
 // What to do next and the gun in your hands, under the stamina bar.
 function paintKit(){const home=place==='home'||street(),g=homeKit.held,goalText=goal(homeKit,street());$('bagBtn').hidden=!bagOpen();const grid=packGrid(),load=burden(weight(homeKit.bag,Object.keys(homeKit.guns)),grid.kg);homeModel.burden=streetModel.burden=load;$('bagBtn').classList.toggle('over',load.over||homeKit.bag.spill.length>0);$('goalChip').hidden=!home||!goalText||!!homeScene?.wake;$('goalChip').textContent=goalText;$('gunChip').hidden=place!=='home'||!g;if(!g)return;
  $('gunChip').querySelector('b').textContent=GUNS[g].name;$('gunChip').querySelector('span').textContent=rounds(homeKit);$('gunChip').classList.toggle('two',Object.keys(homeKit.guns).length>1);
@@ -339,7 +339,7 @@ const streetBridge={quality,paused,zoom,res:RES,aimLine:()=>laser,flash:()=>flas
  reticle:()=>device==='keys'&&mousePoint&&!(padState.aim.x||padState.aim.y)?streetScene?.cameras.main.getWorldPoint(mousePoint.x,mousePoint.y):null,look:heroLook,held:()=>homeKit.held,kit:()=>homeKit,grid:packGrid,
  setKit:k=>{homeKit=k;saveHome(storage,homeKit);paintKit();},input:()=>fightInput(streetScene,streetModel),
  // The door back in stays shut while anything out here is coming for you, and the trunk waits until the street is clear.
- usable:t=>t.remains?!!streetScene?.fight.remains&&!homeKit.corpse?.taken&&!streetScene.fight.searching:t.id==='frontdoor'&&homeKit.phase==='own'?false:t.job?!!streetScene?.fight.can(t)&&!streetScene.fight.searching:t.loot?!homeKit.looted?.includes(t.id)&&!streetScene?.fight.searching:t.id==='frontdoor'?!streetScene?.fight.threat().length:t.id==='cruiser'?homeKit.street==='cleared':true,
+ usable:t=>t.remains?!!streetScene?.fight.remains&&!homeKit.corpse?.taken&&!streetScene.fight.searching:t.id==='frontdoor'&&homeKit.phase==='own'?false:t.job?!!streetScene?.fight.can(t)&&!streetScene.fight.searching:t.loot?!homeKit.looted?.includes(t.id)&&!streetScene?.fight.searching&&!homeKit.mission?.carry:t.id==='frontdoor'?!streetScene?.fight.threat().length:t.id==='cruiser'?homeKit.street==='cleared':true,
  event:e=>streetEvent(e),ready:s=>{streetScene=s;if(place==='street')$('loading').hidden=true;},
  tick:(now,s)=>{paintWatch(now,s.fight);airTick(s.fight);arrive(now);paintRun();paintWeapon(s.fight,homeKit.held);streetHud(s.fight);paintMarks(s);roomPrompt(s);if($('inspection').open)paintInspection(now);think(now);}};
 // Your thoughts (home/thoughts.js): one line at a time under you, at home and on the street. They wait while you talk, read or watch.
@@ -377,8 +377,18 @@ let pumpTimer=0;function streetEvent(e){const t=e.type;if(t==='casing'){if(Math.
  else if(t==='spit')audio.play('groan',{voice:1,vol:far(e.z)*.7},.6);else if(t==='splash')audio.play('zombie-hit',{vol:.35},.3);
  else if(t==='burn'){buzz(10);}
  else if(t==='vault'){buzz(8);if(device==='pad')pad.rumble(.1,.15,40);}else if(t==='over'){audio.play('casing',{kind:1,vol:.25});buzz(10);}
- else if(t==='job'){paintKit();const J=e.job==='power'?[...SCRIPT.job.power,...SCRIPT.job.powerOn]:SCRIPT.job[e.job];if(e.job==='supplies')toast('In your bag: '+listOf(GO_BAG));
-  sayLines(J,{then:()=>{if(e.all)say.radio(SCRIPT.air.jobs);}});buzz(30);if(device==='pad')pad.rumble(.3,.4,160);if(e.job==='power'){audio.play('gun-thump',{size:1});}}
+ else if(t==='job'){paintKit();if(e.job==='supplies')toast('In your bag: '+listOf(GO_BAG));
+  sayLines(SCRIPT.job[e.job],{then:()=>{if(e.all)say.radio(SCRIPT.air.jobs);}});buzz(30);if(device==='pad')pad.rumble(.3,.4,160);}
+ // The job's steps: a line for each, the part in your hands, and the fixes' taps.
+ else if(t==='chain'){paintKit();chainLines(SCRIPT.chain[e.line]);}
+ else if(t==='step'){paintKit();if(e.step==='hold')setTimeout(()=>{if(stepOf(homeKit,'power')==='hold')chainLines(SCRIPT.chain.hold);},4000);}
+ else if(t==='lift'){paintKit();toast(`Carrying ${PART_NAME[e.item]}. Swap sets it down.`);buzz(12);}else if(t==='setdown'){paintKit();toast(`Set ${PART_NAME[e.item]} down.`);buzz(8);}
+ else if(t==='fix'){lastTarget=undefined;if(e.first)chainLines(SCRIPT.chain[e.kind]);buzz(8);}else if(t==='fixstop')lastTarget=undefined;
+ else if(t==='fixhit'){audio.play(e.kind==='tune'?'tv-voice':'mag-in');buzz(14);if(device==='pad')pad.rumble(.2,.2,60);}
+ else if(t==='fixmiss'){if(e.kind==='wire'){audio.play('casing',{kind:1,vol:.7});buzz(40);if(device==='pad')pad.rumble(.4,.2,90);}else{audio.play('signal-lost');buzz(10);}}
+ else if(t==='fixed'){lastTarget=undefined;buzz(30);}else if(t==='static')audio.play('channel-flip',{},.5);
+ else if(t==='prime'){audio.play('shell-in');buzz(8);}else if(t==='sputter'){audio.play('gun-thump',{size:0});buzz(40);if(device==='pad')pad.rumble(.4,.3,160);}
+ else if(t==='started'){audio.play('gun-thump',{size:1});chainLines(SCRIPT.job.powerOn);buzz(80);if(device==='pad')pad.rumble(.6,.5,400);}
  else if(t==='evac'){say.radio(SCRIPT.air.called);audio.play('groan',{voice:0,vol:.5},.6);buzz(60);if(device==='pad')pad.rumble(.5,.5,300);}
  else if(t==='truck'){if(homeKit.phase!=='own')banner('Truck inbound','Headlights at the east end');buzz(30);}
  else if(t==='truckin'){banner('Truck is here','Get in the back');buzz(80);if(device==='pad')pad.rumble(.4,.4,300);}
@@ -435,32 +445,42 @@ function brief(){if(!street()||homeKit.street!=='done'||homeKit.mission?.done.le
 function debrief(st){const m=Math.floor(st.time/60),sec=Math.floor(st.time%60),rows=[['Time out there',`${m}:${String(sec).padStart(2,'0')}`],['The dead put down',st.kills],['Shots fired',st.shots],['Places searched',st.found],['Times you went down',st.downs]];
  $('summaryStats').innerHTML=rows.map(([k,v])=>`<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');openDialog('summary');$('summaryGo').focus({preventScroll:true});}
 $('summaryGo').onclick=()=>{$('summary').close();travel('camp');};
+// A step's line: one line of his goes by over his head, more open the box.
+const PART_NAME={battery:'the car battery',fuel:'the gas can'};function chainLines(L){if(!L)return;if(L.length===1&&L[0][0]==='marcus')thoughts.push(L[0][1]);else sayLines(L);}
 // Where the jobs are: a mark over each one still to do (and the call, then the truck), pinned to the edge of the screen with an
 // arrow and how far, when it is off it.
 const MARK_ICON={radio:'Radio',power:'Generator',supplies:'Go-bag',evac:'Call the truck',board:'Truck',risen:'Him',remains:'His gear'};
 function paintMarks(s){const box=$('marks'),f=s.fight,k=homeKit;let list=[];
  if(k.phase==='own'&&!f.down){const b=f.zombies.find(z=>z.kind==='risen'&&z.hp>0);if(b)list=[{job:'risen',x:b.x,y:b.y,mx:b.x,my:b.y-40}];else if(f.remains&&!k.corpse?.taken)list=STREET_TARGETS.filter(t=>t.remains);else list=STREET_TARGETS.filter(t=>t.job==='board'&&f.can(t));}
- else if(k.street==='done'&&k.mission&&!k.mission.out&&!f.down)list=STREET_TARGETS.filter(t=>t.job&&f.can(t));
+ else if(k.street==='done'&&k.mission&&!k.mission.out&&!f.down)list=[...STREET_TARGETS.filter(t=>t.mark&&t!==s.target&&f.can(t)),...f.jobs.marks()];
  if(!list.length){if(!box.hidden){box.hidden=true;box.innerHTML='';}return;}box.hidden=false;
  const cam=s.cameras.main,b=game.canvas.getBoundingClientRect(),sc=b.width/s.scale.width*cam.zoom,v=cam.worldView,W=b.width,H=b.height,pad=34;
+ // Marks pinned to the top edge stay clear of the readout over the street.
+ const hud=$('drillHud'),top=Math.max(pad+40,!hud.hidden&&!document.body.classList.contains('deck')?hud.getBoundingClientRect().bottom-b.top+30:0);
  while(box.children.length<list.length){const d=document.createElement('div');d.className='mark';d.innerHTML='<i></i><b></b><span></span>';box.appendChild(d);}while(box.children.length>list.length)box.lastChild.remove();
- list.forEach((t,i)=>{const d=box.children[i],x=((t.mx??t.x)-v.x)*sc,y=((t.my??t.y)-14-v.y)*sc,on=x>pad&&x<W-pad&&y>pad+40&&y<H-pad,dist=Math.round(Math.hypot(t.x-streetModel.x,t.y-streetModel.y)/40);
-  const cx=W/2,cy=H/2,dx=x-cx,dy=y-cy,k=on?1:Math.min((W/2-pad)/Math.abs(dx||1),(H/2-pad-20)/Math.abs(dy||1)),px=cx+dx*k,py=cy+dy*k;
+ list.forEach((t,i)=>{const d=box.children[i],x=((t.mx??t.x)-v.x)*sc,y=((t.my??t.y)-14-v.y)*sc,on=x>pad&&x<W-pad&&y>top&&y<H-pad,dist=Math.round(Math.hypot(t.x-streetModel.x,t.y-streetModel.y)/40);
+  const cx=W/2,cy=H/2,dx=x-cx,dy=y-cy,k=on?1:Math.min((W/2-pad)/Math.abs(dx||1),((dy<0?cy-top:H/2-pad-20))/Math.abs(dy||1)),px=cx+dx*k,py=cy+dy*k;
   d.classList.toggle('edge',!on);d.style.transform=`translate(${Math.round(px)}px,${Math.round(py)}px)`;d.children[0].style.transform=on?'':`rotate(${Math.atan2(dy,dx)}rad)`;
-  d.children[1].textContent=MARK_ICON[t.job||(t.remains?'remains':'')];d.children[2].textContent=on&&dist<4?'':dist+' m';});}
+  d.children[1].textContent=t.mark||MARK_ICON[t.job||(t.remains?'remains':'')];d.children[2].textContent=on&&dist<4?'':dist+' m';});}
 // The readout over the street: what is happening, how many are left, and your health once the fight is on.
 // The district you are in names the place in the corner.
 let streetHudShown=null;function streetHud(f){const area=areaAt(streetModel.x,streetModel.y);if(area&&area!==areaShown){areaShown=area;$('placeName').innerHTML=`${AREA_NAMES[area]} <i>Night one</i>`;}
  const n=f.threat().length,pct=Math.round(f.hp/f.maxHp*100),fighting=n>0,deckGoal=document.body.classList.contains('deck')&&goal(homeKit,true);
  // On the portrait deck the goal lives here too, since the deck's corner is the weapon panel's.
  const ev=f.evac,clock=v=>{const c=Math.ceil(v);return `${Math.floor(c/60)}:${String(c%60).padStart(2,'0')}`;};
- const top=f.down?'<b>Down</b><span>Back to your step</span>':ev&&!ev.paused?(ev.state==='hold'?`<b>Hold out</b><span>Truck in ${clock(Math.max(0,ev.t))}</span>${n?`<span>${plural(n,'zombie')}</span>`:''}`:ev.state==='drive'?'<b>Truck</b><span>Pulling in</span>':'<b>Truck is here</b><span>Get in the back</span>'):fighting?`<b>Contact</b><span>${plural(n,'zombie')}</span>`:pct<100?'<b>Hurt</b><span>It will close up</span>':deckGoal?`<b>Goal</b><span>${deckGoal}</span>`:'';
+ // A fix under way shows its dial (the cursor is moved below, every frame); the hold, how long the light still has to burn.
+ const J=f.jobs,fx=!f.down&&J.view(),hold=!f.down&&J.on()&&stepOf(homeKit,'power')==='hold',carry=homeKit.mission?.carry,many=n?`<span>${plural(n,'zombie')}</span>`:'';
+ const top=f.down?'<b>Down</b><span>Back to your step</span>':ev&&!ev.paused?(ev.state==='hold'?`<b>Hold out</b><span>Truck in ${clock(Math.max(0,ev.t))}</span>${many}`:ev.state==='drive'?'<b>Truck</b><span>Pulling in</span>':'<b>Truck is here</b><span>Get in the back</span>'):
+  fx?`<b>${fx.title}</b><span>${fx.hint}</span>`:hold?`<b>Hold the light</b><span>${J.near?clock(HOLD.time-J.hold):'Get back to it'}</span>${many}`:fighting?`<b>Contact</b><span>${plural(n,'zombie')}</span>`:carry?`<b>Carrying</b><span>${PART_NAME[carry]}</span>`:pct<100?'<b>Hurt</b><span>It will close up</span>':deckGoal?`<b>Goal</b><span>${deckGoal}</span>`:'';
+ const dial=fx?`<div class="fix ${fx.kind}"><i>${fx.zone?`<i class="zone" style="left:${(fx.zone[0]*100).toFixed(1)}%;width:${((fx.zone[1]-fx.zone[0])*100).toFixed(1)}%"></i><i class="cur"></i>`:`<i class="fill" style="width:${Math.round(fx.cur*100)}%"></i>`}</i><span class="dots">${Array.from({length:fx.of},(_,i)=>`<i${i<fx.done?' class="on"':''}></i>`).join('')}</span></div>`
+  :hold?`<div class="fix hold"><i><i class="fill" style="width:${Math.floor(J.hold/HOLD.time*100)}%"></i></i></div>`:'';
  const bar=fighting||f.down||pct<100?`<div class="vitals"><i class="hp${pct<=30?' low':''}" role="img" aria-label="Health ${Math.round(f.hp)} of ${f.maxHp}"><i style="width:${pct}%"></i></i></div>`:'';
  // The heat, once you have made any noise: how loud you have been, and what that is bringing.
  // While a swarm is on you the meter holds still and counts down what is left of it instead.
  const lv=f.level,sl=f.swarmLeft(),heat=f.heat>1?`<div class="heat h${lv}"><b>${sl?`Swarm · ${sl} left`:HEAT.names[lv]}</b><i role="img" aria-label="Heat ${Math.round(f.heat)} of 100"><i style="width:${Math.round(f.heat)}%"></i></i></div>`:'';
- const html=top||heat?`${top?`<div class="row">${top}</div>`:''}${bar}${heat}`:'';
- if(html!==streetHudShown){streetHudShown=html;const h=$('drillHud');h.innerHTML=html;h.hidden=!html;}}
+ const html=top||heat?`${top?`<div class="row">${top}</div>`:''}${dial}${bar}${heat}`:'';
+ if(html!==streetHudShown){streetHudShown=html;const h=$('drillHud');h.innerHTML=html;h.hidden=!html;}
+ if(fx?.zone){const c=$('drillHud').querySelector('.fix .cur');if(c)c.style.left=(fx.cur*100).toFixed(1)+'%';}}
 // The Use prompt floats over whatever is in reach.
 function placePrompt(s,t){const pr=$('prompt'),cam=s.cameras.main,b=game.canvas.getBoundingClientRect(),k=b.width/s.scale.width,v=cam.worldView,x=((t.mx??t.x)-v.x)*cam.zoom*k,y=((t.kind==='resident'?t.y-118:t.my-2)-v.y)*cam.zoom*k;pr.style.transform=`translate(${Math.round(x)}px,${Math.round(y)}px) translate(-50%,-100%)`;}
 // On the range the shooting controls stay put, so the prompt itself is the button on a touch screen.
