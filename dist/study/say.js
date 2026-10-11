@@ -15,7 +15,7 @@ export function mountSay(doc,{face,name,reduced=()=>false,onChange=()=>{}}){
  function close(){unframe(raf);box.hidden=true;doc.body.classList.remove('saying');q=[];i=0;hold=false;const d=done;done=null;onChange(false);d?.();}
  return {
   // Play some lines. hold: the game waits while they are up. then: what happens after the last one.
-  play(lines,{hold:h=true,then=null}={}){if(!lines?.length){then?.();return;}const was=!box.hidden;q=lines.map(l=>Array.isArray(l)?l:['owen',l]);i=0;hold=h;done=then;box.hidden=false;doc.body.classList.add('saying');paint();if(!was)onChange(true);},
+  play(lines,{hold:h=true,then=null}={}){if(!lines?.length){then?.();return;}const was=!box.hidden;q=lines.map(l=>Array.isArray(l)?l:['marcus',l]);i=0;hold=h;done=then;box.hidden=false;doc.body.classList.add('saying');paint();if(!was)onChange(true);},
   // A tap: finish the line typing in, or go to the next, or close after the last.
   tap(){if(box.hidden)return false;if(shown<full.length){shown=full.length;line.textContent=full;box.classList.add('typed');unframe(raf);return true;}
    if(++i<q.length)paint();else close();return true;},

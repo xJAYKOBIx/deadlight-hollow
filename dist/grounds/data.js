@@ -98,7 +98,7 @@ export const GADGET_TOPICS=[
 export const ROOM_NPCS=[
  {...aaron,id:'aaron-room',kind:'resident',role:'LEET AF · Range and shop',x:790,y:1576,direction:2,talk:{x:790,y:1650},
   lines:['Welcome to the Training Grounds. Gear up here before you go through the gate.','Range is hot. Shopping or questions?'],more:'Anything else?',topics:AARON_ROOM_TOPICS},
- {id:'gadget',kind:'resident',name:'Gadget',role:'LEET AF · Engineer',x:1170,y:1576,direction:2,talk:{x:1170,y:1650},
+ {id:'gadget',kind:'resident',name:'Priya "Gadget" Nair',short:'Gadget',role:'LEET AF · Engineer',x:1170,y:1576,direction:2,talk:{x:1170,y:1650},
   look:{body:1,skin:2,hair:9,color:0,beard:0,hat:0,top:8,coat:1,shirt:0,bottom:5,pants:3,shoes:3,boots:1,pack:1,packColor:1},
   lines:['Gadget. I keep the lights on down here, and I build the zombies. Want some?','Mind the cords. Everything in here runs on one generator and a lot of hope.'],more:'Anything else? The robots are charged.',topics:GADGET_TOPICS}];
 export const TALK_RANGE=44;

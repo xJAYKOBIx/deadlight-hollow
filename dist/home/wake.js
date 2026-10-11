@@ -1,4 +1,4 @@
-// The opening of the tutorial: Owen wakes on the couch in the dark when the dog noses his hand, sits up, stands, and then it is your
+// The opening of the tutorial: Marcus wakes on the couch in the dark when the dog noses his hand, sits up, stands, and then it is your
 // turn to move: the candle is nearly out, so first the flashlight in the kitchen (CRASH plays once you have it). Petting is yours to do. A short script of beats; each one runs until its time is up or what it waits for has happened.
 // Beats can also cue a sound, move the police car's light (pass sweeps it past the front windows, parked leaves it turning down the
 // street) and shake the camera; the scene reads those off the Wake. It drives the survivor itself (the couch is solid, so it does not walk through the model) and calls the pets over with goTo.
@@ -15,7 +15,7 @@ const facing=(dx,dy)=>(Math.round(Math.atan2(dy,dx)/(Math.PI/4))+8)%8;
 export const BEATS=[
  // Black and the title, then the room fades up slowly on him asleep on the couch, the camera in close.
  {t:3.6,fade:[1,1],zzz:true,title:['Night one','Deadlight Hollow'],cam:{x:COUCH.x-8,y:198,z:1.6,secs:0}},{t:3,fade:[1,0],zzz:true},
- // Duke comes in and pushes his nose under Owen's hand. He wakes, sits up, and the camera eases back as he stands.
+ // Duke comes in and pushes his nose under Marcus's hand. He wakes, sits up, and the camera eases back as he stands.
  {t:5,zzz:true,start:c=>c.dog.goTo(204,214,{pose:'sniff',face:0,rush:1.8}),until:c=>c.dog.arrived},{t:1.2,zzz:true},
  {t:.8,rise:['lie','sit'],dir:4},{t:.3,line:SCRIPT.wake.up},
  {t:.5,dir:2,line:SCRIPT.wake.power,start:c=>c.dog.goTo(DOG_AT.x,DOG_AT.y,{pose:'sit',face:1,rush:1.4})},

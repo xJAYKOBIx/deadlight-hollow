@@ -49,6 +49,17 @@ Jaykobi, 2026-10-10: "this will be the plan moving forward." The goals are Helld
 
 Jaykobi (2026-10-11), after a side-by-side test in the living room (`previews/smooth-style-room.png`, `smooth-style-turn.gif`): "I like the smoother art, for certain." Pixel art was chosen only to avoid Blender. The test drew the same Master Creator art without the half-unit grid (anti-aliased paths) and with smooth texture scaling (Phaser pixelArt off), at the same texture sizes, so memory is unchanged. Still to do beyond that switch: art with dither painted in (rugs, couch, pet shading, the house light map) gets gradients, and shapes built from rectangles (hair, faces) get curves, asset by asset. Master Creator keeps the pixel painter for parity and gains a smooth mode.
 
+## Names (decided 2026-10-11)
+
+Jaykobi (2026-10-11): "I want a complete rehaul of names, because I want first and last names that are realistic. Novak and some of the other names that we are using come from a study on Zombie Estate, and I don't want to take those names." Approved as proposed in the Claude Doc "Deadlight Hollow: Cast and Names" ("Names look good"). Every person gets a realistic first and last name; pets and call signs keep one name.
+
+- **Night one:** Owen is now **Marcus Bell** (speaker key `marcus`). Daniel Okafor is **Curtis Webb** (the radio), Walt is **Ray Dunham** (the generator), Mrs. Novak is **Linda Hargrove** (the go-bag; "Mrs. Hargrove" in speech), the Parks next door are **Greg and Diane Sutton**, and the cop is **Officer Dale Pruitt** (not shown yet). Duke stays Duke.
+- **Houses you knock at:** the Albrights, Castillo, Dempseys, Holloway, Nakamuras, Pryor, Galloways, Mendoza and Whitfields.
+- **Camp and Training Grounds:** Macy Ellison, Dr. Ava Moreno, Gary "Scoutmaster" Pike, Stan Hutchins, Zyn and Clyde Baxter, Aaron Whitlock, Priya "Gadget" Nair. Companions: Ezekiel "Bible" Crane and Hank Dorsey.
+- **Village:** Mara Quinlan, Dr. Sera Lindahl, Nell Hawthorne, Oren Blake, Ada Reyes, Eli Stroud, Jun Takeda, Dwayne "Rook" Rourke.
+- **Kept:** Dr. Ilse Varga, Alex Park, Mop, Duke, Guard 2-6, and the First Light prototype's names.
+- v0.58.0: the dialog box shows the full name; the use button shows the short name people go by (`short` in camp and Training Grounds data), so long names fit a landscape phone. No name may come from Zombie Estate or another game.
+
 ## Map style (proposed 2026-10-11)
 
 Jaykobi (2026-10-11): map design is "very, very important"; the current neighbourhood is "low-grade and repetitive"; choose between Helldivers 1 (large, free, kiting) and Gauntlet Slayer Edition (guided, fights locked to an area until the spawners are done), or blend them. The night one script is good up to the creator; the part after it will be reworked later. Next: the starter map, the suburbs.
@@ -328,11 +339,11 @@ The cast, 41 days after the fall:
 
 | Character | Role | Notes |
 |---|---|---|
-| Macy | Runs the camp from the quest board | Former zoo-keeper and hiking guide. Nurturing. |
-| Ava | Camp doctor | Always short on supplies. Proper medical gear is a premium fetch. Later she'll help with bites, an antidote and slowing the spread. |
-| Scoutmaster Pike | Cook and field survival | Also the fishing expert. |
-| Old-man Stan | Blacksmith | Grumpy ex-gunsmith. The world was lucky it didn't end in his prime. Probably. |
-| Zyn and Clyde | Country farmers who run the garden | The player's contacts for planting and harvesting. |
+| Macy Ellison | Runs the camp from the quest board | Former zoo-keeper and hiking guide. Nurturing. |
+| Dr. Ava Moreno | Camp doctor | Always short on supplies. Proper medical gear is a premium fetch. Later she'll help with bites, an antidote and slowing the spread. |
+| Gary "Scoutmaster" Pike | Cook and field survival | Also the fishing expert. |
+| Stan Hutchins ("Old-man Stan") | Blacksmith | Grumpy ex-gunsmith. The world was lucky it didn't end in his prime. Probably. |
+| Zyn and Clyde Baxter | Country farmers who run the garden | The player's contacts for planting and harvesting. |
 | Aaron | LEET AF guide for the Training Grounds | Stands at the door and inside the range. |
 
 Five generic "Survivor" residents fill out the camp: nets, fire, laundry, watch and tent.
@@ -559,11 +570,11 @@ Jaykobi (2026-10-11): the cutscenes felt low effort and strangely paced.
 
 **A camera that is directed** (`study/camera.js`). A scene beat can point the camera somewhere and it glides there with an eased start and stop, then glides back to you (1.6 seconds) and follows again. The house reads it from the wake beats (`cam`), the street from `focus`.
 
-**The opening.** A title card ("Night one", Deadlight Hollow) over black, then the room fades up slowly with the camera in close on the couch. Duke noses his hand; Owen speaks while still half asleep, sits up, and the camera eases back to the house as he stands.
+**The opening.** A title card ("Night one", Deadlight Hollow) over black, then the room fades up slowly with the camera in close on the couch. Duke noses his hand; Marcus speaks while still half asleep, sits up, and the camera eases back to the house as he stands.
 
 **The crash.** Sirens, then the camera pulls back over the front rooms as the light bar sweeps past, and cuts to the corner as it hits the pole, with a shake. Duke runs to the front door barking (a new Master Creator sound, `dog-bark`) and the cat bolts under the bed. The camera holds on the turning lights, then comes back to Owen for his lines.
 
-**The street.** The first time out, the camera goes down the road to the cruiser in the pole while Owen takes it in, then comes back. Close to the officer it moves in on him for "Officer? You okay?", and he turns only after you tap past it. The bars slide in for each of these.
+**The street.** The first time out, the camera goes down the road to the cruiser in the pole while Marcus takes it in, then comes back. Close to the officer it moves in on him for "Officer? You okay?", and he turns only after you tap past it. The bars slide in for each of these.
 
 **The one who watched.** When the window goes dark, "Who are you?" fades in over black before the character creator opens.
 
@@ -571,7 +582,7 @@ Jaykobi (2026-10-11): the cutscenes felt low effort and strangely paced.
 
 Jaykobi (2026-10-11): narration, thoughts and dialog felt quick, out of place and thrown in. Asked for a small dialog box with a portrait of who is talking and a button to continue, so the player reads at their own pace, without it becoming another burden on the screen.
 
-**One script** (`story/night1.js`). Every line of night one lives in one file, scene by scene, as `[who, text]`; the scenes read from it, so the words can be rewritten without touching code. The same script is written up for review in the Night One Script doc. The second-person narrator is gone: Owen speaks for himself, and after he dies the survivor you made speaks as "You" (with the name you gave them).
+**One script** (`story/night1.js`). Every line of night one lives in one file, scene by scene, as `[who, text]`; the scenes read from it, so the words can be rewritten without touching code. The same script is written up for review in the Night One Script doc. The second-person narrator is gone: Marcus speaks for himself, and after he dies the survivor you made speaks as "You" (with the name you gave them).
 
 **The dialog box** (`study/say.js`). A slim steel strip over the bottom of the game view, with the speaker's face (cut from their real character art, a radio handset for the Guard, a dark silhouette for the watcher), their name, and the line typing in at 55 characters a second. A tap anywhere (or Space, Enter, E, or A on a pad) finishes the line, the next tap moves on. While it is up the game holds, so nothing hits you while you read; cutscene beats wait for the last line to be tapped past. Other prompts hide under it.
 
@@ -661,7 +672,7 @@ From the build order (2026-10-11): the special dead that change how a fight play
 
 **Spitters.** A man in a stained work shirt with a sac of acid under his chin and burns down his front. 55 health. They keep 150 to 280 units from you and every 3.4 seconds wind up for 0.55 seconds and lob a glob at where you are going (your movement half a second ahead), over fences and cars. While it flies (0.95 seconds) a green ring marks where it will land: be out of it. A hit does 12 and leaves a pool of acid that bubbles for 5 seconds and does 6 every half second to anyone standing in it. The shotgun breaks the wind-up.
 
-**Where they are.** One near each job (a screamer by the radio house, a bloater on Walt's street, a spitter in the yards round the go-bag), a few more wandering the other blocks, and some in patrols as the heat rises (screamers from Quiet, spitters and bloaters from Stirring); most hordes have a bloater or a spitter. Acid and gas give off a faint sickly light so you can see them in the dark.
+**Where they are.** One near each job (a screamer by the radio house, a bloater on Ray's street, a spitter in the yards round the go-bag), a few more wandering the other blocks, and some in patrols as the heat rises (screamers from Quiet, spitters and bloaters from Stirring); most hordes have a bloater or a spitter. Acid and gas give off a faint sickly light so you can see them in the dark.
 
 ## v0.46.0 — Climbing fences, and the first job with extraction
 
@@ -671,9 +682,9 @@ From the build order (2026-10-11): climbing low fences, and the first mission, e
 
 **The job.** Once the street goes quiet after the tutorial fight, the cruiser's radio crackles: a Guard truck is coming through the Hollow tonight to the east end of your street, and will not drive into a dark town blind. Three things to do, in any order (`JOB` in `street/fight.js`, `JOBS` and `job()` in `home/kit.js`):
 
-- **Find a radio**: Daniel Okafor's ham radio, in the Okafor house two blocks north-west. A 2.4 second search.
-- **Start the generator**: Walt's generator and work light beside his house, out north-east. A 3.5 second pull-start; the work light comes on and lights the yard, the heat jumps by 45 and a horde comes 5 seconds later.
-- **Get the go-bag**: Mrs. Novak's go-bag, under a tarp with orange tape in a back yard to the south-west. 1.6 seconds; 12 shells, 2 cloth, a gun oil and 2 powder go in your bag.
+- **Find a radio**: Curtis Webb's ham radio, in the Webb house two blocks north-west. A 2.4 second search.
+- **Start the generator**: Ray Dunham's generator and work light beside his house, out north-east. A 3.5 second pull-start; the work light comes on and lights the yard, the heat jumps by 45 and a horde comes 5 seconds later.
+- **Get the go-bag**: Mrs. Hargrove's go-bag, under a tarp with orange tape in a back yard to the south-west. 1.6 seconds; 12 shells, 2 cloth, a gun oil and 2 powder go in your bag.
 
 Each finished job is a checkpoint: going down after it puts you back on your step with what you had at that moment, and the job stays done. The goal chip lists what is left, and a mark sits over each job still to do; off screen it is pinned to the edge with an arrow and the distance in metres (40 units to the metre).
 
@@ -775,7 +786,7 @@ From Jaykobi's first walk of the neighbourhood (2026-10-10): the zombies get stu
 
 ## v0.38.0 — The first map: the neighbourhood
 
-The street is now a whole neighbourhood (Jaykobi, 2026-10-10: "about 5x5 blocks of a rural suburb"). `dist/street/data.js` lays it out: five blocks by five, 9640 × 3480 units. Each block is one row of houses facing south onto its street, with back yards behind running up to the street to the north, so walking north you cross back fences and yards. Six side streets cross between the blocks, and fields with pines and a farm fence run round the edge of town. Your block is the middle one, as it was: your house, the corner house, the Parks' and the house past them, and the cruiser in the pole. The other 24 blocks come from a seed, so the map is the same every time: four or five lots each, every lot with a house (one of 11 sidings and four roofs, a door, windows, maybe a garage and chimney), its porch and path, shrubs, maybe a tree, a mailbox, a picket fence, a car at the curb, bins out, a back fence (wood or chain-link), a side fence, a shed and back-yard trees; poles, a lamp, a hydrant and stop signs along each street. Every neighbour's door can be knocked on (12 names, 8 kinds of answer). New Master Creator art for it: houses, trees, pines, stop signs, bins, sheds, wood and chain-link fences, five sidings, and dirt, gravel and field ground (Master Creator 71d5714).
+The street is now a whole neighbourhood (Jaykobi, 2026-10-10: "about 5x5 blocks of a rural suburb"). `dist/street/data.js` lays it out: five blocks by five, 9640 × 3480 units. Each block is one row of houses facing south onto its street, with back yards behind running up to the street to the north, so walking north you cross back fences and yards. Six side streets cross between the blocks, and fields with pines and a farm fence run round the edge of town. Your block is the middle one, as it was: your house, the corner house, the Suttons' and the house past them, and the cruiser in the pole. The other 24 blocks come from a seed, so the map is the same every time: four or five lots each, every lot with a house (one of 11 sidings and four roofs, a door, windows, maybe a garage and chimney), its porch and path, shrubs, maybe a tree, a mailbox, a picket fence, a car at the curb, bins out, a back fence (wood or chain-link), a side fence, a shed and back-yard trees; poles, a lamp, a hydrant and stop signs along each street. Every neighbour's door can be knocked on (12 names, 8 kinds of answer). New Master Creator art for it: houses, trees, pines, stop signs, bins, sheds, wood and chain-link fences, five sidings, and dirt, gravel and field ground (Master Creator 71d5714).
 
 **Built for big maps, per the plan.** The map is far too big for one picture, so it is drawn in 512-unit chunks (`dist/street/scene.js`): the ground and light of the chunks round the screen are painted as you come near, a strip at a time across frames (anything already on screen is painted at once), and let go once you are well past; each prop is painted while any held chunk touches its picture. Collision and cover use a grid (`solidAt`, `coverAt`), so they only check what is near. Zombie sprites come from a pool sized to what is on screen. Walking laps of the whole map holds steady (no leak); on a phone-sized test the whole game holds about 220 MB on the graphics card and 75 MB of canvases, about what the one street held before.
 
@@ -799,7 +810,7 @@ The touch fire stick no longer fires the moment the thumb leaves the middle, whi
 
 **The crash.** After the pets, the wake-up scene adds: sirens; "One of them is close. Tires on your street, coming fast." with the cruiser's red and blue light sweeping past the front of the house and its siren and engine passing; "Brakes. Then a crash, a few houses down." with the crash and a camera shake; the light keeps turning down the street; "Find something to protect yourself with. Then go and look." The goal becomes "Go and see what crashed down the street" once you have a gun (one is enough; the door tells you the other is still there). The front window describes the cruiser in the pole.
 
-**The street** (`dist/street/`): your house front and three neighbours' along the north side with roofs, yards, fences and the mailbox; sidewalks, a two-lane road with a dashed line, two parked cars, a dark street lamp or three, a hydrant; lawns, hedges and fences to the south running into the dark. The cruiser is up on the curb with its nose in a leaning pole, the near front door hanging open, glass on the sidewalk, skid marks across the road, its light bar turning (red and blue glow) and one headlight still on. A candle moves behind the Parks' window; the corner house's door is open a crack. Night light is darker than the house.
+**The street** (`dist/street/`): your house front and three neighbours' along the north side with roofs, yards, fences and the mailbox; sidewalks, a two-lane road with a dashed line, two parked cars, a dark street lamp or three, a hydrant; lawns, hedges and fences to the south running into the dark. The cruiser is up on the curb with its nose in a leaning pole, the near front door hanging open, glass on the sidewalk, skid marks across the road, its light bar turning (red and blue glow) and one headlight still on. A candle moves behind the Suttons' window; the corner house's door is open a crack. Night light is darker than the house.
 
 **The first fight** (`dist/street/fight.js`): your real guns. The pistol has unlimited spare magazines; the shotgun loads a shell at a time from the shells in your bag, and clicks empty with none. Hitscan bullets and pellets stop at the first zombie or anything 20 or more tall (the hydrant and the steps do not stop them); shotgun pellets do 55% past 150. Hits shove and stagger (pistol 55 and .16 s, shotgun 42 a pellet and .32 s), bleed onto the ground, and the shotgun's shove breaks a bite that is winding up. Zombies shamble at 40 and lurch at 64 within 80; a bite stops for .45 s with a yellow tell above the head, then lands for 14 within 32 (step back and it misses), with a shove and a 1.1 s cooldown. You have 100 health, which comes back at 5 a second after 5 s untouched. Going down shows "You went down" and puts you back on your step after 3 s with exactly the rounds and shells you came out with.
 - The cop (80) waits at the open door until you come within 190 or fire; then two neighbours (60, 55) come out of the dark, one from the side yard and one from across the road. Clear them: "Street clear · Search the police cruiser".
@@ -820,7 +831,7 @@ The touch fire stick no longer fires the moment the thumb leaves the middle, whi
 - **Backpacks (decided 2026-10-10):** three bags, Small, Medium and Large. Drawn and in the data since v0.33.0.
 - **Crafting and upgrades (decided 2026-10-10):** weapon tiers; armor as head, body and leg pieces shown on the survivor; common scrap from anywhere plus rare parts from special infected; armor wears as it is hit and guns foul with use (gun oil in the field, a full clean at camp); shotgun and rifle ammo found and crafted at camp. The full plan is the Claude Doc "Deadlight Hollow: Crafting and Upgrades".
 - **A Master Creator:** one place that houses every reusable asset (characters, animations, sounds, objects) so they can be browsed and reused. Today the character creator covers survivors, zombies and pets; everything else lives in code across `study/`, `companion/`, `camp/`, `grounds/` and `intro/`.
-- **Co-op companions (2026-10-11):** AI companions fill the co-op spots when there are no other players. Three to start, all to be tested and balanced: **Bible**, a God-loving, Bible-quoting, crazy cowboy who loves sending the undead back to their graves; **Gadget**, the LEET AF soldier already in the Training Grounds (Engineer), with a knack for tech; **Hank**, a human brute, amazing at shooting things and lifting heavy objects, who talks only in grunts.
+- **Co-op companions (2026-10-11):** AI companions fill the co-op spots when there are no other players. Three to start, all to be tested and balanced: **Ezekiel "Bible" Crane**, a God-loving, Bible-quoting, crazy cowboy who loves sending the undead back to their graves; **Priya "Gadget" Nair**, the LEET AF soldier already in the Training Grounds (Engineer), with a knack for tech; **Hank Dorsey**, a human brute, amazing at shooting things and lifting heavy objects, who talks only in grunts.
 
 ## Where we are and what's next (2026-10-10)
 Bookmark set by Jaykobi before starting the Master Creator.
