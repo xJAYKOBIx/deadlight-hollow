@@ -544,6 +544,10 @@ Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack),
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
 
+## v0.65.1 — Title wording
+
+The line over the logo now reads WELCOME TO (was Night one), and the line under it "This game is in active development!" (was "The night it all went wrong.").
+
 ## v0.65.0 — The jobs list, a cleaner title menu, and carved names
 
 **The goal line.** Before, the goal was one long sentence: once the street was quiet it listed every job's next step at once ("Get ready to leave: get the battery out of…, find fuel for…, go to…") and on the phone deck it ran under the Light button and the weapon panel. Now it is a tag and one step on a single line, cut short with an ellipsis if it still does not fit: Goal and the step during the first night; Jobs and how many are left once the jobs start; the job's name and its step when you follow one, or while you carry its part (`home/kit.js` `goalLine`).

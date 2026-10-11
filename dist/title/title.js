@@ -25,8 +25,8 @@ const CREDITS=[['Deadlight Hollow',''],['Created by','Jaykobi'],['Art, sound and
 export function mountTitle(o){
  const el=document.createElement('div');el.id='title';el.hidden=true;el.setAttribute('role','dialog');el.setAttribute('aria-label','Deadlight Hollow');
  el.innerHTML=`<div class="ti-veil" aria-hidden="true"></div><canvas class="ti-rain" aria-hidden="true"></canvas><div class="ti-shade" aria-hidden="true"></div><div class="ti-flash" aria-hidden="true"></div><div class="ti-grain" aria-hidden="true"></div>
- <div class="ti-col"><header class="ti-logo"><span class="ti-kick">Night one</span><h1 class="ti-dead" aria-label="Deadlight">${[...LETTERS].map((c,i)=>`<span class="l${i}">${c}</span>`).join('')}</h1>
- <div class="ti-hollow"><b></b><span>Hollow</span><b></b></div><p class="ti-tag">The night it all went wrong.</p></header>
+ <div class="ti-col"><header class="ti-logo"><span class="ti-kick">Welcome to</span><h1 class="ti-dead" aria-label="Deadlight">${[...LETTERS].map((c,i)=>`<span class="l${i}">${c}</span>`).join('')}</h1>
+ <div class="ti-hollow"><b></b><span>Hollow</span><b></b></div><p class="ti-tag">This game is in active development!</p></header>
  <div class="ti-press" aria-live="polite"></div><nav class="ti-menu" aria-label="Main menu"></nav><section class="ti-panel" hidden></section></div>
  <footer class="ti-foot"><span class="ti-hints"></span><span class="ti-ver"></span></footer><div class="ti-black" aria-hidden="true"></div>`;
  document.body.append(el);const q=s=>el.querySelector(s),menu=q('.ti-menu'),panel=q('.ti-panel'),press=q('.ti-press');q('.ti-ver').textContent='v'+o.version;
