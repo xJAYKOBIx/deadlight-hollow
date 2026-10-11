@@ -45,6 +45,10 @@ Jaykobi, 2026-10-10: "this will be the plan moving forward." The goals are Helld
 - Zombies far from every player move on a cheap, slow update with no sprite; they become full sprites near a player, from a reused pool, so sprites are not made and thrown away.
 - No leaks: a scene that is left stops its timers and listeners, and everything a chunk or a fight makes is freed with it. A long session's memory is checked as part of testing a new place.
 
+## Art direction: smoother art (decided 2026-10-11)
+
+Jaykobi (2026-10-11), after a side-by-side test in the living room (`previews/smooth-style-room.png`, `smooth-style-turn.gif`): "I like the smoother art, for certain." Pixel art was chosen only to avoid Blender. The test drew the same Master Creator art without the half-unit grid (anti-aliased paths) and with smooth texture scaling (Phaser pixelArt off), at the same texture sizes, so memory is unchanged. Still to do beyond that switch: art with dither painted in (rugs, couch, pet shading, the house light map) gets gradients, and shapes built from rectangles (hair, faces) get curves, asset by asset. Master Creator keeps the pixel painter for parity and gains a smooth mode.
+
 ## Map style (proposed 2026-10-11)
 
 Jaykobi (2026-10-11): map design is "very, very important"; the current neighbourhood is "low-grade and repetitive"; choose between Helldivers 1 (large, free, kiting) and Gauntlet Slayer Edition (guided, fights locked to an area until the spawners are done), or blend them. The night one script is good up to the creator; the part after it will be reworked later. Next: the starter map, the suburbs.
