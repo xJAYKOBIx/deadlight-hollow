@@ -127,7 +127,7 @@ export const WAVES=[
   {look:'robe',...H(1700,470),delay:3.8},{look:'worker',...H(1050,500),delay:5},{look:'neighbour2',...H(1500,160),delay:6.5}],
  [{look:'robe',...H(850,320),delay:1},{look:'worker',...H(900,500),delay:1.4},{look:'neighbour',...H(820,200),delay:1.8},
   {look:'jogger',...H(1900,300),delay:5},{look:'neighbour2',...H(1940,420),delay:5.4},{look:'worker',...H(1880,180),delay:5.8},{look:'robe',...H(1980,340),delay:6.2},
-  {look:'neighbour',...H(1200,540),delay:10},{look:'neighbour2',...H(1450,540),delay:10.4},{look:'jogger',...H(1600,170),delay:10.8},{look:'worker',...H(1150,170),delay:11.2},{look:'robe',...H(1700,520),delay:11.6},
+  {look:'neighbour',...H(1200,540),delay:10},{look:'neighbour2',...H(1450,540),delay:10.4},{look:'runner',kind:'runner',...H(1600,170),delay:10.8},{look:'worker',...H(1150,170),delay:11.2},{look:'robe',...H(1700,520),delay:11.6},
   {look:'worker',kind:'crawler',...H(1330,580),delay:8}]];
 // The rest of the neighbourhood: two to four in every other block, wandering their yards and the street until they notice you.
 export const ROAMERS=[];{const R=rng(9091),LOOKS=['neighbour','jogger','robe','worker','neighbour2'];

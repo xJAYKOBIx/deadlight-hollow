@@ -523,6 +523,16 @@ Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack),
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
 
+## v0.45.0 — Runners and brutes
+
+From the build order (2026-10-11): the first two special dead.
+
+**Runners.** Out for a run when it happened: lean, in sportswear, with eyes that catch the light. 40 health. Once one has you it sprints (150, faster than you walk, slower than you run). Close in with a clear line it crouches for 0.3 seconds, with an orange tell, and leaps along the line it had at the start of the crouch. Stand there and it lands for 16; step aside or dive and it misses and lies sprawled for most of a second. A shotgun blast breaks the crouch. Their sheet holds the lurching run in place of the walk. (`RUNNER` in `street/fight.js`.)
+
+**Brutes.** A big man gone bad, drawn half as big again. 420 health; a shotgun barely shoves one and nothing staggers it. With a clear run at you from 110 to 330 units it sets its feet for 0.6 seconds (a red ring on the ground and a tell) and charges in a straight line for up to 1.4 seconds: 30 damage and a long throw if it hits you. Dive out of the way. If the charge runs into something solid it is stunned for 1.8 seconds and takes half as much again from every hit. Close in it swings slowly (0.75 second tell) for 32 and a throw. It always drops 4 to 8 shells. Brutes never come apart. (`BRUTE`.)
+
+**Where they come from.** Patrols have a chance of runners (12% each while Stirring, 20% Hunted, 25% Swarming) and, while Hunted or worse, a 15% chance of one brute; every horde while Swarming has a brute. The tutorial's second wave now has one runner in its last rush.
+
 ## v0.44.0 — Heat, patrols and hordes
 
 From the build order (2026-10-11): a heat meter, patrols and hordes, the Helldivers pressure loop.

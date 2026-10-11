@@ -104,3 +104,16 @@ test('heat: shots and alarms raise it and quiet lets it fall; on a quiet street 
  for(const z of f.zombies)if(z.extra){z.hunt=false;z.x=m.x+HEAT.gone+100;}run(f,m,.05);assert.equal(f.zombies.filter(z=>z.extra).length,0);
  // During the tutorial's own fight, no patrols.
  const g=setup();g.f.patrolT=0;run(g.f,g.m,.1);assert.equal(g.f.zombies.filter(z=>z.extra).length,0);});
+test('runners sprint, crouch and leap: the leap lands if you stand there, and one that misses is left sprawled',async()=>{const {RUNNER}=await import('../dist/street/fight.js');const {box,m,f}=setup();
+ const z=f.zombies[0];Object.assign(z,{kind:'runner',hp:RUNNER.hp,max:RUNNER.hp,idle:false});f.wake();Object.assign(m,{x:z.x-RUNNER.lunge.at+10,y:z.y});run(f,m,.05);assert.equal(z.state,'crouch');assert.ok(z.tell>0,'it shows a tell');
+ const hp=f.hp;run(f,m,RUNNER.lunge.tell+RUNNER.lunge.time);assert.equal(f.hp,hp-RUNNER.lunge.damage,'the leap lands');
+ const g=setup(),r=g.f.zombies[0];Object.assign(r,{kind:'runner',hp:RUNNER.hp,max:RUNNER.hp,idle:false});g.f.wake();Object.assign(g.m,{x:r.x-RUNNER.lunge.at+10,y:r.y});run(g.f,g.m,.05);assert.equal(r.state,'crouch');
+ g.m.y+=70;run(g.f,g.m,RUNNER.lunge.tell+RUNNER.lunge.time+.02);assert.equal(g.f.hp,PLAYER_HP,'stepped aside');assert.ok(r.stagger>0,'sprawled');});
+test('brutes: a shotgun barely moves one; it charges in a straight line, and one that hits a wall is stunned and takes more',async()=>{const {BRUTE}=await import('../dist/street/fight.js');const {box,m,f}=setup();
+ const z=f.zombies[0];Object.assign(z,{kind:'brute',hp:BRUTE.hp,max:BRUTE.hp,idle:false,x:5600,y:1990});Object.assign(m,{x:5400,y:1990});f.wake();f.zombies.slice(1).forEach(q=>q.delay=99);
+ run(f,m,.05);assert.equal(z.state,'set');assert.ok(z.tell>0);run(f,m,BRUTE.charge.tell+.05);assert.equal(z.state,'charge');
+ // You dive out of the way; it carries on past where you were.
+ m.y-=80;run(f,m,BRUTE.charge.time);assert.equal(f.hp,PLAYER_HP);assert.ok(z.x<5600-150,"it kept going");
+ // A shotgun blast barely shoves it, and a stunned brute takes half as much again.
+ const b=setup(),q=b.f.zombies[0];Object.assign(q,{kind:'brute',hp:BRUTE.hp,max:BRUTE.hp,idle:false});b.f.hit(q,100,1,0);assert.ok(Math.abs(q.vx)<SHOVE['pump-shotgun'].push*.5);assert.equal(q.stagger,0);
+ q.stun=1;const before=q.hp;b.f.hit(q,100,1,0);assert.equal(before-q.hp,100*BRUTE.charge.weak);});

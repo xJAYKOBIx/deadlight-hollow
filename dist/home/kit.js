@@ -53,7 +53,7 @@ export function lootOf(t){const R=rng(seedOf(t.id));return (LOOT[t.loot]||[]).ma
 export const alarmed=t=>t.loot==='car'&&rng(seedOf(t.id)+7)()<ALARM;
 export function scavenge(k,t,grid=carrying({})){if(!LOOT[t.loot]||k.looted.includes(t.id))return {k,items:[]};const items=lootOf(t);return {k:{...k,bag:pack(k,grid,items),looted:[...k.looted,t.id]},items};}
 // What the dead sometimes drop: the cop its shells, a worker a bit of scrap, anyone else a few shells or a rag.
-export const DROPS={cop:[['shells',.7,2,4]],worker:[['scrap',.4,1,2],['shells',.15,1,2]],any:[['shells',.2,1,3],['cloth',.12,1,1]]};
+export const DROPS={cop:[['shells',.7,2,4]],brute:[['shells',1,4,8]],worker:[['scrap',.4,1,2],['shells',.15,1,2]],any:[['shells',.2,1,3],['cloth',.12,1,1]]};
 // A list of what you found, for a line on screen.
 export const listOf=list=>list.map(([id,n])=>(n>1?n+' ':'')+itemInfo(id).name.toLowerCase()).join(', ');
 export const advance=(k,stage)=>STREET_STAGES.indexOf(stage)>STREET_STAGES.indexOf(k.street)?{...k,street:stage}:k;

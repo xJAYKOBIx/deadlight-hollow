@@ -56,7 +56,7 @@ export class Juice{
    else{g.fillStyle(q.col,Math.min(1,a*1.6)).fillRect(x-.5,y-.5,q.z>0?1:1.5,q.z>0?1.5:1);}return true;});
   this.rings=this.rings.filter(r=>{r.age+=dt;const k=r.age/r.life;if(k>=1)return false;g.lineStyle(r.width,r.col,.8*(1-k));g.strokeEllipse(r.x,r.y,r.r*2*(.3+k),r.r*1.3*(.3+k));return true;});
   // Tells: a pip above anything about to act, in its colour. A brute winding up also marks the floor it is about to hit.
-  const t=now/1000;for(const b of p.drill.bots){if(!(b.tell>0)||b.hp<=0)continue;const big=b.kind==='brute',col=TELL[b.kind]||0xffe27a,y=b.y-(big?92:60)+Math.sin(t*14)*1.5;
+  const t=now/1000;for(const b of p.drill.bots){if(!(b.tell>0)||b.hp<=0)continue;const big=b.kind==='brute',col=TELL[b.kind]||0xffe27a,y=b.y-(b.tellY??(big?92:60))+Math.sin(t*14)*1.5;
    g.fillStyle(0x111319,1).fillRect(b.x-2.5,y-9,5,11).fillRect(b.x-2.5,y+3,5,5);g.fillStyle(col,1).fillRect(b.x-1.5,y-8,3,9).fillRect(b.x-1.5,y+4,3,3);
    if(big){const k=(t*3)%1;g.lineStyle(1.5,0xff4a3a,.5+.3*Math.sin(t*20));g.strokeEllipse(b.x,b.y,96,48);g.lineStyle(1,0xff4a3a,.6*(1-k));g.strokeEllipse(b.x,b.y,96*k,48*k);}
    else if(b.kind==='runner'){const k=(t*2.5)%1;g.lineStyle(1,col,.6*(1-k));g.strokeEllipse(b.x,b.y-20,20+k*40,12+k*24);}}}

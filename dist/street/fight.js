@@ -42,6 +42,13 @@ export const SEARCH={time:1.1,alarm:900,pick:18};
 export const HEAT={shot:{'light-pistol':3,'pump-shotgun':6},kill:1,alarm:30,quiet:8,fall:2.5,levels:[0,25,50,80],names:['Quiet','Stirring','Hunted','Swarming'],
  patrol:[90,50,30,20],size:[3,5],horde:{every:45,size:[10,14]},cap:40,spawn:{near:620,far:820},gone:1500,walk:26};
 const LOOKS=['neighbour','jogger','robe','worker','neighbour2'];
+// Runners: fast and frail. Once they have you they sprint; close in, with a clear line, they crouch for an instant (the tell) and
+// leap. Dive or step aside: a leap that misses leaves them sprawled for a moment. A shotgun blast breaks the crouch.
+export const RUNNER={hp:40,speed:150,walk:30,lunge:{at:90,tell:.3,speed:340,time:.26,damage:16,range:28,recover:.9,cool:1.4}};
+// Brutes: big, slow and hard to put down, and a shotgun barely moves one. With a clear run at you from a distance it sets its feet
+// (the tell) and charges in a straight line: dive out of the way. If it runs into something solid it is stunned and takes half as
+// much again from every hit. Close in it swings, slowly and hard; both throw you back.
+export const BRUTE={hp:420,speed:30,shove:.2,scale:1.45,tellY:116,charge:{min:110,max:330,tell:.6,speed:210,time:1.4,damage:30,knock:220,stun:1.8,cool:4,weak:1.5},swing:{tell:.75,damage:32,range:38,knock:180,cool:1.6}};
 export const CRAWLER={hp:25,speed:22,reach:16,windup:.55,damage:9,hold:.9,slow:.3,rise:.6,cool:1.4};
 export class Fight{
  constructor(model,{kit,setKit,grid}){Object.assign(this,{model,kit,setKit,grid,traces:[],fields:[],events:[],zombies:[],hp:PLAYER_HP,maxHp:PLAYER_HP,down:0,cooldown:0,reloadTime:0,throwCooldown:0,sinceShot:9,sinceHurt:9,dive:null,diveCool:0,alert:false,wave:-1,seed:1,held:null,grab:0,gore:true,searching:null,drops:[],heat:0,quiet:99,level:0,patrolT:30,hordeT:0});
@@ -50,12 +57,14 @@ export class Fight{
  start(){const k=this.kit();this.snapshot=k;this.hp=PLAYER_HP;this.down=0;this.dive=null;this.grab=0;this.searching=null;this.drops=[];this.heat=0;this.quiet=99;this.level=0;this.patrolT=30;this.hordeT=0;this.diveCool=0;this.alert=false;this.traces=[];this.reloadTime=0;this.cooldown=0;this.held=k.held;this.zombies.length=0;
   if(k.street==='start')this.spawn(0);else if(k.street==='looted'){this.spawn(1);this.alert=true;}else{this.wave=-1;this.zombies.length=0;this.zombies.push(...this.roamers());}}
  // The ones you already put down stay where they fell when the next wave comes.
- spawn(i){this.wave=i;const fell=i>0?this.zombies.filter(z=>z.roam===undefined&&z.hp<=0):[];this.zombies.length=0;this.zombies.push(...fell);for(const s of WAVES[i]){const crawl=s.kind==='crawler',hp=crawl?CRAWLER.hp:ZOMBIE.hp[s.look]||60;this.zombies.push({kind:crawl?'crawler':'shambler',look:s.look,x:s.x,y:s.y,sx:s.x,sy:s.y,direction:s.direction??4,frame:0,phase:0,hp,max:hp,idle:!!s.idle,delay:s.delay||0,state:'chase',t:0,vx:0,vy:0,stagger:0,tell:0,cool:0,flash:0,groan:1+this.rand()*2});}
+ spawn(i){this.wave=i;const fell=i>0?this.zombies.filter(z=>z.roam===undefined&&z.hp<=0):[];this.zombies.length=0;this.zombies.push(...fell);for(const s of WAVES[i]){const kind=s.kind||'shambler',hp=this.hpOf(kind,s.look);this.zombies.push({kind,...(kind==='brute'?{tellY:BRUTE.tellY}:{}),look:s.look,x:s.x,y:s.y,sx:s.x,sy:s.y,direction:s.direction??4,frame:0,phase:0,hp,max:hp,idle:!!s.idle,delay:s.delay||0,state:'chase',t:0,vx:0,vy:0,stagger:0,tell:0,cool:0,flash:0,groan:1+this.rand()*2});}
   this.zombies.push(...this.roamers());}
  // The wanderers, back where they started; the ones you put down stay down for the night.
  roamers(){this.fallen??=new Set();const R=this.roamList??=ROAMERS.map((s,i)=>({i,s,z:null}));
   return R.filter(r=>!this.fallen.has(r.i)||r.z).map(r=>{if(this.fallen.has(r.i))return r.z;const s=r.s,hp=ZOMBIE.hp[s.look]||60;
    return r.z=Object.assign(r.z||{},{kind:'shambler',roam:r.i,look:s.look,x:s.x,y:s.y,sx:s.x,sy:s.y,direction:Math.floor(this.rand()*8),frame:0,phase:0,hp,max:hp,idle:false,delay:0,state:'wander',hunt:false,t:0,vx:0,vy:0,stagger:0,tell:0,cool:0,flash:0,groan:2+this.rand()*4,wt:this.rand()*3,wx:s.x,wy:s.y,acc:0,laid:false,fall:0});});}
+ // How much one takes, by kind and look.
+ hpOf(kind,look){return kind==='crawler'?CRAWLER.hp:kind==='runner'?RUNNER.hp:kind==='brute'?BRUTE.hp:ZOMBIE.hp[look]||60;}
  rand(){this.seed=(this.seed*1103515245+12345)&0x7fffffff;return this.seed/0x7fffffff;}
  emit(type,o={}){this.events.push({type,...o});}
  drain(){return this.events.splice(0);}
@@ -88,13 +97,13 @@ export class Fight{
  // One bullet or pellet along a line: it stops at the first zombie or the first thing tall enough to hide behind.
  ray(angle,g,pellet){const m=this.model,dx=Math.cos(angle),dy=Math.sin(angle),reach=g.range+20,near=this.zombies.filter(z=>this.out(z)&&Math.abs(z.x-m.x)<reach&&Math.abs(z.y-m.y)<reach);let end={x:m.x,y:m.y},onto={kind:'floor'};
   for(let d=6;d<=g.range;d+=3){const x=m.x+dx*d,y=m.y+dy*d;if(x<0||x>MAP.w||y<0||y>MAP.h)break;if(coverAt(x,y)){onto={kind:'prop'};break;}end={x,y};
-   const z=near.find(z=>Math.hypot(z.x-x,(z.y-y)*1.2)<12);if(z){this.hit(z,g.damage*(pellet||g.pellets?(d>150?.55:1):1),dx,dy);onto={kind:'zombie',ref:z};break;}}
+   const z=near.find(z=>Math.hypot(z.x-x,(z.y-y)*1.2)<(z.kind==='brute'?17:12));if(z){this.hit(z,g.damage*(pellet||g.pellets?(d>150?.55:1):1),dx,dy);onto={kind:'zombie',ref:z};break;}}
   const mz=muzzle(angle,this.gunId),dist=Math.hypot(end.x-m.x,end.y-m.y),dur=dist/BULLET_SPEED;
   this.traces.push({x:m.x,y:m.y,ex:end.x,ey:end.y,ox:mz.x,oy:mz.y,age:0,dur,life:dur+.07,col:onto.kind==='zombie'?'#7a1a16':'#b8ab88',onto,done:false,pellet});}
  // A hit: damage, a shove along the shot and a stagger. The shotgun's shove breaks a bite that is winding up.
- hit(z,dmg,dx,dy){const s=SHOVE[this.gunId]||SHOVE['light-pistol'],m=this.model;z.hp=Math.max(0,z.hp-dmg);z.flash=.07;
-  const push=s.push*(this.gun?.pellets&&Math.hypot(z.x-m.x,z.y-m.y)<SHOVE.close.range?SHOVE.close.push:1)*(z.hp<=0?SHOVE.kill:1);z.vx+=dx*push;z.vy+=dy*push;z.stagger=Math.max(z.stagger,s.stagger);z.idle=false;if(z.roam!==undefined)z.hunt=true;
-  if(z.state==='windup'&&this.gun?.pellets){z.state='chase';z.tell=0;z.cool=.5;}
+ hit(z,dmg,dx,dy){const s=SHOVE[this.gunId]||SHOVE['light-pistol'],m=this.model,big=z.kind==='brute';if(big&&z.stun>0)dmg*=BRUTE.charge.weak;z.hp=Math.max(0,z.hp-dmg);z.flash=.07;
+  const push=s.push*(this.gun?.pellets&&Math.hypot(z.x-m.x,z.y-m.y)<SHOVE.close.range?SHOVE.close.push:1)*(z.hp<=0?SHOVE.kill:1)*(big?BRUTE.shove:1);z.vx+=dx*push;z.vy+=dy*push;if(!big)z.stagger=Math.max(z.stagger,s.stagger);z.idle=false;if(z.roam!==undefined)z.hunt=true;
+  if((z.state==='windup'||z.state==='crouch')&&this.gun?.pellets&&!big){z.state='chase';z.tell=0;z.cool=.5;}
   if(z.hp<=0){if(z.roam!==undefined)this.fallen.add(z.roam);z.state='dead';z.tell=0;z.frame=0;z._popped=true;z.fall=dx>=0?1:-1;
    this.drop(z,dx,dy);this.noise(HEAT.kill);const gore=z.gore=this.goreOf(z),crawler=gore==='half'&&this.rand()<GORE_KILL.crawl?this.crawler(z,dx,dy):null;this.emit('kill',{z,dx,dy,gore,crawler});this.check();}else this.emit('hit',{z,dx,dy});}
  // Noise raises the heat and resets the quiet.
@@ -106,7 +115,7 @@ export class Fight{
  // A car alarm: every wanderer in earshot comes to see, and keeps coming.
  alarm(x,y){this.emit('alarm',{x,y});this.noise(HEAT.alarm);for(const z of this.zombies)if(z.roam!==undefined&&z.hp>0&&Math.hypot(z.x-x,z.y-y)<SEARCH.alarm)this.notice(z);this.heard(x,y);}
  // What a killing hit does to the body: nothing more, 'half' (in two at the waist) or 'head' (the head comes off).
- goreOf(z){if(!this.gore||z.kind==='crawler')return null;const m=this.model,d=Math.hypot(z.x-m.x,z.y-m.y),G=GORE_KILL;
+ goreOf(z){if(!this.gore||z.kind==='crawler'||z.kind==='brute')return null;const m=this.model,d=Math.hypot(z.x-m.x,z.y-m.y),G=GORE_KILL;
   if(this.gun?.pellets)return d<G.near||d<G.far&&this.rand()<G.chance?'half':null;return this.rand()<G.head?'head':null;}
  // The top half lands a little way along the shot and starts to crawl. It counts as one of the wave it came from.
  crawler(z,dx,dy){let x=z.x,y=z.y;for(const t of [28,20,12])if(!this.blockedZ(z,z.x+dx*t,z.y+dy*t*.7)){x=z.x+dx*t;y=z.y+dy*t*.7;break;}
@@ -189,16 +198,43 @@ export class Fight{
   if(z.roam!==undefined&&d>ROAM.lose){z.hunt=false;z.state='wander';z.sx=z.x;z.sy=z.y;z.wt=0;return;}
   z.direction=facing(dx,dy);
   if(this.down){z.frame=0;return;}
+  if(z.kind==='brute')return this.brute(z,dt,d,dx,dy);
   if(z.state==='windup'){z.t-=dt;z.tell=Math.max(0,z.t);z.frame=0;if(z.t<=0){z.state='chase';z.cool=B.cooldown;z.tell=0;if(d<B.range&&!this.air)this.hurt(B.damage,z);else this.emit('miss',{z});}return;}
+  if(z.kind==='runner'&&this.runner(z,dt,d,dx,dy))return;
   if(d<ZOMBIE.reach+2&&!z.cool){z.state='windup';z.t=B.windup;z.tell=B.windup;this.emit('windup',{z});return;}
+  if(z.kind==='runner'){this.chase(z,dt,Math.min(Math.max(0,d-ZOMBIE.reach+4),RUNNER.speed*dt),d,dx,dy,70);return;}
   // Shamble toward you; close in, they lurch.
   // Stuck on a fence or a car, it picks a side and walks along it for a moment.
-  const speed=(d<ZOMBIE.lurchAt?ZOMBIE.lurch:ZOMBIE.walk)*(z.look==='jogger'?1.25:1),go=Math.min(Math.max(0,d-ZOMBIE.reach+4),speed*dt);let ax=dx/d,ay=dy/d;
+  const speed=(d<ZOMBIE.lurchAt?ZOMBIE.lurch:ZOMBIE.walk)*(z.look==='jogger'?1.25:1);this.chase(z,dt,Math.min(Math.max(0,d-ZOMBIE.reach+4),speed*dt),d,dx,dy);}
+ // Moving at you by go this step: straight, or round what is between by the flow, sidestepping when stuck. stride is how far one
+ // walk cycle carries it.
+ chase(z,dt,go,d,dx,dy,stride=40){const m=this.model;let ax=dx/d,ay=dy/d;
   // A clear line: straight at you. Otherwise round whatever is between, by the flow (checked a few times a second).
   if(d>28){z.seeT=(z.seeT||0)-dt;if(z.seeT<=0){z.seeT=.2;z.clear=clearLine(z.x,z.y,m.x,m.y);}if(!z.clear){const w=this.flow.way(z.x,z.y);if(w){ax=w.x;ay=w.y;}}}
   if(z.detour>0){z.detour-=dt;const s=z.side;[ax,ay]=[-ay*s*.9+ax*.1,ax*s*.9+ay*.1];}
   const moved=go?this.step(z,ax,ay,go):0;if(go&&!moved){z.stuck=(z.stuck||0)+dt;if(z.stuck>.35){z.stuck=0;z.side=z.side===1?-1:1;z.detour=.9;}}else z.stuck=0;
-  if(moved){z.phase=(z.phase+moved/40)%1;z.frame=1+Math.floor(z.phase*8);}else{z.frame=0;z.phase=0;}}
+  if(moved){z.phase=(z.phase+moved/stride)%1;z.frame=1+Math.floor(z.phase*8);}else{z.frame=0;z.phase=0;}return moved;}
+ // A runner: the crouch, the leap, and the sprawl after a miss. Returns true while it is busy with one.
+ runner(z,dt,d,dx,dy){const L=RUNNER.lunge,m=this.model;
+  if(z.state==='crouch'){z.t-=dt;z.tell=Math.max(0,z.t);z.frame=0;if(z.t<=0){z.state='leap';z.t=L.time;z.tell=0;z.hitDone=false;this.emit('lunge',{z});}return true;}
+  if(z.state==='leap'){z.t-=dt;const s=L.speed*dt;for(let i=0;i<3;i++){const nx=z.x+z.lx*s/3,ny=z.y+z.ly*s/3;if(this.blockedZ(z,nx,ny))break;z.x=nx;z.y=ny;}z.frame=3;z.direction=facing(z.lx,z.ly);
+   if(!z.hitDone&&Math.hypot(m.x-z.x,(m.y-z.y)*1.2)<L.range&&!this.air){z.hitDone=true;this.hurt(L.damage,z);}
+   if(z.t<=0){z.state='chase';z.cool=L.cool;if(!z.hitDone){z.stagger=L.recover;this.emit('miss',{z});}}return true;}
+  if((z.hunt||z.roam===undefined)&&d<L.at&&d>26&&!z.cool&&clearLine(z.x,z.y,m.x,m.y)){z.state='crouch';z.t=L.tell;z.tell=L.tell;z.lx=dx/d;z.ly=dy/d;this.emit('windup',{z});return true;}
+  return false;}
+ // A brute: setting its feet and charging, stunned against a wall, the slow swing, and the plod in between.
+ brute(z,dt,d,dx,dy){const B=BRUTE,C=B.charge,S=B.swing,m=this.model;z.stagger=0;if(z.stun>0){z.stun-=dt;z.frame=0;return;}z.ccool=Math.max(0,(z.ccool||0)-dt);
+  if(z.state==='set'){z.t-=dt;z.tell=Math.max(0,z.t);z.frame=0;if(z.t<=0){z.state='charge';z.t=C.time;z.tell=0;z.hitDone=false;this.emit('charge',{z});}return;}
+  if(z.state==='charge'){z.t-=dt;const s=C.speed*dt;let wall=false;for(let i=0;i<4;i++){const nx=z.x+z.cx*s/4,ny=z.y+z.cy*s/4;if(this.blockedZ(z,nx,ny)){wall=true;break;}z.x=nx;z.y=ny;}
+   z.direction=facing(z.cx,z.cy);z.phase=(z.phase+s/60)%1;z.frame=1+Math.floor(z.phase*8);
+   if(!z.hitDone&&Math.hypot(m.x-z.x,(m.y-z.y)*1.2)<28&&!this.air){z.hitDone=true;this.hurt(C.damage,z);this.knock(z,C.knock);}
+   if(wall){z.state='chase';z.stun=C.stun;z.ccool=C.cool;this.emit('stun',{z});}else if(z.t<=0){z.state='chase';z.ccool=C.cool;}return;}
+  if(z.state==='windup'){z.t-=dt;z.tell=Math.max(0,z.t);z.frame=0;if(z.t<=0){z.state='chase';z.cool=S.cool;z.tell=0;if(d<S.range+8&&!this.air){this.hurt(S.damage,z);this.knock(z,S.knock);}else this.emit('miss',{z});}return;}
+  if(!z.ccool&&d>C.min&&d<C.max&&clearLine(z.x,z.y,m.x,m.y)){z.state='set';z.t=C.tell;z.tell=C.tell;z.cx=dx/d;z.cy=dy/d;this.emit('windup',{z,big:true});return;}
+  if(d<S.range&&!z.cool){z.state='windup';z.t=S.tell;z.tell=S.tell;this.emit('windup',{z,big:true});return;}
+  this.chase(z,dt,Math.min(Math.max(0,d-S.range+10),B.speed*dt),d,dx,dy,55);}
+ // Thrown back from a heavy hit.
+ knock(z,n){const m=this.model,dx=m.x-z.x,dy=m.y-z.y,d=Math.hypot(dx,dy)||1;this.shove={x:dx/d*n,y:dy/d*n};}
  // A crawler drags itself at you, round what is in the way, and reaches for your ankle.
  crawl(z,dt){const m=this.model,C=CRAWLER;if(z.hatch>0){z.hatch-=dt;return;}z.cool=Math.max(0,z.cool-dt);if(z.stagger>0){z.stagger-=dt;return;}
   const dx=m.x-z.x,dy=m.y-z.y,d=Math.hypot(dx,dy)||1;if(d>ROAM.lose||this.down){z.frame=0;return;}if(z.roam!==undefined)z.hunt=true;z.direction=facing(dx,dy);
@@ -216,8 +252,9 @@ export class Fight{
    const p=Math.abs(rd.y+rd.h/2-py)<Math.abs(cr.x+cr.w/2-px)?{x:px,y:rd.y+rd.h/2,along:'x'}:{x:cr.x+cr.w/2,y:py,along:'y'};
    if(p.x>WALK.left+40&&p.x<WALK.right-40&&p.y>WALK.top+40&&p.y<WALK.bottom-40&&Math.hypot(p.x-m.x,p.y-m.y)>H.spawn.near*.9&&!solidAt(p.x,p.y,10))at=p;}
   if(!at)return false;const goal={x:m.x+(this.rand()-.5)*160,y:m.y+(this.rand()-.5)*100},pts=[at.along==='x'?{x:goal.x,y:at.y}:{x:at.x,y:goal.y},goal];
-  for(let i=0;i<n;i++){const look=LOOKS[Math.floor(this.rand()*LOOKS.length)],hp=ZOMBIE.hp[look]||60,sp=horde?90:30,x=at.x+(this.rand()-.5)*sp+(at.along==='x'?(i%3)*14:0),y=at.y+(this.rand()-.5)*sp*.7+(at.along==='y'?(i%3)*14:0);
-   this.zombies.push({kind:'shambler',extra:true,roam:-1,look,x,y,sx:x,sy:y,direction:facing(goal.x-x,goal.y-y),frame:0,phase:0,hp,max:hp,idle:false,delay:i*.35,state:horde?'chase':'wander',hunt:horde,t:0,vx:0,vy:0,stagger:0,tell:0,cool:0,flash:0,groan:1+this.rand()*4,wt:0,wx:x,wy:y,acc:0,
+  const lv=this.level,brute=horde&&lv===3||!horde&&lv>=2&&this.rand()<.15?Math.floor(this.rand()*n):-1;
+  for(let i=0;i<n;i++){const kind=i===brute?'brute':this.rand()<[0,.12,.2,.25][lv]?'runner':'shambler',look=kind==='shambler'?LOOKS[Math.floor(this.rand()*LOOKS.length)]:kind,hp=this.hpOf(kind,look),sp=horde?90:30,x=at.x+(this.rand()-.5)*sp+(at.along==='x'?(i%3)*14:0),y=at.y+(this.rand()-.5)*sp*.7+(at.along==='y'?(i%3)*14:0);
+   this.zombies.push({kind,...(kind==='brute'?{tellY:BRUTE.tellY}:{}),extra:true,roam:-1,look,x,y,sx:x,sy:y,direction:facing(goal.x-x,goal.y-y),frame:0,phase:0,hp,max:hp,idle:false,delay:i*.35,state:horde?'chase':'wander',hunt:horde,t:0,vx:0,vy:0,stagger:0,tell:0,cool:0,flash:0,groan:1+this.rand()*4,wt:0,wx:x,wy:y,acc:0,
     route:horde?null:pts.map(p=>({x:p.x+(this.rand()-.5)*24,y:p.y+(this.rand()-.5)*16}))});}
   this.emit(horde?'horde':'patrol',{x:at.x,y:at.y,n});return true;}
  // Not seen you yet: stand a while, shuffle somewhere nearby, stand again. Bumping into something just ends the walk.

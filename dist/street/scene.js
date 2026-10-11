@@ -10,7 +10,7 @@ import {Juice} from '../study/juice.js';
 import {iconArt,ICON,ICONS} from '../camp/art.js';
 import {MAP,CHUNK,PROPS,LIGHT_BAR,HOME,coverAt} from './data.js';
 import {groundArt,lightArt,LIGHT_SCALE,propArt,PROP_PAD} from './art.js';
-import {Fight,DIVE,CRAWLER,SEARCH} from './fight.js';
+import {Fight,DIVE,CRAWLER,SEARCH,BRUTE} from './fight.js';
 import {ITEM_IDS,itemArt} from '../mc/assets/gear/items.js';
 import {painter} from '../mc/assets/core/paint.js';
 import {zombiePiece,GORE_PARTS,crawlArt,CRAWL,gibArt,GIBS,bloodArt,BLOOD_BOX} from '../mc/assets/effects/gore.js';
@@ -20,7 +20,12 @@ export const ZOMBIE_LOOKS={cop:{...DEFAULT_APPEARANCE,...POLICE,...Z,hair:1,skin
  neighbour:{...DEFAULT_APPEARANCE,...Z,top:3,coat:2,bottom:1,pants:1,shoes:1,hair:0,color:1,skin:1,wounds:2},
  jogger:{...DEFAULT_APPEARANCE,...Z,body:1,top:6,shirt:3,bottom:4,shoes:1,hair:2,color:4,skin:3,decay:0,wounds:1},
  robe:{...DEFAULT_APPEARANCE,...Z,top:2,shirt:1,bottom:3,pants:2,shoes:2,hair:3,beard:6,color:3,skin:0,decay:2,wounds:3},
- worker:{...DEFAULT_APPEARANCE,...Z,top:0,coat:4,hat:1,bottom:2,pants:3,shoes:0,beard:3,skin:4,eyes:2,wounds:2}};
+ worker:{...DEFAULT_APPEARANCE,...Z,top:0,coat:4,hat:1,bottom:2,pants:3,shoes:0,beard:3,skin:4,eyes:2,wounds:2},
+ // A runner: out for a run when it happened, lean, with eyes that catch the light. A brute: a big man gone bad, drawn half as big again.
+ runner:{...DEFAULT_APPEARANCE,...Z,body:1,top:6,shirt:5,bottom:4,shoes:1,hair:2,color:2,skin:1,decay:1,eyes:1,wounds:2,rot:3},
+ brute:{...DEFAULT_APPEARANCE,...Z,top:3,coat:2,bottom:5,pants:3,shoes:0,hair:4,beard:3,color:0,skin:5,decay:1,eyes:2,wounds:3,rot:1}};
+// Runners' sheets hold the lurching run in place of the walk; brutes never come apart, so they have no pieces.
+const RUN_LOOKS=new Set(['runner']),WHOLE=new Set(['brute']);
 const SHEET_OF={neighbour2:'neighbour'};
 // Zombie sheets hold the standing frame and the eight walking frames, cropped to the part of the frame a body uses.
 const ZF={x:16,y:8,w:128,h:176,rows:9};
@@ -74,9 +79,10 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   // You.
   this.parts={};this.gunSheets={};this.setPlayerLook(bridge.look());
   // The dead: one sheet per look.
-  for(const [id,look] of Object.entries(ZOMBIE_LOOKS)){const t=this.texture('street-z-'+id,ZF.w*8,ZF.h*ZF.rows,c=>{c.imageSmoothingEnabled=false;for(let f=0;f<ZF.rows;f++)for(let d=0;d<8;d++){c.save();c.beginPath();c.rect(d*ZF.w,f*ZF.h,ZF.w,ZF.h);c.clip();c.translate(d*ZF.w-ZF.x,f*ZF.h-ZF.y);c.scale(2,2);survivor(c,d,f,false,look);c.restore();}});
+  for(const [id,look] of Object.entries(ZOMBIE_LOOKS)){const t=this.texture('street-z-'+id,ZF.w*8,ZF.h*ZF.rows,c=>{c.imageSmoothingEnabled=false;for(let f=0;f<ZF.rows;f++)for(let d=0;d<8;d++){c.save();c.beginPath();c.rect(d*ZF.w,f*ZF.h,ZF.w,ZF.h);c.clip();c.translate(d*ZF.w-ZF.x,f*ZF.h-ZF.y);c.scale(2,2);survivor(c,d,RUN_LOOKS.has(id)&&f>0?f+8:f,false,look);c.restore();}});
    for(let f=0;f<ZF.rows;f++)for(let d=0;d<8;d++)if(!t.has(f*8+d))t.add(f*8+d,0,d*ZF.w,f*ZF.h,ZF.w,ZF.h);
    // Its pieces, a row each in the same crop, and its crawl: five facings (the rest are mirrored) by four frames.
+   if(WHOLE.has(id))continue;
    const P=this.texture('street-zp-'+id,ZF.w*8,ZF.h*4,c=>{c.imageSmoothingEnabled=false;GORE_PARTS.forEach((part,r)=>{for(let d=0;d<8;d++){c.save();c.beginPath();c.rect(d*ZF.w,r*ZF.h,ZF.w,ZF.h);c.clip();c.translate(d*ZF.w-ZF.x,r*ZF.h-ZF.y);zombiePiece(c,look,d,part,0,d+r*8+1);c.restore();}});});
    for(let i=0;i<32;i++)if(!P.has(i))P.add(i,0,(i%8)*ZF.w,Math.floor(i/8)*ZF.h,ZF.w,ZF.h);
    const C=this.texture('street-zc-'+id,CRAWL.w*5,CRAWL.h*4,c=>{c.imageSmoothingEnabled=false;for(const [d,col] of Object.entries(CRAWL_COL))for(let f=0;f<4;f++){c.save();c.beginPath();c.rect(col*CRAWL.w,f*CRAWL.h,CRAWL.w,CRAWL.h);c.clip();c.translate(col*CRAWL.w,f*CRAWL.h);crawlArt(c,look,+d,f,3);c.restore();}});
@@ -174,7 +180,7 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
  // dead only ever needs as many as you can see.
  sprite(z){let s=this.zs.get(z);if(!s){s=this.pool.pop()||this.add.image(0,0,'street-z-cop',0).setScale(.5);const id=SHEET_OF[z.look]||z.look;
   if(z.kind==='crawler')s.setTexture('street-zc-'+id,0).setOrigin(CRAWL.x/CRAWL.w,CRAWL.y/CRAWL.h);else s.setTexture('street-z-'+id,0).setOrigin((FRAME.w/2-ZF.x)/ZF.w,(FRAME.footY*2-ZF.y)/ZF.h);
-  s.setAngle(0).setFlipX(false).clearTint().setAlpha(1).setVisible(true);s.laid=false;s.white=false;s.grey=false;this.zs.set(z,s);}return s;}
+  s.setScale(z.kind==='brute'?.5*BRUTE.scale:.5).setAngle(0).setFlipX(false).clearTint().setAlpha(1).setVisible(true);s.laid=false;s.white=false;s.grey=false;this.zs.set(z,s);}return s;}
  free(z){const s=this.zs.get(z);if(!s)return;s.setVisible(false);this.pool.push(s);this.zs.delete(z);}
  // A blood stamp at (x, y): on the ground under everything, or up a wall at the wall's depth. With gore reduced, fewer of them.
  stain(kind,x,y,{dir=0,depth=.5}={}){if(!this.goreOn&&kind!=='pool'&&Math.random()<.5)return;const d=((dir%8)+8)%8,v=Math.random()*4|0;
@@ -225,6 +231,10 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
    const dir=Math.round(a/(Math.PI/4));this.stain(kill?'splash':'drops',z.x+e.dx*16,z.y+e.dy*10,{dir});this.wallSplat(z,e);
    if(kill){j.hold(now,e.gore?.07:.05);j.shake('down');this.stain('splash',z.x+e.dx*30,z.y+e.dy*18,{dir});z._pool=true;if(e.gore)this.dismember(z,e,a);}}
   else if(e.type==='land'){j.puff(e.x,e.y-2,.9,0x6a6458,.6,-4);j.bits(5,e.x,e.y,{dir:Math.atan2(e.dy,e.dx),spread:1.6,speed:50,lift:30,z:0,col:0x6a6458,life:.4,kind:'debris'});}
+  // A brute's charge kicks up dust; one that runs into something shakes the ground.
+  else if(e.type==='charge')j.puff(z.x,z.y-2,.8,0x6a6458,.5,-4);
+  else if(e.type==='stun'){j.puff(z.x,z.y-30,1.1,0x8a8478,.7,-10);j.bits(10,z.x,z.y,{dir:0,spread:6.3,speed:90,lift:50,z:40,col:0x8a8478,life:.45,kind:'debris'});if(Math.hypot(z.x-model.x,z.y-model.y)<400)j.shake('brute');}
+  else if(e.type==='lunge')j.puff(z.x,z.y-1,.5,0x6a6458,.4,-3);
   else if(e.type==='hurt')j.shake('hurt');
   else if(e.type==='down')j.shake('brute');
   else if(e.type==='stage'&&e.stage==='looted')this.setTrunk(true);
@@ -263,7 +273,7 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
    if(z.kind==='crawler'){const col=CRAWL_COL[z.direction]??CRAWL_FLIP[z.direction];s.setVisible(!(z.hatch>0)).setFlipX(z.direction in CRAWL_FLIP).setFrame(col+(z.hp>0?z.frame:0)*5).setPosition(half(z.x),half(z.y)).setDepth(z.y-4);
     if(z.hp<=0&&!s.grey){s.grey=true;if(!white)s.setTint(0x9a8a8a);}if(z.hp>0){const m=Math.hypot(z.x-(z.tx??z.x),z.y-(z.ty??z.y));if(m>16||z.tx===undefined){if(z.tx!==undefined)this.stain('drops',z.x,z.y+1);z.tx=z.x;z.ty=z.y;}}continue;}
    if(z.hp<=0){if(!s.laid){s.laid=true;if(z.gore)s.setTexture('street-zp-'+(SHEET_OF[z.look]||z.look),z.direction+(z.gore==='half'?8:24));else s.setFrame(z.direction);s.setOrigin(.5,.62);}z.fallT=Math.min(1,(z.fallT||0)+dt/TOPPLE.time);const k=z.fallT*z.fallT;
-    s.setAngle(90*z.fall*k).setPosition(half(z.x),half(z.y-TOPPLE.hips+(TOPPLE.hips-6)*k)).setDepth(z.y-10*k);
+    const sc=z.kind==='brute'?BRUTE.scale:1;s.setAngle(90*z.fall*k).setPosition(half(z.x),half(z.y-(TOPPLE.hips+(6-TOPPLE.hips)*k)*sc)).setDepth(z.y-10*k);
     if(k>=1&&!s.grey){s.grey=true;if(!white)s.setTint(0x9a8a8a);if(!z.thud){z.thud=true;this.juice.puff(z.x+z.fall*14,z.y-2,.6,0x6a6458,.5,-4);}}
     if(z._pool&&!z.vx&&!z.vy&&k>=1){z._pool=false;this.stain('pool',z.x+z.fall*(z.gore==='half'?6:14),z.y+2);}continue;}
    const fl=z.flinch>0?z.flinch/TOPPLE.flinch:0;if(fl)z.flinch-=dt;s.setAngle(fl?Math.sign(z.flinchX||1)*7*fl:0);
