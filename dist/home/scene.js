@@ -7,9 +7,22 @@ import {iconArt,ICON,ICONS} from '../camp/art.js';
 import {PET_FRAME,PET_FRAME_COUNT,paintPetSheet} from '../companion/pet.js';
 import {drawHearts} from '../companion/sprite.js';
 import {HousePet} from '../companion/house.js';
-import {Wake,COUCH,CRASH} from './wake.js';
-// The flashlight: how far its beam reaches, how wide it is, and how fast it swings round to where you face.
-const TORCH={len:150,half:22*Math.PI/180,turn:12};
+import {Wake,COUCH,CRASH} from './wake.js';import {lightAt} from '../study/equipment.js';
+// The flashlight: how far its beam reaches, how wide it is, how fast it swings round to where you face, the pool round your feet,
+// and its warm white. DARK: how much of the moonlight and candle you see, before the flashlight and after (your eyes adjust).
+const TORCH={len:200,half:24*Math.PI/180,turn:12,pool:30,col:[255,244,220]},DARK={before:.6,after:.7};
+// Walls and the shut front door stop the beam; windows and doorways let it through.
+const BLOCK=PROPS.filter(o=>o.kind==='wall'||o.kind==='wallV'||o.kind==='frontdoor');
+// How far a ray from (x, y) at angle a gets before it meets a wall, up to len (a slab test against each wall's footprint).
+function reach(x,y,a,len){const c=Math.cos(a),s=Math.sin(a);let t=len;for(const b of BLOCK){let t0=0,t1=t;
+  for(const [p,d,lo,hi] of [[x,c,b.x,b.x+b.w],[y,s,b.y,b.y+b.h]]){if(Math.abs(d)<1e-9){if(p<lo||p>hi){t0=1;t1=0;break;}continue;}let u=(lo-p)/d,v=(hi-p)/d;if(u>v)[u,v]=[v,u];t0=Math.max(t0,u);t1=Math.min(t1,v);if(t0>t1)break;}
+  if(t0<=t1&&t0>0)t=Math.min(t,t0);}return t;}
+// The beam and the pool in light-map pixels, stepped in sixths like the rest of the night's light.
+const step6=f=>Math.min(1,Math.round(f*6)/6);
+function coneArt(c,len,half,[R,G,B]){const w=c.canvas.width,h=c.canvas.height,img=c.createImageData(w,h),d=img.data;
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++){const dx=x+.5,dy=y+.5-h/2,r=Math.hypot(dx,dy),a=Math.abs(Math.atan2(dy,dx)),i=(y*w+x)*4;if(r>=len||a>=half)continue;
+  const f=step6(Math.pow(1-r/len,.4)*Math.pow(1-(a/half)**2,.55)*1.35);d[i]=R*f;d[i+1]=G*f;d[i+2]=B*f;d[i+3]=255;}c.putImageData(img,0,0);}
+function poolArt(c,[R,G,B]){const n=c.canvas.width,img=c.createImageData(n,n),d=img.data;for(let y=0;y<n;y++)for(let x=0;x<n;x++){const r=Math.hypot(x+.5-n/2,y+.5-n/2)/(n/2),i=(y*n+x)*4;if(r>=1)continue;const f=step6((1-r)*.5);d[i]=R*f;d[i+1]=G*f;d[i+2]=B*f;d[i+3]=255;}c.putImageData(img,0,0);}
 const inRect=(x,y,r,b)=>{const dx=x-Math.max(b.x,Math.min(x,b.x+b.w)),dy=y-Math.max(b.y,Math.min(y,b.y+b.h));return dx*dx+dy*dy<r*r;};
 // Horizontal walls you can be behind. They thin out while you are, so you never lose yourself or a pet behind one.
 const FADES=new Set(['wall','window','doorway','frontdoor']);
@@ -37,23 +50,20 @@ export function makeHomeScene(model,bridge){return class Home extends Phaser.Sce
   // First night: the cat is curled up on the couch beside you, and the scene plays before you can move.
   if(bridge.woke&&!bridge.woke()){const [dog,cat]=this.pets.map(p=>p.pet);cat.place(cat.def.spots.find(s=>s.perch&&s.room==='living'&&s.perch.h<20));this.wake=new Wake({dog,cat,you:model});}
   this.zzz=this.add.graphics().setDepth(7002);this.fade=this.add.rectangle(-200,-200,HOME.w+400,HOME.h+400,0x000000,1).setOrigin(0).setDepth(9000).setVisible(!!this.wake);
-  // Night: the light map multiplies everything under it; the candle's glow, the hearts and the markers sit above it.
-  this.texture('home-light',Math.ceil(HOME.w/LIGHT_SCALE),Math.ceil(HOME.h/LIGHT_SCALE),lightArt,true);this.add.image(0,0,'home-light').setOrigin(0).setScale(LIGHT_SCALE).setDepth(6000).setBlendMode(Phaser.BlendModes.MULTIPLY);
-  // The power cut: the whole house goes dark except round the candle. Before the flashlight it is near black; after, your eyes have
-  // adjusted and the rooms read again, but only the beam really lights anything.
-  this.texture('home-dark',Math.ceil(HOME.w/8),Math.ceil(HOME.h/8),c=>{const W=c.canvas.width,H=c.canvas.height,x=CANDLE.x/8,y=(CANDLE.y+8)/8,g=c.createRadialGradient(x,y,0,x,y,150/8);
-   c.fillStyle='rgb(52,58,84)';c.fillRect(0,0,W,H);g.addColorStop(0,'rgba(255,236,206,1)');g.addColorStop(.3,'rgba(214,190,166,.9)');g.addColorStop(1,'rgba(52,58,84,0)');c.fillStyle=g;c.fillRect(0,0,W,H);});
-  this.textures.get('home-dark').setFilter(Phaser.Textures.FilterMode.LINEAR);this.dark=this.add.image(0,0,'home-dark').setOrigin(0).setScale(8).setDepth(6000).setBlendMode(Phaser.BlendModes.MULTIPLY);
+  // Night with the power out: one light map each frame, multiplied over everything. It starts from the moonlight and the candle
+  // (lightArt), dimmed until your eyes adjust, and the flashlight is added into it, cut off where it meets a wall. Being in the map
+  // rather than painted over it, the beam shows the rooms in their real colours instead of a white haze.
+  const LW=Math.ceil(HOME.w/LIGHT_SCALE),LH=Math.ceil(HOME.h/LIGHT_SCALE),mk=(w,h,draw)=>{const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'));return c;};
+  this.night=mk(LW,LH,lightArt);this.cone=mk(Math.ceil(TORCH.len/LIGHT_SCALE)+1,Math.ceil(TORCH.len*Math.tan(TORCH.half)/LIGHT_SCALE)*2+2,c=>coneArt(c,TORCH.len/LIGHT_SCALE,TORCH.half,TORCH.col));
+  this.pool=mk(TORCH.pool,TORCH.pool,c=>poolArt(c,TORCH.col));
+  this.litTex=this.textures.exists('home-lit')?this.textures.get('home-lit'):this.textures.createCanvas('home-lit',LW,LH);this.litKey='';
+  this.lit=this.add.image(0,0,'home-lit').setOrigin(0).setScale(LIGHT_SCALE).setDepth(6000).setBlendMode(Phaser.BlendModes.MULTIPLY);
   this.texture('home-glow',128,128,glowArt);this.textures.get('home-glow').setFilter(Phaser.Textures.FilterMode.LINEAR);
   this.glow=this.add.image(CANDLE.x,CANDLE.y+8,'home-glow').setScale(1.4,1).setDepth(6001).setBlendMode(Phaser.BlendModes.ADD);
   // The police car's light bar: a red and a blue glow that sweep past the front windows as it passes, then keep turning down the street.
   this.texture('home-glow-w',128,128,c=>{const gr=c.createRadialGradient(64,64,0,64,64,64);gr.addColorStop(0,'rgba(255,255,255,.8)');gr.addColorStop(.45,'rgba(255,255,255,.22)');gr.addColorStop(1,'rgba(255,255,255,0)');c.fillStyle=gr;c.fillRect(0,0,128,128);});this.textures.get('home-glow-w').setFilter(Phaser.Textures.FilterMode.LINEAR);
   this.police=[0xff3a3a,0x3a6aff].map(col=>this.add.image(0,0,'home-glow-w').setDepth(6001).setBlendMode(Phaser.BlendModes.ADD).setTint(col).setVisible(false));this.pm=null;this.passT=0;this.shook=0;
-  // The flashlight, once you have it: a cone of white light ahead of you over the dark, and a little spill round your feet.
-  this.texture('home-beam',256,128,c=>{const g=c.createRadialGradient(0,64,0,0,64,256);g.addColorStop(0,'rgba(255,240,205,.7)');g.addColorStop(.45,'rgba(255,232,190,.3)');g.addColorStop(1,'rgba(255,226,180,0)');
-   c.beginPath();c.moveTo(0,64);c.lineTo(256*Math.cos(TORCH.half),64-256*Math.sin(TORCH.half));c.arc(0,64,256,-TORCH.half,TORCH.half);c.closePath();c.fillStyle=g;c.fill();});this.textures.get('home-beam').setFilter(Phaser.Textures.FilterMode.LINEAR);
-  this.beam=this.add.image(0,0,'home-beam').setOrigin(0,.5).setScale(TORCH.len/256).setDepth(6001).setBlendMode(Phaser.BlendModes.ADD).setVisible(false);this.beamA=null;
-  this.spill=this.add.image(0,0,'home-glow-w').setScale(.5,.35).setDepth(6001).setBlendMode(Phaser.BlendModes.ADD).setAlpha(.25).setVisible(false);
+  this.beamA=null;
   this.flame=this.add.graphics().setDepth(6002);this.petFx=this.add.graphics().setDepth(7003);
   const icons=this.texture('camp-icons',ICON.w*2*ICONS.length,ICON.h*2,iconArt);ICONS.forEach((k,i)=>{if(!icons.has(k))icons.add(k,0,i*ICON.w*2,0,ICON.w*2,ICON.h*2);});
   this.marker=this.add.image(0,0,'camp-icons','chevron').setScale(.5).setOrigin(.5,1).setDepth(7001).setVisible(false);
@@ -62,10 +72,20 @@ export function makeHomeScene(model,bridge){return class Home extends Phaser.Sce
   bridge.ready(this);}
  // Open the nightstand or the closet (and show what is in it), and keep it that way.
  setProp(id,patch){const o=PROPS.find(p=>p.id===id);if(!o)return;this.opts[id]={...this.opts[id],...patch};const t=this.textures.get('home-'+id),c=t.context;c.clearRect(0,0,t.width,t.height);propArt(c,{...o,...this.opts[id]});t.refresh();}
+ // The light map for this frame. Only repainted when the beam has moved (or come on), so standing still costs nothing.
+ paintLight(b){const L=LIGHT_SCALE,key=b?[Math.round(b.x),Math.round(b.y),b.a.toFixed(3),b.direction].join():'off';if(key===this.litKey)return;this.litKey=key;
+  const t=this.litTex,c=t.context,W=t.width,H=t.height;c.globalCompositeOperation='copy';c.drawImage(this.night,0,0);c.globalCompositeOperation='source-over';
+  c.fillStyle=`rgba(0,0,0,${1-(b?DARK.after:DARK.before)})`;c.fillRect(0,0,W,H);
+  if(b){const lz=lightAt(b.direction*Math.PI/4,b.held),ox=b.x+lz.x,oy=b.y+lz.y,fx=b.x+lz.x*.5,fy=b.y;c.globalCompositeOperation='lighter';
+   // The beam lands on the floor ahead: cast from the lens, clipped to what a ray along the floor reaches before a wall.
+   const n=40,pts=[[fx/L,fy/L]];for(let i=0;i<=n;i++){const a=b.a-TORCH.half+2*TORCH.half*i/n,d=Math.min(TORCH.len,reach(fx,fy,a,TORCH.len)+8);pts.push([(fx+Math.cos(a)*d)/L,(fy+Math.sin(a)*d)/L]);}
+   c.save();c.beginPath();pts.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.clip();c.translate(ox/L,(oy+(fy-oy)*.6)/L);c.rotate(b.a);c.drawImage(this.cone,0,-this.cone.height/2);c.restore();
+   c.drawImage(this.pool,(b.x-TORCH.pool*L/2+Math.cos(b.a)*10)/L,(b.y-4-TORCH.pool*L/2+Math.sin(b.a)*6)/L,TORCH.pool,TORCH.pool);c.globalCompositeOperation='source-over';}
+  t.refresh();}
  skipWake(){this.wake?.skip();}
  // The flashlight is on: sirens, and the police car down the street (wake.js CRASH), where you stand.
  crash(){if(this.wake)return;const [dog,cat]=this.pets.map(p=>p.pet);this.wake=new Wake({dog,cat,you:model,beats:CRASH});}
- setPlayerLook(look){const t=this.textures.get('survivor-01'),c=t.context;c.clearRect(0,0,FRAME.w*8,FRAME.h*FRAME_COUNT);c.imageSmoothingEnabled=false;for(let f=0;f<FRAME_COUNT;f++)for(let d=0;d<8;d++){c.save();c.translate(d*FRAME.w,f*FRAME.h);c.scale(2,2);survivor(c,d,f,true,{...look,zombie:0,gun:bridge.held?.()||'none',grenade:null});c.restore();}t.refresh();}
+ setPlayerLook(look){const t=this.textures.get('survivor-01'),c=t.context;c.clearRect(0,0,FRAME.w*8,FRAME.h*FRAME_COUNT);c.imageSmoothingEnabled=false;for(let f=0;f<FRAME_COUNT;f++)for(let d=0;d<8;d++){c.save();c.translate(d*FRAME.w,f*FRAME.h);c.scale(2,2);survivor(c,d,f,true,{...look,zombie:0,gun:bridge.held?.()||'none',grenade:null,light:!!bridge.kit?.()?.light});c.restore();}t.refresh();}
  setPetLook(){}
  // Never show past the yard: on a wide screen the camera zooms in until the house and yard fill it.
  zoom(){const s=this.scale;return Math.max(bridge.zoom(),s.width/HOME.w,s.height/HOME.h);}
@@ -92,9 +112,9 @@ export function makeHomeScene(model,bridge){return class Home extends Phaser.Sce
   // The light bar: during the pass it runs along the front of the house; parked, it turns at the east end of the street.
   const kit=bridge.kit?.(),pm=w?w.police:kit?.light?'parked':null;
   // The flashlight swings round to where you face, and goes where you go.
-  if(kit?.light){const want=model.direction*Math.PI/4;if(this.beamA===null)this.beamA=want;let d=want-this.beamA;d=Math.atan2(Math.sin(d),Math.cos(d));this.beamA+=d*Math.min(1,dt*TORCH.turn);
-   const bx=model.x+Math.cos(this.beamA)*4,by=model.y-14+Math.sin(this.beamA)*2;this.beam.setVisible(true).setPosition(bx,by).setRotation(this.beamA).setAlpha(.62+.04*Math.sin(now/130));this.spill.setVisible(true).setPosition(model.x+Math.cos(this.beamA)*16,model.y-4+Math.sin(this.beamA)*10);}
-  else{this.beam.setVisible(false);this.spill.setVisible(false);}this.dark.setAlpha(kit?.light?.62:1);if(pm!==this.pm){this.pm=pm;this.passT=0;}if(!paused)this.passT+=dt;
+  if(kit?.light){const want=model.direction*Math.PI/4;if(this.beamA===null)this.beamA=want;let d=want-this.beamA;d=Math.atan2(Math.sin(d),Math.cos(d));this.beamA+=d*Math.min(1,dt*TORCH.turn);}else this.beamA=null;
+  this.paintLight(kit?.light&&!w?.onCouch?{x:model.x,y:model.y,a:this.beamA,held:bridge.held?.()||'flashlight',direction:model.direction}:null);
+  if(pm!==this.pm){this.pm=pm;this.passT=0;}if(!paused)this.passT+=dt;
   this.police.forEach((img,i)=>{if(!pm){img.setVisible(false);return;}const on=Math.floor(now/(pm==='pass'?90:260))%2===i;
    if(pm==='pass'){const k=Math.min(1,this.passT/2.6);img.setVisible(k<1).setPosition(HOUSE.x-120+k*(HOUSE.w+260),HOUSE.y+HOUSE.h-70).setScale(5.5,2.6).setAlpha(on?.55*Math.sin(Math.PI*k):.06);}
    else img.setVisible(true).setPosition(HOUSE.x+HOUSE.w+40,HOUSE.y+HOUSE.h+20).setScale(2.8,1.8).setAlpha(on?.34:.05);});

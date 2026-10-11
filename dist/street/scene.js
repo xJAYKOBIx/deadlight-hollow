@@ -2,7 +2,7 @@
 // the dead, the night light, the cruiser's light bar and the fight's effects. The map is far too big to hold as one picture, so it
 // is kept in square chunks: the ground and light of the chunks round the screen are painted as you come near and let go once you
 // are well past, and each prop is painted while any chunk its picture touches is held. The fight is street/fight.js; this draws it.
-import {bake,unbake,worthBaking} from '../study/memory.js';import {drawLaser} from '../study/aimstick.js';import {muzzle} from '../study/equipment.js';
+import {bake,unbake,worthBaking} from '../study/memory.js';import {drawLaser} from '../study/aimstick.js';import {muzzle,lightAt} from '../study/equipment.js';
 import {survivor,FRAME} from '../study/character.js';
 import {LAYERS,ORDER,origin,sheetSize,paintLayers,paintRacked,paintDive,DIVE as DIVE_ART,pose,armed} from '../study/layers.js';
 import {DEFAULT_APPEARANCE,UNIFORMS} from '../study/appearance.js';
@@ -168,7 +168,7 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   if(rt.width!==w||rt.height!==h)rt.resize(w,h);rt.setPosition(ox,oy);rt.clear();
   for(const [k,c] of this.chunks)if(c.l&&meets(c.R,V))rt.stamp('nb-l-'+k,undefined,(c.R.x-ox)/L,(c.R.y-oy)/L,{originX:0,originY:0});
   const b=this.fight.beam=bridge.flash?.()&&!this.fight.down&&armed(this.look)?{x:model.x,y:model.y,a:model.aim??model.direction*Math.PI/4}:null;
-  if(b){const mz=muzzle(b.a,this.look.gun),add=Phaser.BlendModes.ADD;rt.stamp('nb-pool',undefined,(model.x-ox)/L,(model.y-14-oy)/L,{blendMode:add});
+  if(b){const mz=lightAt(b.a,this.look.gun),add=Phaser.BlendModes.ADD;rt.stamp('nb-pool',undefined,(model.x-ox)/L,(model.y-14-oy)/L,{blendMode:add});
    rt.stamp('nb-beam',undefined,(model.x+mz.x-ox)/L,(model.y+mz.y-oy)/L,{originX:0,originY:.5,rotation:b.a,blendMode:add});}
   // His flashlight, where it fell with him, still on: it lights what happens to him, and lies there until you take his gear back.
   const T=this.fight.torch;if(T)rt.stamp('nb-beam',undefined,(T.x-ox)/L,(T.y-oy)/L,{originX:0,originY:.5,rotation:T.a,blendMode:Phaser.BlendModes.ADD,alpha:.75,scaleX:.8,scaleY:.8}),rt.stamp('nb-pool',undefined,(T.x-ox)/L,(T.y-4-oy)/L,{blendMode:Phaser.BlendModes.ADD,scale:1.6,alpha:.55});
@@ -190,7 +190,8 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
  face(id){const o=PROPS.find(p=>p.id===id);if(!o)return null;const c=document.createElement('canvas');c.width=(o.w+PROP_PAD*2)*2;c.height=(o.h+o.z+PROP_PAD*2)*2;propArt(c.getContext('2d'),o.id==='cruiser'?{...o,lit:1,trunk:this.trunk}:o);return c;}
  setTrunk(open){this.trunk=open;}
  // Your layers, painted once for each gun you hold, so swapping does not repaint.
- setPlayerLook(look){const gun=bridge.held?.()||'none',key=JSON.stringify(look)+gun;this.look={...look,zombie:0,gun,grenade:null};
+ // With the flashlight found it rides under the barrel of whatever gun you hold, and the beam comes out of it.
+ setPlayerLook(look){const gun=bridge.held?.()||'none',light=!!bridge.kit?.()?.light,key=JSON.stringify(look)+gun+light;this.look={...look,zombie:0,gun,grenade:null,light};
   if(!this.gunSheets[key]){const sheets={};for(const k of ORDER){const L=LAYERS[k],t=this.textures.createCanvas(`st-${Object.keys(this.gunSheets).length}-${k}`,...sheetSize(L));for(let i=0;i<L.count;i++)t.add(i,0,(i%L.cols)*L.w,Math.floor(i/L.cols)*L.h,L.w,L.h);sheets[k]=t;}
    const ctx={};for(const k of ORDER)ctx[k]=sheets[k].context;paintLayers(ctx,this.look);for(const k of ORDER)sheets[k].refresh();
    // The gun mid-action (the arms layer with the slide or pump back) and the dive, both from the same layers.

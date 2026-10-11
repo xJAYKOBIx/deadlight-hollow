@@ -40,7 +40,7 @@ export const SEARCH={time:1.1,alarm:900,pick:18};
 // a horde comes from one side, already hunting. levels are where Stirring, Hunted and Swarming start; patrol is seconds between
 // patrols at each level. Extra dead are capped, and the ones well away that have not seen you are let go.
 export const HEAT={shot:{'light-pistol':3,'pump-shotgun':6},kill:1,alarm:30,quiet:8,fall:2.5,levels:[0,25,50,80],names:['Quiet','Stirring','Hunted','Swarming'],
- patrol:[90,50,30,20],size:[3,5],horde:{every:45,size:[10,14]},cap:40,spawn:{near:620,far:820},gone:1500,walk:26};
+ patrol:[90,50,30,20],size:[3,5],horde:{every:45,size:[10,14]},after:40,cap:40,spawn:{near:620,far:820},gone:1500,walk:26};
 const LOOKS=['neighbour','jogger','robe','worker','neighbour2'];
 // Runners: fast and frail. Once they have you they sprint; close in, with a clear line, they crouch for an instant (the tell) and
 // leap. Dive or step aside: a leap that misses leaves them sprawled for a moment. A shotgun blast breaks the crouch.
@@ -145,7 +145,9 @@ export class Fight{
    if(z.kind==='risen'){this.remains={x:z.x,y:z.y};this.emit('fallen',{z});}
    this.drop(z,dx,dy);this.noise(HEAT.kill);if(z.kind==='bloater')this.pop(z);const gore=z.gore=this.goreOf(z),crawler=gore==='half'&&this.rand()<GORE_KILL.crawl?this.crawler(z,dx,dy):null;this.emit('kill',{z,dx,dy,gore,crawler});this.check();}else this.emit('hit',{z,dx,dy});}
  // Noise raises the heat and resets the quiet.
- noise(n){this.heat=Math.min(100,this.heat+n);this.quiet=0;}
+ // Noise heats the street up, except while a swarm is on you: what you make fighting it never queues up the next one.
+ noise(n){if(!this.swarmLeft())this.heat=Math.min(100,this.heat+n);this.quiet=0;}
+ swarmLeft(){let n=0;for(const z of this.zombies)if(z.swarm&&z.hp>0)n++;return n;}
  // Sometimes something falls out of a pocket.
  drop(z,dx,dy){if(z.kind==='crawler'||z.kind==='risen')return;for(const [id,p,a,b] of DROPS[z.look]||DROPS.any)if(this.rand()<p){this.drops.push({id,n:a+Math.floor(this.rand()*(b-a+1)),x:z.x+dx*10+(this.rand()-.5)*8,y:z.y+dy*6+(this.rand()-.5)*6,age:0});return;}}
  // Starts searching a spot; the search finishes in update, if you stay put.
@@ -284,11 +286,13 @@ export class Fight{
    else if(S.time>=S.need&&S.t.job){this.searching=null;this.done(S.t);}
    else if(S.time>=S.need){this.searching=null;this.stats.found++;const r=scavenge(this.kit(),S.t,this.grid()),alarm=alarmed(S.t);this.setKit(r.k);this.emit('found',{t:S.t,items:r.items,alarm});if(alarm)this.alarm(S.t.x,S.t.y);}}
   // The heat cools once it has been quiet a while; out on a quiet street, it sends patrols, and at the top, hordes.
+  // A swarm cleared: the street drops back to Stirring and the next swarm is a full wait away.
+  const sw=this.swarmLeft();if(this.inSwarm&&!sw){this.heat=Math.min(this.heat,HEAT.after);this.quiet=0;this.hordeT=HEAT.horde.every;this.emit('swarm-over',{});}this.inSwarm=sw>0;
   this.quiet+=dt;if(this.quiet>HEAT.quiet)this.heat=Math.max(0,this.heat-HEAT.fall*dt);const lv=HEAT.levels.filter(v=>this.heat>=v).length-1;if(lv!==this.level){const up=lv>this.level;this.level=lv;this.emit('heat',{level:lv,up});if(up&&lv===3)this.hordeT=Math.min(this.hordeT,4);}
   this.hazards(dt);
   // The job: the clock, the generator's horde, the hold-out and the truck.
   const K=this.kit();if(K.street==='done'&&!K.mission?.out){this.stats.time+=dt;if(this.powerT>0&&(this.powerT-=dt)<=0&&!this.down)this.patrol(true);if(this.evac&&!this.down)this.holding(dt);}
-  if(this.kit().street==='done'&&!this.down&&!this.kit().mission?.out){if((this.patrolT-=dt)<=0){this.patrolT=HEAT.patrol[this.level]*(.8+this.rand()*.4);this.patrol(false);}if(this.level===3&&(this.hordeT-=dt)<=0){this.hordeT=HEAT.horde.every;this.patrol(true);}}
+  if(this.kit().street==='done'&&!this.down&&!this.kit().mission?.out){if((this.patrolT-=dt)<=0){this.patrolT=HEAT.patrol[this.level]*(.8+this.rand()*.4);this.patrol(false);}if(this.level===3&&!sw&&(this.hordeT-=dt)<=0){this.hordeT=HEAT.horde.every;this.patrol(true);}}
   // Extra dead well away from you that are not after you are let go, and so are their bodies.
   if(this.zombies.some(z=>z.extra&&(z.hp<=0||!z.hunt)&&Math.hypot(z.x-m.x,z.y-m.y)>HEAT.gone)){const keep=this.zombies.filter(z=>!(z.extra&&(z.hp<=0||!z.hunt)&&Math.hypot(z.x-m.x,z.y-m.y)>HEAT.gone));this.zombies.length=0;this.zombies.push(...keep);}
   // Walking over something the dead dropped picks it up.
@@ -421,7 +425,7 @@ export class Fight{
   const kinds=Array.from({length:n},(_,i)=>i===brute?'brute':this.rand()<[0,.12,.2,.25][lv]?'runner':'shambler');
   for(const [kind,p] of horde?[['bloater',.5],['spitter',.4],['screamer',.2]]:[['screamer',[.04,.1,.14,.16][lv]],['spitter',[0,.08,.14,.18][lv]],['bloater',[.03,.08,.12,.15][lv]]])if(this.rand()<p){const i=Math.floor(this.rand()*n);if(kinds[i]!=='brute')kinds[i]=kind;}
   for(let i=0;i<n;i++){const kind=kinds[i],look=kind==='shambler'?LOOKS[Math.floor(this.rand()*LOOKS.length)]:kind,hp=this.hpOf(kind,look),sp=horde?90:30,x=at.x+(this.rand()-.5)*sp+(at.along==='x'?(i%3)*14:0),y=at.y+(this.rand()-.5)*sp*.7+(at.along==='y'?(i%3)*14:0);
-   this.zombies.push({kind,...(kind==='brute'?{tellY:BRUTE.tellY}:kind==='bloater'?{tellY:BLOATER.tellY}:{}),extra:true,roam:-1,look,x,y,sx:x,sy:y,direction:facing(goal.x-x,goal.y-y),frame:0,phase:0,hp,max:hp,idle:false,delay:i*.35,state:horde?'chase':'wander',hunt:horde,t:0,vx:0,vy:0,stagger:0,tell:0,cool:0,flash:0,groan:1+this.rand()*4,wt:0,wx:x,wy:y,acc:0,
+   this.zombies.push({kind,...(kind==='brute'?{tellY:BRUTE.tellY}:kind==='bloater'?{tellY:BLOATER.tellY}:{}),extra:true,roam:-1,look,x,y,sx:x,sy:y,direction:facing(goal.x-x,goal.y-y),frame:0,phase:0,hp,max:hp,idle:false,delay:i*.35,state:horde?'chase':'wander',hunt:horde,swarm:horde,t:0,vx:0,vy:0,stagger:0,tell:0,cool:0,flash:0,groan:1+this.rand()*4,wt:0,wx:x,wy:y,acc:0,
     route:horde?null:pts.map(p=>({x:p.x+(this.rand()-.5)*24,y:p.y+(this.rand()-.5)*16}))});}
   this.emit(horde?'horde':'patrol',{x:at.x,y:at.y,n});return true;}
  // Not seen you yet: stand a while, shuffle somewhere nearby, stand again. Bumping into something just ends the walk.

@@ -523,6 +523,16 @@ Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack),
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
 
+## v0.52.0 — Playtest fixes: the swarm loop, the dark house, the flashlight
+
+Jaykobi played night one (2026-10-11): the house is too dark before the flashlight and the beam only paints a cone over everything; no flashlight in your hands and the light comes from the wrong place; the swarm meter fills while you fight a swarm, so swarms never end.
+
+**Swarms end** (`street/fight.js`). Hordes are marked as a swarm. While any of it is alive, noise adds no heat and the next horde's timer stops; the HUD reads "Swarm · N left" instead. Clear it and the street drops back to Stirring (`HEAT.after`, 40) with the next swarm a full 45 seconds away.
+
+**Real light in the house** (`home/scene.js`). One light map is painted each frame and multiplied over everything: the moonlight and candle (`lightArt`) dimmed until your eyes adjust (60 percent before the flashlight, 70 after), and the flashlight added into it. It stops where it meets a wall or the shut front door (40 rays along the floor) and passes through doorways and windows. Being in the map, the beam shows the rooms in their real colours instead of a white haze. Repainted only when the beam moves.
+
+**The flashlight in your hands** (Master Creator `weapons/equipment.js`). Before you have a gun out you hold the flashlight in both hands, raised and pointed the way you face; the beam starts at its lens. With a gun, it is clamped under the barrel of every gun and the beam comes out of it (`lightAt`).
+
 ## v0.51.0 — Customize controls
 
 The editor the v0.50.0 settings were waiting for (`study/console-edit.js`). Menu → Customize controls (only with the phone upright) stops the game and puts a labelled frame on every control, Use included even when nothing is in reach. Drag a frame and the control, its socket in the plate and the move stick's touch area follow at once; a frame turns red with stripes where it overlaps another. The panel along the top: Size (80 to 130 percent, capped so the two sticks still fit side by side), See-through (0 to 65 percent), Glow (Ember, Bone, Toxic, Siren, Blood), Left-handed (mirrors the deck and any moved controls with it), Reset and Done. Saved on the device when Done is pressed (Esc works too).

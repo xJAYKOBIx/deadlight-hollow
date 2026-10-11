@@ -92,6 +92,15 @@ test('scavenging: every car, bin, shed and stash and most houses can be searched
  const car=spots.find(o=>o.loot==='car');assert.ok(f.scavenge(car));run(f,m,.2,()=>({x:1,y:0}));assert.equal(f.searching,null);assert.ok(!box.k.looted.includes(car.id));});
 test('the dead sometimes drop things, and walking over them picks them up',()=>{const {box,m,f}=setup(),z=f.zombies[0];f.rand=()=>0;Object.assign(m,{x:z.x-200,y:z.y});f.hit(z,999,1,0);assert.equal(f.drops.length,1);
  const d=f.drops[0],had=count(box.k.bag,d.id);Object.assign(m,{x:d.x,y:d.y});run(f,m,.05);assert.equal(f.drops.length,0);assert.equal(count(box.k.bag,d.id),had+d.n);});
+test('fighting a swarm never queues the next one: the meter holds, and clearing it drops the street to Stirring',async()=>{const {HEAT}=await import('../dist/street/fight.js');
+ const {box,m,f}=setup();box.k={...box.k,street:'done'};f.start();f.noise(100);run(f,m,.05);assert.equal(f.level,3);run(f,m,5);
+ const sw=()=>f.zombies.filter(z=>z.swarm&&z.hp>0);assert.ok(sw().length>=HEAT.horde.size[0],'a swarm');const h0=f.heat;
+ for(let i=0;i<10;i++)f.noise(HEAT.shot['pump-shotgun']);assert.equal(f.heat,h0,'shots during the swarm add nothing');
+ // Held off long past the horde timer, no second swarm arrives while the first is alive.
+ const n=sw().length;for(const z of sw())z.x=m.x+300;f.drain();run(f,m,HEAT.horde.every+5,()=>{f.hp=99;for(const z of sw()){z.x=m.x+300;z.y=m.y;}return {};});
+ assert.equal(f.drain().filter(e=>e.type==='horde').length,0,'no new swarm while one is alive');assert.ok(sw().length<=n);
+ for(const z of sw())z.hp=0;run(f,m,.05);assert.ok(f.heat<=HEAT.after&&f.level<3,'cleared: back to Stirring');assert.ok(f.drain().some(e=>e.type==='swarm-over'));
+ assert.ok(f.hordeT>=HEAT.horde.every-1,'the next swarm is a full wait away');});
 test('heat: shots and alarms raise it and quiet lets it fall; on a quiet street it sends patrols, and at the top a horde that already knows where you are',async()=>{const {HEAT}=await import('../dist/street/fight.js');
  const {box,m,f}=setup();box.k={...box.k,street:'done'};f.start();f.aimAngle=0;f.fire();assert.equal(f.heat,HEAT.shot['pump-shotgun']);run(f,m,HEAT.quiet-1);assert.equal(f.heat,HEAT.shot['pump-shotgun'],'it holds for a while');
  run(f,m,4);assert.ok(f.heat<HEAT.shot['pump-shotgun'],'then cools');
