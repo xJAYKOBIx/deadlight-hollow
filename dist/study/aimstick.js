@@ -25,11 +25,13 @@ export class AimStick{
  step(dt,targets){if(!this.on||this.want===null)return {a:this.on?this.a:null,fire:false,aiming:false};
   const p=pick(this.want,targets,this.o,this.held),want=p.a,d=turnTo(this.a,want),max=this.o.turn*Math.max(0,dt);this.a+=Math.abs(d)<=max?d:Math.sign(d)*max;
   this.held=p.t?.ref??null;const facing=Math.abs(turnTo(this.a,want))<=this.o.facing;return {a:this.a,fire:this.push>=this.o.fireAt-1e-6&&facing,aiming:true,lock:!!p.t};}}
-// The laser: a bright core in a soft glow from the muzzle, fading a little with distance, brighter while you fire or while the pull
-// has a zombie. It stops on what it would hit with a dot (a ring round it when locked on). col is the beam's colour, so lasers can
-// be tinted later. It sits above the lighting.
+// The laser: a bright core in a soft glow from the muzzle, fading a little with distance, brighter while you fire or while it is on
+// one of the dead. It stops on what it would hit with a dot (a ring round it when that is one of the dead). col is the beam's colour,
+// so lasers can be tinted later; spread (radians) adds a faint fan for a gun that throws pellets; end, when given, is where the beam
+// lands instead of at the gun's height (on a crawler, down on the ground). It sits above the lighting.
 export const LASER={col:0xff4a3a,len:190};
-export function drawLaser(g,x,y,mz,a,fire,len=LASER.len,lock=false,col=LASER.col){const c=Math.cos(a),s=Math.sin(a),sx=x+mz.x,sy=y+mz.y,ex=x+c*len,ey=y+s*len+mz.y,k=fire?1:lock?.85:.7;
+export function drawLaser(g,x,y,mz,a,fire,len=LASER.len,lock=false,col=LASER.col,spread=0,end=null){const c=Math.cos(a),s=Math.sin(a),sx=x+mz.x,sy=y+mz.y,ex=end?end.x:x+c*len,ey=end?end.y:y+s*len+mz.y,k=fire?1:lock?.85:.7;
+ if(spread){const e=d=>[x+Math.cos(a+d)*len,y+Math.sin(a+d)*len+mz.y],[ax,ay]=e(-spread/2),[bx,by]=e(spread/2);g.fillStyle(col,.07*k).fillTriangle(sx,sy,ax,ay,bx,by);g.lineStyle(1,col,.24*k).lineBetween(sx,sy,ax,ay).lineBetween(sx,sy,bx,by);}
  for(let i=0;i<8;i++){const k0=i/8,k1=(i+1)/8,f=1-k0*.55,x0=sx+(ex-sx)*k0,y0=sy+(ey-sy)*k0,x1=sx+(ex-sx)*k1,y1=sy+(ey-sy)*k1;
   g.lineStyle(3,col,.16*k*f).lineBetween(x0,y0,x1,y1);g.lineStyle(1,col,.9*k*f).lineBetween(x0,y0,x1,y1);}
  const dx=Math.round(ex*2)/2,dy=Math.round(ey*2)/2;g.fillStyle(col,.35*k).fillRect(dx-1.5,dy-1.5,3.5,3.5);g.fillStyle(0xfff0e8,.95*k).fillRect(dx-.5,dy-.5,1.5,1.5);

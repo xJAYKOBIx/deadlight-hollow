@@ -22,12 +22,14 @@ export class Practice{
   // Pellets fan out evenly across the spread, each with a little jitter, so a shotgun blast covers the same cone every time.
   for(let k=0;k<n;k++){const off=n>1?((k/(n-1))-.5)*gun.spread+(((this.seed*(k*53+11))%13)/13-.5)*gun.spread/(n*1.5):0;hit=this.ball(angle+off,gun,k>0)||hit;}this.seed++;
   if(hit)this.hits++;return true;}
- // One ball (or pellet) along a line: it stops at the first target, robot or piece of cover.
- ball(angle,gun,pellet=false){const dx=Math.cos(angle),dy=Math.sin(angle),m=this.model;let end={x:m.x,y:m.y},hit=false,onto=null;
- for(let distance=2;distance<=gun.range;distance+=2){const x=m.x+dx*distance,y=m.y+dy*distance;if(x<ROOM.left||x>ROOM.right||y<ROOM.top||y>ROOM.bottom){onto={kind:'floor'};break;}const b=this.solidAt(x,y);if(b){onto={kind:'prop',ref:b};break;}end={x,y};
-  const t=this.targets.find(t=>t.hp>0&&Math.hypot(t.x-x,t.y-y)<14);if(t){this.hurt(t,gun.damage);hit=true;onto={kind:'target',ref:t};break;}
-  const bot=this.drill.hit(x,y);if(bot){// Dead centre is a headshot.
-   const head=Math.abs(dx*(bot.y-m.y)-dy*(bot.x-m.x))<4.5;this.drill.hurt(bot,gun.damage,{gun:this.loadout.gun,dx,dy,head});hit=true;onto={kind:'bot',ref:bot};break;}}
+ // Where a line from you stops, up to range: the first target, robot or piece of cover (onto), or nothing. The shot and the laser use it.
+ lineOf(angle,range){const dx=Math.cos(angle),dy=Math.sin(angle),m=this.model;let end={x:m.x,y:m.y};
+  for(let d=2;d<=range;d+=2){const x=m.x+dx*d,y=m.y+dy*d;if(x<ROOM.left||x>ROOM.right||y<ROOM.top||y>ROOM.bottom)return {end,d,onto:{kind:'floor'}};const b=this.solidAt(x,y);if(b)return {end,d,onto:{kind:'prop',ref:b}};end={x,y};
+   const t=this.targets.find(t=>t.hp>0&&Math.hypot(t.x-x,t.y-y)<14);if(t)return {end,d,onto:{kind:'target',ref:t}};const bot=this.drill.hit(x,y);if(bot)return {end,d,onto:{kind:'bot',ref:bot}};}
+  return {end,d:range,onto:null};}
+ // One ball (or pellet) along that line: it stops at the first target, robot or piece of cover. Dead centre on a robot is a headshot.
+ ball(angle,gun,pellet=false){const dx=Math.cos(angle),dy=Math.sin(angle),m=this.model,{end,onto}=this.lineOf(angle,gun.range),hit=onto?.kind==='target'||onto?.kind==='bot';
+  if(onto?.kind==='target')this.hurt(onto.ref,gun.damage);else if(onto?.kind==='bot'){const bot=onto.ref,head=Math.abs(dx*(bot.y-m.y)-dy*(bot.x-m.x))<4.5;this.drill.hurt(bot,gun.damage,{gun:this.loadout.gun,dx,dy,head});}
  const dur=Math.hypot(end.x-m.x,end.y-m.y)/BALL_SPEED;// The ball leaves the end of the barrel you see (ox, oy from the feet) and meets the line of fire where it lands.
  const mz=muzzle(angle,this.loadout.gun);this.traces.push({x:m.x,y:m.y,ex:end.x,ey:end.y,ox:mz.x,oy:mz.y,age:0,dur,life:dur+.14,hit,col:this.paint,onto:onto||{kind:'floor'},done:false,pellet});return hit;
  }

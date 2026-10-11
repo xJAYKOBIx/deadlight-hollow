@@ -149,8 +149,10 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   this.events.on('wake',()=>this.enter());this.enter();bridge.ready(this);}
  // Each time you step out of the door: the street as the kit says it is, you on your step.
  enter(){model.reset();this.fight.start();for(const L of this.dropImgs.values())for(const i of Object.values(L))i.destroy();this.dropImgs.clear();for(const v of this.hz.values())for(const i of v)i.destroy();this.hz.clear();for(const i of [...this.stains,...this.bits.map(b=>b.img),...this.lain])i.destroy();this.stains.length=0;this.bits.length=0;this.lain.length=0;this.brass.length=0;this.lying.length=0;this.pumps.length=0;this.floorG.clear();this.kick=null;this.jolt={x:0,y:0};for(const z of [...this.zs.keys()])this.free(z);this.setPlayerLook(bridge.look());this.setTrunk(bridge.kit().street!=='start'&&bridge.kit().street!=='cleared');this.setPower(['hold','done'].includes(stepOf(bridge.kit(),'power')));for(const b of BREACHES)if(b.prop)this.repaint(b.prop);this.cameras.main.centerOn(model.x,model.y-20);this.stream(true);}
- // What the camera shows, in world units.
- view(){const s=this.scale,z=this.zoom(),w=s.width/z,h=s.height/z,x=Math.max(0,Math.min(MAP.w-w,model.x-w/2)),y=Math.max(0,Math.min(MAP.h-h,model.y-20-h/2));return {x,y,w,h};}
+ // What the camera shows, in world units: the screen round you, and wherever the camera really is when the story has it looking
+ // somewhere else or further out (the cruiser, the officer), so the ground and the night's light cover all of the screen.
+ view(){const s=this.scale,z=this.zoom(),w=s.width/z,h=s.height/z,x=Math.max(0,Math.min(MAP.w-w,model.x-w/2)),y=Math.max(0,Math.min(MAP.h-h,model.y-20-h/2)),c=this.cameras.main.worldView;
+  if(!(c.width>0))return {x,y,w,h};const x0=Math.min(x,c.x),y0=Math.min(y,c.y);return {x:x0,y:y0,w:Math.max(x+w,c.x+c.width)-x0,h:Math.max(y+h,c.y+c.height)-y0};}
  // Takes hold of the chunks near the screen and lets go of the ones well past it, then paints: everything on screen now, the rest
  // a little each frame. all paints everything held at once (stepping out of the door).
  stream(all=false){const V=this.view(),A=grow(V,AHEAD),K=grow(V,KEEP);
@@ -412,8 +414,11 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   // The muzzle flash itself: a hard little star of fire out of the barrel for the first frames of a shot.
   const K=KICK[f.gunId];if(K&&f.sinceShot<.045&&this.shotA!==undefined&&!f.down){const a=this.shotA,mz=muzzle(a,this.look.gun),x=model.x+mz.x,y=model.y+mz.y,c=Math.cos(a),s=Math.sin(a),n=K.flash*(1-f.sinceShot/.09);
    g.lineStyle(2,0xffb347,.9).lineBetween(x,y,x+c*n,y+s*n);g.lineStyle(1,0xfff6d8,1).lineBetween(x,y,x+c*n*.8,y+s*n*.8);g.lineStyle(1,0xffd27a,.85).lineBetween(x+c*2,y+s*2,x+c*2-s*n*.35,y+s*2+c*n*.35).lineBetween(x+c*2,y+s*2,x+c*2+s*n*.35,y+s*2-c*n*.35);}
-  // The touch stick's laser, while your thumb is on it, stopping on the first thing it touches with a dot.
-  const L=bridge.aimLine?.();if(L&&!f.down&&armed(this.look)){const mz=muzzle(L.a,this.look.gun),R=f.lineOf(L.a,LASER.len);drawLaser(g,model.x,model.y,mz,L.a,L.fire,R.d,!!R.z);}
+  // The laser (v0.65.3), on every device whenever you have a gun out: it points the way the shot will go (with the same small pull onto
+  // one of the dead the shot takes), reaches as far as the gun does, and stops on what the shot would hit, a body, a crawler or cover,
+  // with a ring round one of the dead. The shotgun's spread shows as a faint fan.
+  if(!f.down&&!f.dead&&f.gun&&armed(this.look)&&bridge.laser?.()!==false){const a=f.magnet(f.aimAngle??model.direction*Math.PI/4),R=f.lineOf(a,f.gun.range),L=bridge.aimLine?.();
+   drawLaser(g,model.x,model.y,muzzle(a,this.look.gun),a,!!L?.fire||f.sinceShot<.1,R.d,!!R.z,LASER.col,f.gun.pellets?f.gun.spread:0,R.z?.kind==='crawler'?{x:R.z.x,y:R.z.y-4}:null);}
   // The mouse's crosshair: four ticks round a dot, spreading for a moment after each shot.
   const X=bridge.reticle?.();if(X&&!f.down&&armed(this.look)){const big=f.gunId==='pump-shotgun',open=3+Math.max(0,1-f.sinceShot/(big?.3:.16))*(big?7:3),x=Math.round(X.x*2)/2,y=Math.round(X.y*2)/2;
    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const x0=x+dx*open,y0=y+dy*open,w=dx?3:1,h=dy?3:1,rx=dx<0?x0-3:x0,ry=dy<0?y0-3:y0;g.fillStyle(0x111319,.8).fillRect(rx-.5,ry-.5,w+1,h+1);g.fillStyle(0xf2e6c8,.95).fillRect(rx,ry,w,h);}
