@@ -208,7 +208,7 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
  // shoulders forward and back.
  placeActor(){const gun=armed(this.look),p=pose(model,gun&&!!this.sheets?.turned),down=!!this.fight.down,K=this.kick,v=this.fight.bash,half=n=>Math.round(n*2)/2,f=this.fight;
   // Gone: what is left of him is one of the dead now (the fight's body), so you are not drawn at all.
-  if(f.dead){for(const k of ORDER)this.parts[k].setVisible(false);return;}
+  if(f.dead||this.sc){for(const k of ORDER)this.parts[k].setVisible(false);return;}
   let kx=0,ky=0;if(K){const k=Math.max(0,1-K.t/K.dur);kx=-Math.cos(K.a)*K.n*k*k;ky=-Math.sin(K.a)*K.n*k*k*.6;}
   if(v){const k=Math.sin(Math.min(1,v.t/BASH.time)*Math.PI);kx+=Math.cos(v.a)*6*k;ky+=Math.sin(v.a)*6*k*.6;}
   const t=f.sinceShot,rk=gun&&!v&&(f.gunId==='pump-shotgun'?t>.22&&t<.5:t<.06);if(rk!==this.racked){this.racked=rk;this.parts.arms.setTexture((rk?this.sheets.racked:this.sheets.arms).key,p.arms);}
@@ -340,9 +340,18 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   g.fillStyle(hull?0xa3271f:0xc9a24a,a).fillRect(x,y,w,h);g.fillStyle(hull?0xd8b05a:0xf2d88e,a).fillRect(x,y,up?1:.5,up?.5:1);}
  // One step of the fight on its clock.
  tick(dt,input){const f=this.fight;model.update(dt,input);f.update(dt,input);}
- update(now,delta){const dt=Math.min(.05,delta/1000),paused=bridge.paused(),held=this.juice.stopped(now),f=this.fight;
+ // The title screen's backdrop (bridge.showcase gives the camera's path): nobody out there but the dead going about their night,
+ // a few more of them along the path so there is always something moving, and nothing notices. Back to the street as the kit says
+ // when the title closes.
+ showcase(on){const f=this.fight;if(!on){this.sc=null;f.ghost=false;this.enter();return;}this.sc={t:0};this.enter();f.ghost=true;f.patrolT=f.specialT=1e9;
+  const looks=['neighbour','worker','robe','jogger','neighbour2'];on.extras.forEach(([x,y],i)=>{const look=looks[i%looks.length],hp=f.hpOf('shambler',look);f.zombies.push({kind:'shambler',roam:-2,look,x,y,sx:x,sy:y,direction:(i*3)%8,frame:0,phase:0,hp,max:hp,idle:false,delay:0,state:'wander',hunt:false,t:0,vx:0,vy:0,stagger:0,tell:0,cool:0,flash:0,groan:2+i*1.7,wt:i*.8,wx:x,wy:y,acc:0});});}
+ update(now,delta){const dt=Math.min(.05,delta/1000),sc=bridge.showcase?.(),paused=!sc&&bridge.paused(),held=this.juice.stopped(now),f=this.fight;
+  if(!!sc!==!!this.sc)this.showcase(sc);
+  // On the title, the street keeps time with nobody in it: you stand where the camera is (so the right part of the street is held
+  // and painted), unseen.
+  let at=null;if(sc){at=sc.at(this.sc.t+=dt);model.x=at.x;model.y=at.y+20;}
   // A shove press is kept until a step takes it, since a fast screen can draw a frame between two steps.
-  if(paused||held)this.acc=0;else{const input=f.down?{}:bridge.input();let shove=!!input.shove||this.shoveWait;this.acc=Math.min(STEP*MAX_STEPS,this.acc+Math.min(.1,delta/1000));
+  if(paused||held)this.acc=0;else{const input=f.down||sc?{}:bridge.input();let shove=!!input.shove||this.shoveWait;this.acc=Math.min(STEP*MAX_STEPS,this.acc+Math.min(.1,delta/1000));
    while(this.acc>=STEP-1e-6){this.acc-=STEP;this.tick(STEP,{...input,shove});shove=false;}this.shoveWait=shove;}
   for(const e of f.drain())this.react(now,e);
   while(this.pumps.length&&now>=this.pumps[0]){this.pumps.shift();this.eject(this.shotA??0,true);}
@@ -409,11 +418,12 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   // A search under way: a ring round the spot filling as it goes.
   const S=f.searching;if(S){const k=Math.min(1,S.time/(S.need||SEARCH.time)),x=S.t.mx??S.t.x,y=(S.t.my??S.t.y)-4,a0=-Math.PI/2;g.lineStyle(3,0x111319,.7).strokeCircle(x,y,7);g.lineStyle(1.5,0xf2e6c8,.35).strokeCircle(x,y,7);
    g.lineStyle(1.5,0xffb347,1).beginPath().arc(x,y,7,a0,a0+k*Math.PI*2,false).strokePath();}
-  const target=f.down?null:paused&&this.target?this.target:model.target(t=>bridge.usable?.(t)!==false);this.target=target;
+  const target=f.down||this.sc?null:paused&&this.target?this.target:model.target(t=>bridge.usable?.(t)!==false);this.target=target;
   if(target){const bob=Math.round(Math.sin(now/180)*2*2)/2;this.marker.setVisible(true).setPosition(target.mx??target.x,target.my+bob);}else this.marker.setVisible(false);
   const cam=this.cameras.main;
   // From the window across the street: closer in on him, held by a hand that is not quite steady.
   if(f.dead){const b=f.dead.body,t=f.dead.t,sw=Math.sin(t*.9)*3+Math.sin(t*2.3)*1.1,sy=Math.cos(t*.7)*1.8+Math.sin(t*3.1)*.6;cam.setZoom(this.zoom()*(1.75+Math.min(.25,t*.016)));cam.centerOn(b.x+sw,b.y-24+sy);}
+  else if(at){cam.setZoom(this.zoom()*at.z);cam.centerOn(at.x,at.y);return;}
   // Following you, unless the story points the camera somewhere (focus: the cruiser, the officer); it glides there and back.
   else{const at=(this.cineCam??=new CineCam()).step(dt,{x:model.x+this.jolt.x,y:model.y-20+this.jolt.y,z:this.zoom()},this.focus);cam.setZoom(at.z);cam.centerOn(at.x,at.y);}bridge.tick(now,this);}
  // Acid pools bubbling and drying, globs in the air with their shadow and the mark where they will land, gas hanging and drifting,
@@ -433,7 +443,7 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
  // Your ring: a thin coloured ellipse round your feet, so you can be picked out of a crowd (in co-op each player gets the next colour).
  // It sits above the night so it never goes dark, with a gap at the back where your legs stand. Under it, while you are hurt, a small
  // health bar. Both stay out of the way: one line and one sliver.
- ring(g,f){if(f.down||f.dead)return;const x=model.x,y=model.y+.5,col=RING.cols[RING.me%RING.cols.length],pts=[];
+ ring(g,f){if(f.down||f.dead||this.sc)return;const x=model.x,y=model.y+.5,col=RING.cols[RING.me%RING.cols.length],pts=[];
   for(let a=-Math.PI/2+RING.gap;a<=Math.PI*1.5-RING.gap+1e-6;a+=Math.PI/24)pts.push({x:Math.round((x+Math.cos(a)*RING.rx)*2)/2,y:Math.round((y+Math.sin(a)*RING.ry)*2)/2});
   g.lineStyle(1,col,RING.alpha).strokePoints(pts,false);
   const p=Math.max(0,f.hp)/(f.maxHp||100);if(p>=1)return;const w=RING.rx*2-2,bx=Math.round((x-w/2)*2)/2,by=Math.round((y+RING.ry+2.5)*2)/2;

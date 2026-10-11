@@ -544,6 +544,16 @@ Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack),
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
 
+## v0.64.0 — The title screen
+
+Before, the game opened straight into the character room. Now it opens on a title screen over the live street (`dist/title/title.js`): the camera drifts slowly along the road at night while the dead wander under the streetlights, with rain on the glass, lightning every 16 to 30 s with its thunder, and a night bed of rain and a low drone. The street under the title is the real street in a showcase mode (`street/scene.js` `showcase`): the player is hidden, nothing notices anyone, no patrols or specials come, and nothing you do there counts.
+
+**The screens.** A splash ("Press any key", or Tap to begin on a phone) lights the logo up like a failing neon tube; then the menu: Continue (with the saved place and the current step, greyed out when there is no save), New Game (asks first when a save exists, then plays the intro on a fresh night), Survivor (the character creator), Settings (sound, effects, gore, zoom, fullscreen, and the controls), and Credits. Keyboard (arrows, Enter, Esc), a controller (D-pad or stick, A, B) and touch all work. The Options menu has a new Quit to title button. Links that go somewhere on purpose (`?street`, `?home`, `?intro`, `?wake`, `#home`, `?notitle`) skip the title.
+
+**The logo.** DEADLIGHT HOLLOW in a stencil face, rusted and scratched, with a red tube that flickers and a letter that sometimes fails. On a phone the layout centres and the logo shrinks to fit.
+
+Sounds (Master Creator 0f72d4e, `sounds/kit.js` `bus`, `sounds/library.js`): a bus so a set of sounds can be faded together, and title-night, menu-move, menu-select, title-hit and thunder.
+
 ## v0.63.0 — The special dead, the Left 4 Dead way
 
 Before, specials were everywhere: runners in most breach packs and patrols, and a bloater, spitter or screamer in most hordes, so none of them felt like an event. Now the ordinary dead are the steady pressure and each special is a problem that has to be dealt with right away (`street/fight.js`).

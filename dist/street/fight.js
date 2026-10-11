@@ -5,6 +5,7 @@
 // The rest of the neighbourhood is out there too: wanderers in every other block, who drift round their yards until they see you
 // or hear a shot, and give up once you are well away. Far from you they are only thought about twice a second.
 // It changes the kit (ammo, shells, the street stage) only through the setKit it is given, so the game saves as it goes.
+// ghost: nobody is out there (the title screen's backdrop): the dead go about their night and nothing notices, wakes or comes.
 import {GUNS,muzzle} from '../study/equipment.js';import {pick,AIM} from '../study/aimstick.js';
 import {count,remove,add} from '../home/bag.js';
 import {ammoOf,advance,loot,scavenge,alarmed,DROPS,jobsDone,board,reclaim,reclaimed} from '../home/kit.js';
@@ -370,9 +371,9 @@ export class Fight{
   if(this.drops.some(d=>d.taken))this.drops=this.drops.filter(d=>!d.taken);
   // The officer, the first time: just before he would notice you, a line to him. The game holds the street while it is read and
   // wakes him after it (study/app.js), so the line comes before the lunge.
-  const cop=!this.alert&&this.wave===0&&this.zombies.find(z=>z.idle&&z.look==='cop'),near=cop&&Math.hypot(cop.x-m.x,cop.y-m.y);this.told??=new Set();
+  const cop=!this.alert&&!this.ghost&&this.wave===0&&this.zombies.find(z=>z.idle&&z.look==='cop'),near=cop&&Math.hypot(cop.x-m.x,cop.y-m.y);this.told??=new Set();
   if(cop&&near<NOTICE+30&&!this.told.has('him')){this.told.add('him');this.emit('story',{beat:'him'});}
-  else if(!this.alert&&this.zombies.some(z=>z.idle&&Math.hypot(z.x-m.x,z.y-m.y)<NOTICE))this.wake();
+  else if(!this.alert&&!this.ghost&&this.zombies.some(z=>z.idle&&Math.hypot(z.x-m.x,z.y-m.y)<NOTICE))this.wake();
   // The way to you, spread again while anything is coming.
   if(this.zombies.some(z=>this.out(z)&&(z.roam!==undefined?z.hunt:this.alert)))this.flow.update(dt,[m]);
   // Near ones every frame; far wanderers that have not seen you, twice a second.
@@ -394,7 +395,7 @@ export class Fight{
   if(z.lurk){if(d<RISEN.notice||z.hp<z.max){z.lurk=false;this.emit('groan',{z,loud:true});this.emit('lurch',{z});}else{z.frame=0;return;}}
   z.groan-=dt;if(z.groan<=0){const C=SPECIAL.call;if(SPECIALS.has(z.kind)&&(z.hunt||z.roam===undefined&&this.alert)){z.groan=C.every[0]+this.rand()*(C.every[1]-C.every[0]);if(d<C.far&&!z.tell)this.emit('call',{z});}
    else{z.groan=2.5+this.rand()*3;if(d<ROAM.hear)this.emit('groan',{z});}}
-  if(z.roam!==undefined&&!z.hunt){if(!this.down&&(d<NOTICE||this.lit(z,d)))this.notice(z);else{this.wander(z,dt);return;}}
+  if(z.roam!==undefined&&!z.hunt){if(!this.down&&!this.ghost&&(d<NOTICE||this.lit(z,d)))this.notice(z);else{this.wander(z,dt);return;}}
   if(z.roam!==undefined&&d>ROAM.lose*(z.swarm?1.6:1)){z.hunt=false;z.state='wander';z.sx=z.x;z.sy=z.y;z.wt=0;return;}
   z.direction=facing(dx,dy);
   if(this.down){z.frame=0;return;}
