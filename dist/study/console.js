@@ -68,7 +68,7 @@ export function mountConsole(doc,{deck}){let plateKey='',cv=null,shown=false;
   const r=L.items.weapon||L.right;root.setProperty('--rt-x',px(r.x-r.w/2));root.setProperty('--rt-y',px(r.y-r.h/2));root.setProperty('--rt-w',px(r.w));root.setProperty('--rt-h',px(r.h));
   root.setProperty('--cc-op',String(set.opacity));const [a,g]=ACCENTS[set.accent];root.setProperty('--cc-accent',a);root.setProperty('--cc-glow',g);
   for(const [id,el] of Object.entries(ELEMENTS)){const e=doc.getElementById(el),o=L.items[id];if(!e)continue;if(!o||id==='move'){e.removeAttribute('data-cc');continue;}
-   e.setAttribute('data-cc',id);for(const [k,v] of [['--cx',o.x],['--cy',o.y],['--cw',o.w],['--ch',o.h]])e.style.setProperty(k,px(v));}
+   e.setAttribute('data-cc',id);e.toggleAttribute('data-up',o.y<0);for(const [k,v] of [['--cx',o.x],['--cy',o.y],['--cw',o.w],['--ch',o.h]])e.style.setProperty(k,px(v));}
   const m=L.items.move,left=m.x<L.W/2,zl=left?0:L.split,z=doc.getElementById('moveZone');
   root.setProperty('--zone-l',px(zl));root.setProperty('--zone-w',px(left?L.split:L.W-L.split));if(z){z.style.setProperty('--mx',px(m.x-zl));z.style.setProperty('--my',px(m.y));z.style.setProperty('--mw',px(m.w));}
   const P=plateFor(L,sb),key=JSON.stringify(P);if(key===plateKey)return;plateKey=key;

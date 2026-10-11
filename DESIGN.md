@@ -544,6 +544,10 @@ Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack),
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
 
+## v0.61.1 — The Use key clears the health plate
+
+On a phone held upright, the street's health and stamina plate sits on the deck's top edge, right where the Use key (Search, Board and the rest) floats above the deck, so the plate hid it. On the street, a Use key placed above the deck now rises 62 px to sit just over the plate (`study/console.js` marks it `data-up`; `study/style.css` lifts it). A Use key someone moved down into the deck stays where they put it, and landscape is unchanged (its prompt floats over the target). The page test now checks the version label's shape rather than one version number, which v0.61.0 had left failing.
+
 ## v0.61.0 — The lag in long fights
 
 A long fight got slower the longer it went on. Measured with `perf` (twelve dead a round, eight rounds, all in one spot), the frame time grew from 135 to 189 ms in headless software rendering as bodies, blood and sounds piled up. The causes and the fixes:

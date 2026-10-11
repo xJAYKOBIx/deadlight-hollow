@@ -768,6 +768,8 @@ html body.cc.deck.touch #plate{display:block;position:absolute;left:0;top:0;widt
 html body.cc.deck.touch #zoomBar,html body.cc.deck.touch #swapGun{display:none!important}
 html body.cc.deck.touch .topbar{pointer-events:none}html body.cc.deck.touch .topbar .hud-btn{pointer-events:auto}
 html body.cc.deck.touch [data-cc]{position:fixed!important;left:calc(var(--vx) + var(--cx) - var(--cw) / 2)!important;right:auto!important;top:auto!important;bottom:calc(var(--sb) + var(--dk) - var(--cy) - var(--ch) / 2)!important;width:var(--cw)!important;height:var(--ch)!important;min-width:0!important;min-height:0!important;max-width:none!important;margin:0!important;z-index:5;opacity:var(--cc-op,1)}
+/* Out on the street the health plate sits on the deck's top edge, so a Use key placed above the deck rises over the plate instead of hiding behind it. */
+html body.cc.deck.touch.street #act[data-cc][data-up]{bottom:calc(var(--sb) + var(--dk) - var(--cy) - var(--ch) / 2 + 62px)!important}
 html body.cc.deck.touch.talking [data-cc],html body.cc.deck.touch.cine [data-cc]{visibility:hidden}
 /* The move stick: the left of the deck is its zone; the ring rests in its well. */
 html body.cc.deck.touch #moveZone{left:calc(var(--vx) + var(--zone-l))!important;width:var(--zone-w)!important;bottom:var(--sb)!important;height:var(--dk)!important;z-index:1}
