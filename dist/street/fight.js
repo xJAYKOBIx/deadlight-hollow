@@ -44,8 +44,11 @@ export const GORE_KILL={near:80,far:140,chance:.4,head:.22,crawl:.5};
 // A crawler: the top half of one, or one that lost its legs before tonight. Slow and low; it grabs your ankle instead of biting, which
 // hurts less but holds you nearly still for a moment (a shove kicks it off). A top half takes a moment to land before it moves.
 // Scavenging: a search takes this long standing still (moving, shooting, shoving or getting hurt stops it), and a car alarm is heard
-// this far. What the dead drop lies where they fell until you walk over it.
+// this far. What the dead drop lies where they fell until you come near it.
 export const SEARCH={time:1.1,alarm:900,pick:18};
+// Loot (v0.66): what the dead drop pops out of them, settles for a moment (pop), and then, once you are within reach of it, flies to
+// you, starting slow and speeding up (pull, accel) so it always catches you, and goes in your bag at pick.
+export const LOOT={pop:.4,reach:60,pull:60,accel:900,max:520};
 // Heat: how much noise you have made lately, 0 to 100. Shots, alarms and kills raise it; a while of quiet lets it fall. Once the
 // tutorial's fight is over it brings the dead to you: patrols of a few drift through, more often the hotter it is, and at the top
 // a horde comes from one side, already hunting. levels are where Stirring, Hunted and Swarming start; patrol is seconds between
@@ -366,8 +369,11 @@ export class Fight{
   // Extra dead well away from you that are not after you are let go, and so are their bodies.
   if(this.zombies.some(z=>z.extra&&(z.hp<=0||!z.hunt)&&Math.hypot(z.x-m.x,z.y-m.y)>HEAT.gone)){const keep=this.zombies.filter(z=>!(z.extra&&(z.hp<=0||!z.hunt)&&Math.hypot(z.x-m.x,z.y-m.y)>HEAT.gone));this.zombies.length=0;this.zombies.push(...keep);}
   this.bodies(dt);
-  // Walking over something the dead dropped picks it up.
-  for(const d of this.drops){d.age+=dt;if(Math.hypot(d.x-m.x,(d.y-m.y)*1.3)<SEARCH.pick){const k=this.kit();this.setKit({...k,bag:add(k.bag,this.grid(),d.id,d.n)});d.taken=true;this.emit('pickup',{id:d.id,n:d.n});}}
+  // Something the dead dropped flies to you once you are near it, and goes in your bag when it reaches you.
+  for(const d of this.drops){d.age+=dt;const dx=m.x-d.x,dy=m.y-d.y,far=Math.hypot(dx,dy);
+   if(!d.pull&&!this.down&&d.age>=LOOT.pop&&far<LOOT.reach){d.pull=true;d.v=LOOT.pull;}
+   if(d.pull&&!this.down&&far>.01){d.v=Math.min(LOOT.max,d.v+LOOT.accel*dt);const s=Math.min(far,d.v*dt);d.x+=dx/far*s;d.y+=dy/far*s;}
+   if(Math.hypot(d.x-m.x,(d.y-m.y)*1.3)<SEARCH.pick){const k=this.kit();this.setKit({...k,bag:add(k.bag,this.grid(),d.id,d.n)});d.taken=true;this.emit('pickup',{id:d.id,n:d.n});}}
   if(this.drops.some(d=>d.taken))this.drops=this.drops.filter(d=>!d.taken);
   // The officer, the first time: just before he would notice you, a line to him. The game holds the street while it is read and
   // wakes him after it (study/app.js), so the line comes before the lunge.

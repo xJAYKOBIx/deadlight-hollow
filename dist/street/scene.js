@@ -10,7 +10,7 @@ import {Juice} from '../study/juice.js';
 import {iconArt,ICON,ICONS} from '../camp/art.js';
 import {MAP,CHUNK,PROPS,LIGHT_BAR,HOME,EVAC,TRUCK,BREACHES,coverAt,VARIANTS} from './data.js';
 import {groundArt,lightArt,LIGHT_SCALE,propArt,PROP_PAD} from './art.js';
-import {Fight,BASH,CRAWLER,SEARCH,BRUTE,JOB,SCREAMER,BLOATER,SPITTER} from './fight.js';
+import {Fight,BASH,CRAWLER,SEARCH,BRUTE,JOB,SCREAMER,BLOATER,SPITTER,LOOT} from './fight.js';
 import {stepOf} from '../home/kit.js';
 import {special,SPECIAL_LOOKS,VARIANT_LOOKS} from '../mc/assets/characters/specials.js';
 import {ACID_BOX,acidArt,GLOB,globArt,GAS_BOX,gasArt} from '../mc/assets/effects/hazards.js';
@@ -48,6 +48,14 @@ const ZF={x:16,y:8,w:128,h:176,rows:9};
 // many of each are kept (the oldest go first), and where on a piece it spins round (frame pixels) and how high that is off the ground.
 export const GORE_FX={keep:180,pieces:56,gravity:540,gibs:{half:9,head:4,blast:4},spin:{upper:[80,82],head:[80,46]}};
 const CRAWL_COL={0:0,1:1,2:2,6:3,7:4},CRAWL_FLIP={3:1,4:0,5:4};
+// Loot on the ground (v0.66): the icons are painted LOOT_PX canvas pixels to a unit and shown at LOOT_SHOW, half again the bag's size.
+// rimArt draws a ring a little outside each icon's shape, bright inside and soft at its edge, from the icons already painted.
+const LOOT_PX=4,LOOT_SHOW=1.5/LOOT_PX;
+function rimArt(c,src){const W=src.width,H=src.height,s=document.createElement('canvas');s.width=W;s.height=H;const x=s.getContext('2d');x.drawImage(src,0,0);
+ const a=x.getImageData(0,0,W,H).data,img=c.createImageData(W,H),o=img.data,R=3,solid=(px,py)=>px>=0&&py>=0&&px<W&&py<H&&a[(py*W+px)*4+3]>40;
+ for(let py=0;py<H;py++)for(let px=0;px<W;px++){if(solid(px,py))continue;let n=9;for(let dy=-R;dy<=R;dy++)for(let dx=-R;dx<=R;dx++){const d=Math.hypot(dx,dy);if(d<=R+.25&&d<n&&solid(px+dx,py+dy))n=d;}
+  if(n>R+.25)continue;const i=(py*W+px)*4;o[i]=255;o[i+1]=n<2.5?233:214;o[i+2]=n<2.5?170:130;o[i+3]=n<2.5?235:110;}
+ c.putImageData(img,0,0);}
 // The blood stamps, one sheet: pools, splashes thrown each way, drops, drag marks and wall splatter, a few of each.
 const STAINS=[...[0,1,2,3].map(s=>['pool',s,0]),...[0,1].flatMap(s=>[0,1,2,3,4,5,6,7].map(d=>['splash',s,d])),...[0,1,2,3].map(s=>['drops',s,0]),...[0,1,2,3,4,5,6,7].map(d=>['smear',0,d]),...[0,1,2,3].map(s=>['wall',s,0])];
 const STAIN_AT=(k,s=0,d=0)=>STAINS.findIndex(([a,b,c])=>a===k&&b===s&&c===d);
@@ -102,8 +110,10 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   this.lookQueue=[];for(const id of Object.keys(ZOMBIE_LOOKS))if(kindOf(id)!==id)this.lookQueue.push(id);else this.paintLook(id);
   const GB=this.texture('gore-gibs',20*GIBS.length,60,c=>{GIBS.forEach((k,i)=>{for(let v=0;v<3;v++){c.save();c.translate(i*20,v*20);gibArt(c,k,i*3+v,['#3a3f4a','#4a3b2e','#5a4a3a'][v]);c.restore();}});});
   for(let i=0;i<GIBS.length*3;i++)if(!GB.has(i))GB.add(i,0,Math.floor(i/3)*20,(i%3)*20,20,20);
-  // What the dead drop, from the bag's own icons.
-  const LI=this.texture('loot-icons',24*ITEM_IDS.length,24,c=>ITEM_IDS.forEach((id,i)=>{c.save();c.scale(2,2);c.translate(i*12+6,6);itemArt(painter(c),id);c.restore();}));ITEM_IDS.forEach((id,i)=>{if(!LI.has(id))LI.add(id,0,i*24,0,24,24);});this.dropImgs=new Map();
+  // What the dead drop, from the bag's own icons painted four to a unit and shown half again the bag's size, so they read on the
+  // ground. Each has a pale rim (loot-rims) drawn over the night, so you can find it in the dark and behind a car.
+  const LC=12*LOOT_PX,LI=this.texture('loot-icons',LC*ITEM_IDS.length,LC,c=>ITEM_IDS.forEach((id,i)=>{c.save();c.scale(LOOT_PX,LOOT_PX);c.translate(i*12+6,6);itemArt(painter(c),id);c.restore();}));
+  const LR=this.texture('loot-rims',LC*ITEM_IDS.length,LC,c=>rimArt(c,LI.getSourceImage()));for(const t of [LI,LR])ITEM_IDS.forEach((id,i)=>{if(!t.has(id))t.add(id,0,i*LC,0,LC,LC);});this.dropImgs=new Map();
   this.parts=Object.entries(PART_ART).map(([item,o])=>{this.texture('part-'+item,(o.w+PROP_PAD*2)*2,(o.h+o.z+PROP_PAD*2)*2,c=>propArt(c,o));return {item,o,img:this.add.image(0,0,'part-'+item).setOrigin(0).setScale(.5).setVisible(false)};});
   const BW=BLOOD_BOX.w*2,BH=BLOOD_BOX.h*2,BS=this.texture('gore-blood',BW*8,BH*Math.ceil(STAINS.length/8),c=>STAINS.forEach(([k,sd,d],i)=>{c.save();c.translate((i%8)*BW,Math.floor(i/8)*BH);bloodArt(c,k,sd*17+i+3,d);c.restore();}));
   for(let i=0;i<STAINS.length;i++)if(!BS.has(i))BS.add(i,0,(i%8)*BW,Math.floor(i/8)*BH,BW,BH);
@@ -138,7 +148,7 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   this.cameras.main.setBackgroundColor('#07080b').setBounds(0,0,MAP.w,MAP.h).setZoom(this.zoom());
   this.events.on('wake',()=>this.enter());this.enter();bridge.ready(this);}
  // Each time you step out of the door: the street as the kit says it is, you on your step.
- enter(){model.reset();this.fight.start();for(const i of this.dropImgs.values())i.destroy();this.dropImgs.clear();for(const v of this.hz.values())for(const i of v)i.destroy();this.hz.clear();for(const i of [...this.stains,...this.bits.map(b=>b.img),...this.lain])i.destroy();this.stains.length=0;this.bits.length=0;this.lain.length=0;this.brass.length=0;this.lying.length=0;this.pumps.length=0;this.floorG.clear();this.kick=null;this.jolt={x:0,y:0};for(const z of [...this.zs.keys()])this.free(z);this.setPlayerLook(bridge.look());this.setTrunk(bridge.kit().street!=='start'&&bridge.kit().street!=='cleared');this.setPower(['hold','done'].includes(stepOf(bridge.kit(),'power')));for(const b of BREACHES)if(b.prop)this.repaint(b.prop);this.cameras.main.centerOn(model.x,model.y-20);this.stream(true);}
+ enter(){model.reset();this.fight.start();for(const L of this.dropImgs.values())for(const i of Object.values(L))i.destroy();this.dropImgs.clear();for(const v of this.hz.values())for(const i of v)i.destroy();this.hz.clear();for(const i of [...this.stains,...this.bits.map(b=>b.img),...this.lain])i.destroy();this.stains.length=0;this.bits.length=0;this.lain.length=0;this.brass.length=0;this.lying.length=0;this.pumps.length=0;this.floorG.clear();this.kick=null;this.jolt={x:0,y:0};for(const z of [...this.zs.keys()])this.free(z);this.setPlayerLook(bridge.look());this.setTrunk(bridge.kit().street!=='start'&&bridge.kit().street!=='cleared');this.setPower(['hold','done'].includes(stepOf(bridge.kit(),'power')));for(const b of BREACHES)if(b.prop)this.repaint(b.prop);this.cameras.main.centerOn(model.x,model.y-20);this.stream(true);}
  // What the camera shows, in world units.
  view(){const s=this.scale,z=this.zoom(),w=s.width/z,h=s.height/z,x=Math.max(0,Math.min(MAP.w-w,model.x-w/2)),y=Math.max(0,Math.min(MAP.h-h,model.y-20-h/2));return {x,y,w,h};}
  // Takes hold of the chunks near the screen and lets go of the ones well past it, then paints: everything on screen now, the rest
@@ -297,6 +307,8 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
    j.bits(kill?6:3,z.x,z.y,{dir:a,spread:.5,speed:60,lift:20,z:30,col:0x5a0e0c,life:.35,kind:'mist'});if(!kill){z.flinch=TOPPLE.flinch;z.flinchX=e.dx;}
    const dir=Math.round(a/(Math.PI/4));this.stain(kill?'splash':'drops',z.x+e.dx*16,z.y+e.dy*10,{dir});this.wallSplat(z,e);
    if(kill){j.hold(now,e.gore?.07:.05);j.shake('down');this.stain('splash',z.x+e.dx*30,z.y+e.dy*18,{dir});z._pool=true;if(e.gore)this.dismember(z,e,a);}}
+  // Something picked up: a small gold ring and a few sparks at your feet.
+  else if(e.type==='pickup'){j.ring(model.x,model.y-6,7,0xffd88a,.22);j.bits(5,model.x,model.y,{speed:40,lift:40,z:6,col:0xffe6a8,life:.3,kind:'spark',len:1.5});}
   else if(e.type==='land'){j.puff(e.x,e.y-2,.9,0x6a6458,.6,-4);j.bits(5,e.x,e.y,{dir:Math.atan2(e.dy,e.dx),spread:1.6,speed:50,lift:30,z:0,col:0x6a6458,life:.4,kind:'debris'});}
   // A brute's charge kicks up dust; one that runs into something shakes the ground.
   else if(e.type==='charge')j.puff(z.x,z.y-2,.8,0x6a6458,.5,-4);
@@ -406,10 +418,14 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   const X=bridge.reticle?.();if(X&&!f.down&&armed(this.look)){const big=f.gunId==='pump-shotgun',open=3+Math.max(0,1-f.sinceShot/(big?.3:.16))*(big?7:3),x=Math.round(X.x*2)/2,y=Math.round(X.y*2)/2;
    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const x0=x+dx*open,y0=y+dy*open,w=dx?3:1,h=dy?3:1,rx=dx<0?x0-3:x0,ry=dy<0?y0-3:y0;g.fillStyle(0x111319,.8).fillRect(rx-.5,ry-.5,w+1,h+1);g.fillStyle(0xf2e6c8,.95).fillRect(rx,ry,w,h);}
    g.fillStyle(0x111319,.8).fillRect(x-1,y-1,2,2);g.fillStyle(0xff6a4a,1).fillRect(x-.5,y-.5,1,1);}
-  // What the dead dropped, bobbing a little with a glint now and then, and gone once picked up.
-  for(const [d,img] of this.dropImgs)if(!f.drops.includes(d)){img.destroy();this.dropImgs.delete(d);}
-  for(const d of f.drops){let img=this.dropImgs.get(d);if(!img){img=this.add.image(d.x,d.y,'loot-icons',d.id).setScale(.5).setOrigin(.5,1);this.dropImgs.set(d,img);}const bob=Math.round(Math.sin(now/260+d.x)*1.5*2)/2;img.setPosition(Math.round(d.x*2)/2,Math.round(d.y*2)/2-2+bob).setDepth(d.y);
-   if(Math.floor(now/700+d.x/37)%4===0)g.fillStyle(0xfff6d8,.9).fillRect(Math.round(d.x*2)/2+2,Math.round(d.y*2)/2-8+bob,1,1);}
+  // What the dead dropped: it pops out and lands, then bobs with its rim breathing, a warm pool of light under it and a glint now
+  // and then. Once it is flying to you the rim burns steady and the pool goes; it is gone once it reaches you.
+  for(const [d,L] of this.dropImgs)if(!f.drops.includes(d)){for(const i of Object.values(L))i.destroy();this.dropImgs.delete(d);}
+  for(const d of f.drops){let L=this.dropImgs.get(d);if(!L){L={img:this.add.image(d.x,d.y,'loot-icons',d.id).setScale(LOOT_SHOW).setOrigin(.5,1),rim:this.add.image(d.x,d.y,'loot-rims',d.id).setScale(LOOT_SHOW).setOrigin(.5,1).setDepth(6003),
+    glow:this.add.image(d.x,d.y,'street-glow-w').setDepth(6001).setBlendMode(Phaser.BlendModes.ADD).setTint(0xffc96a)};this.dropImgs.set(d,L);}
+   const k=Math.min(1,d.age/LOOT.pop),hop=Math.sin(Math.PI*k)*12*(1-k*.5),pulse=.5+.5*Math.sin(now/380+d.x*.07),bob=d.pull?0:Math.round(Math.sin(now/260+d.x)*1.5*2)/2,x=Math.round(d.x*2)/2,y=Math.round(d.y*2)/2-2+bob-hop;
+   L.img.setPosition(x,y).setDepth(d.y);L.rim.setPosition(x,y).setAlpha(d.pull?.95:.5+.4*pulse);L.glow.setPosition(x,d.y-2).setScale(.3+.05*pulse,.17+.03*pulse).setAlpha(d.pull?0:(.26+.16*pulse)*k);
+   if(!d.pull&&Math.floor(now/700+d.x/37)%4===0){const sx=x+4.5,sy=y-15;g.fillStyle(0xfff6d8,.95).fillRect(sx-.5,sy-1.5,1,3).fillRect(sx-1.5,sy-.5,3,1);}}
   // The job's parts: the one in your hands at your side, the ones you set down where they lie, with a glint now and then.
   const M=bridge.kit().mission;for(const p of this.parts){const o=p.o,d=M?.drops?.find(q=>q.item===p.item),held=M?.carry===p.item&&!f.dead;p.img.setVisible(held||!!d);
    if(held){const back=[5,6,7].includes(model.direction),x=model.x+(back?-3:3)-o.w/2,y=model.y-o.h-10;p.img.setPosition(Math.round((x-PROP_PAD)*2)/2,Math.round((y-o.z-PROP_PAD)*2)/2).setDepth(model.y+(back?-1:1));}

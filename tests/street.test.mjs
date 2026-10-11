@@ -112,6 +112,10 @@ test('scavenging: every car, bin, shed and stash and most houses can be searched
  const car=spots.find(o=>o.loot==='car');assert.ok(f.scavenge(car));run(f,m,.2,()=>({x:1,y:0}));assert.equal(f.searching,null);assert.ok(!box.k.looted.includes(car.id));});
 test('the dead sometimes drop things, and walking over them picks them up',()=>{const {box,m,f}=setup(),z=f.zombies[0];f.rand=()=>0;Object.assign(m,{x:z.x-200,y:z.y});f.hit(z,999,1,0);assert.equal(f.drops.length,1);
  const d=f.drops[0],had=count(box.k.bag,d.id);Object.assign(m,{x:d.x,y:d.y});run(f,m,.05);assert.equal(f.drops.length,0);assert.equal(count(box.k.bag,d.id),had+d.n);});
+test('loot: what the dead drop flies to you once you are near it, and waits where it fell while you are not',async()=>{const {LOOT}=await import('../dist/street/fight.js');
+ const {box,m,f}=setup(),z=f.zombies[0];f.rand=()=>0;Object.assign(m,{x:z.x-200,y:z.y});f.hit(z,999,1,0);const d=f.drops[0],had=count(box.k.bag,d.id),at=[d.x,d.y];
+ for(const o of f.zombies)o.hp=0;Object.assign(m,{x:d.x-LOOT.reach*2,y:d.y});run(f,m,1);assert.equal(f.drops.length,1,'too far away: it waits');assert.deepEqual([d.x,d.y],at);
+ Object.assign(m,{x:d.x-LOOT.reach*.8,y:d.y});run(f,m,1);assert.equal(f.drops.length,0,'near enough: it comes to you');assert.equal(count(box.k.bag,d.id),had+d.n);});
 test('fighting a swarm never queues the next one: the meter holds, and clearing it drops the street to Stirring',async()=>{const {HEAT}=await import('../dist/street/fight.js');
  const {box,m,f}=setup();box.k={...box.k,street:'done'};f.start();f.noise(100);run(f,m,.05);assert.equal(f.level,3);run(f,m,5);
  const sw=()=>f.zombies.filter(z=>z.swarm&&z.hp>0);assert.ok(sw().length>=HEAT.horde.size[0],'a swarm');const h0=f.heat;

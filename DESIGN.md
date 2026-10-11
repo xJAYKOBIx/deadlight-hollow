@@ -544,6 +544,14 @@ Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack),
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
 
+## v0.65.2 — Loot you can see and reach
+
+**Seeing it.** What the dead drop was the bag's 12-unit icon lying in the dark, a few red specks unless your flashlight was on it. Now it is half again that size (painted four canvas pixels to a unit and shown at 1.5 times the bag's size), it pops out of the body in a little arc and lands, and while it lies there a pale gold rim round its shape breathes over the night, a warm pool of light sits under it and a four-point glint flashes now and then (`street/scene.js` `rimArt`, `LOOT_PX`). The rim is drawn over the dark and over cars and fences, so a drop behind something still shows where it is.
+
+**Reaching it.** You had to walk right over a drop (18 units). Now, once it has landed, anything within 60 units flies to you, starting slow and speeding up so it always catches you, and goes in your bag when it reaches your feet, with a small gold ring and a few sparks (`street/fight.js` `LOOT`). Being down stops the pull.
+
+**A suit** (Master Creator 88fcdb9). A new top in the character screen, Suit jacket: the open jacket in the jacket color over a shirt in the shirt color and a tie, a lapel either side, buttoned at the waist, with a pocket square, flap pockets and pressed cuffs. Choices only ever go on the end, so saved looks keep theirs.
+
 ## v0.65.1 — Title wording
 
 The line over the logo now reads WELCOME TO (was Night one), and the line under it "This game is in active development!" (was "The night it all went wrong.").
