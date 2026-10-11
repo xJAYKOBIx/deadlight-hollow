@@ -523,6 +523,12 @@ Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack),
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
 
+## v0.56.0 — Parts of you going missing on a phone
+
+Jaykobi's iPhone recording (2026-10-11) showed the turned frames from v0.55 broken in the house: side on, your torso and pack were gone and only the head, the arm with the flashlight and the legs showed; facing the screen, the torso showed but the arms and flashlight did not. Chromium never did this, with any number of texture units or after a lost graphics context, and the sheets it paints are correct, so the cause is inferred: the turned body and head were drawn into the sheets from an OffscreenCanvas, and Safari can draw one from before its last change, which would put the wrong pixels (or none) into some turned cells.
+
+Master Creator 15ad57f now writes the turned pixels straight into the sheet cells with putImageData, reads every cell back and checks it, and `paintLayers` returns whether the turned frames are good. The house, the street and the Training Grounds only use the turned frames when that check passed; otherwise you turn between the eight drawn facings as in v0.54 (the arms and light still follow the aim at 64 angles), never with parts missing. Pixels are unchanged where it already worked.
+
 ## v0.55.0 — Turning all the way round
 
 Jaykobi (2026-10-11): animations should be 360 degrees; the body and face still snapped between eight facings while the gun turned at 64. Chose full 64 for the body and face.

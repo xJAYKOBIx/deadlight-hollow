@@ -193,7 +193,7 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
  // With the flashlight found it rides under the barrel of whatever gun you hold, and the beam comes out of it.
  setPlayerLook(look){const gun=bridge.held?.()||'none',light=!!bridge.kit?.()?.light,key=JSON.stringify(look)+gun+light;this.look={...look,zombie:0,gun,grenade:null,light};
   if(!this.gunSheets[key]){const sheets={};for(const k of ORDER){const L=LAYERS[k],t=this.textures.createCanvas(`st-${Object.keys(this.gunSheets).length}-${k}`,...sheetSize(L));for(let i=0;i<L.count;i++)t.add(i,0,(i%L.cols)*L.w,Math.floor(i/L.cols)*L.h,L.w,L.h);sheets[k]=t;}
-   const ctx={};for(const k of ORDER)ctx[k]=sheets[k].context;paintLayers(ctx,this.look);for(const k of ORDER)sheets[k].refresh();
+   const ctx={};for(const k of ORDER)ctx[k]=sheets[k].context;sheets.turned=paintLayers(ctx,this.look);for(const k of ORDER)sheets[k].refresh();
    // The gun mid-action (the arms layer with the slide or pump back) and the dive, both from the same layers.
    const n=Object.keys(this.gunSheets).length,A=LAYERS.arms,rk=this.textures.createCanvas(`st-${n}-racked`,...sheetSize(A));for(let i=0;i<A.count;i++)rk.add(i,0,(i%A.cols)*A.w,Math.floor(i/A.cols)*A.h,A.w,A.h);paintRacked(rk.context,this.look);rk.refresh();sheets.racked=rk;
    const D=DIVE_ART,dv=this.textures.createCanvas(`st-${n}-dive`,...sheetSize(D));for(let i=0;i<D.count;i++)dv.add(i,0,(i%D.cols)*D.w,Math.floor(i/D.cols)*D.h,D.w,D.h);paintDive(dv.context,ctx,this.look);dv.refresh();sheets.dive=dv;
@@ -204,7 +204,7 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
  // You: the layers in the pose the model is in. A shot kicks your arms and head back along the shot for a moment, and the gun
  // cycles (the pistol's slide snaps back as it fires; the shotgun's pump is worked a moment later). A dive swaps the layers for
  // the dive's own frames: the leap, the slide along the ground and the rise.
- placeActor(){const gun=armed(this.look),p=pose(model,gun),down=!!this.fight.down,K=this.kick,v=this.fight.dive,half=n=>Math.round(n*2)/2,f=this.fight;
+ placeActor(){const gun=armed(this.look),p=pose(model,gun&&!!this.sheets?.turned),down=!!this.fight.down,K=this.kick,v=this.fight.dive,half=n=>Math.round(n*2)/2,f=this.fight;
   // Gone: what is left of him is one of the dead now (the fight's body), so you are not drawn at all.
   if(f.dead){this.diveImg.setVisible(false);for(const k of ORDER)this.parts[k].setVisible(false);return;}
   let kx=0,ky=0;if(K){const k=Math.max(0,1-K.t/K.dur);kx=-Math.cos(K.a)*K.n*k*k;ky=-Math.sin(K.a)*K.n*k*k*.6;}

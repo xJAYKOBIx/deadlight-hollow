@@ -91,7 +91,7 @@ export function makeHomeScene(model,bridge){return class Home extends Phaser.Sce
  layered(look){const kit=bridge.kit?.(),L={...look,zombie:0,gun:bridge.held?.()||'none',grenade:null,light:!!kit?.light};if(!armed(L)){this.lay=null;return;}
   const key=JSON.stringify(L),all=this.laySheets??={};let sh=all[key];
   if(!sh){sh={};const n=Object.keys(all).length;for(const k of ORDER){const Y=LAYERS[k],t=this.textures.createCanvas(`hm-${n}-${k}`,...sheetSize(Y));for(let i=0;i<Y.count;i++)t.add(i,0,(i%Y.cols)*Y.w,Math.floor(i/Y.cols)*Y.h,Y.w,Y.h);sh[k]=t;}
-   const ctx={};for(const k of ORDER)ctx[k]=sh[k].context;paintLayers(ctx,L);for(const k of ORDER)sh[k].refresh();all[key]=sh;}
+   const ctx={};for(const k of ORDER)ctx[k]=sh[k].context;sh.turned=paintLayers(ctx,L);for(const k of ORDER)sh[k].refresh();all[key]=sh;}
   this.lay=sh;const P=this.parts??={};for(const k of ORDER){if(!P[k])P[k]=this.add.image(model.x,model.y,sh[k].key,0).setOrigin(...origin(LAYERS[k])).setScale(.5).setVisible(false);else P[k].setTexture(sh[k].key,0);}}
  setPetLook(){}
  // Never show past the yard: on a wide screen the camera zooms in until the house and yard fill it.
@@ -107,7 +107,7 @@ export function makeHomeScene(model,bridge){return class Home extends Phaser.Sce
   if(w?.onCouch){this.actor.setDepth(COUCH.depth).setCrop(0,0,FRAME.w,Math.max(0,(COUCH.cut-(w.y-FRAME.footY))*2));}else if(this.actor.isCropped)this.actor.setCrop();
   // In layers: the parts in your pose, the body, face and hands turned to where the light points.
   const lay=!!this.lay&&!w?.onCouch;this.actor.setVisible(!lay);for(const k of ORDER)this.parts?.[k]?.setVisible(lay);
-  if(lay){const p=pose({...model,aim:this.beamA??model.direction*Math.PI/4},true);ORDER.forEach((k,i)=>{const r=p.rides.includes(k);this.parts[k].setFrame(p[k]).setPosition(model.x+(r?p.dx:0),model.y+(r?p.dy:0)).setDepth(model.y+i*.01);});}
+  if(lay){const p=pose({...model,aim:this.beamA??model.direction*Math.PI/4},!!this.lay.turned);ORDER.forEach((k,i)=>{const r=p.rides.includes(k);this.parts[k].setFrame(p[k]).setPosition(model.x+(r?p.dx:0),model.y+(r?p.dy:0)).setDepth(model.y+i*.01);});}
   this.fade.setVisible(!!w&&w.fade>0).setAlpha(w?.fade||0);
   // Asleep: three small z's drift up off the couch.
   const z=this.zzz;z.clear();if(w?.zzz)for(let k=0;k<3;k++){const a=((now/1400)+k/3)%1,x=w.x+8+a*12+Math.sin(a*6)*2,y=162-a*26,s=2+a*2;z.fillStyle(0xe8e0d1,.9*(1-a));z.fillRect(x,y,s*2,.5);z.fillRect(x,y+s*2-.5,s*2,.5);for(let i=0;i<4;i++)z.fillRect(x+s*2-(i+1)*s/2,y+i*s/2,.5+s/4,.5);}

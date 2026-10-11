@@ -43,10 +43,10 @@ export function makeStudyScene(model,bridge){return class CharacterRoom extends 
  this.cameras.main.setBackgroundColor('#0b0c10').setBounds(0,0,ROOM.w,ROOM.h).setZoom(bridge.zoom()).centerOn(model.x,model.y-20);this.game.canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();bridge.contextLost();});this.game.canvas.addEventListener('webglcontextrestored',()=>bridge.contextRestored());bridge.ready(this);}
  setPetLook(look){if(this.pet)petSheet(this,look);}
  // In the Training Grounds every gun is its paintball twin, hopper and all.
- setAppearance(look){const gear=this.practice.loadout;this.look={...look,...gear,paint:PAINT[gear.gun]};const ctx={};for(const k of ORDER)ctx[k]=this.layers[k].context;paintLayers(ctx,this.look);for(const k of ORDER)this.layers[k].refresh();}
+ setAppearance(look){const gear=this.practice.loadout;this.look={...look,...gear,paint:PAINT[gear.gun]};const ctx={};for(const k of ORDER)ctx[k]=this.layers[k].context;this.turned=paintLayers(ctx,this.look);for(const k of ORDER)this.layers[k].refresh();}
  // The character creator's preview, stacked from the same layers you play with.
  portrait(c,direction,frame,x,y,scale){const ctx={};for(const k of ORDER)ctx[k]=this.layers[k].context;drawLayers(c,ctx,{direction,frame,legDir:direction,aim:direction*Math.PI/4},x,y,scale,armed(this.look));}
- placeActor(){const gun=armed(this.look),p=pose(model,gun),down=!!this.practice.drill.downed;
+ placeActor(){const gun=armed(this.look),p=pose(model,gun&&!!this.turned),down=!!this.practice.drill.downed;
   for(const k of ORDER){const s=this.parts[k],ride=p.rides.includes(k);s.setFrame(p[k]);s.setPosition(model.x+(ride&&!down?p.dx:0),model.y+(ride&&!down?p.dy:0));}
   // The gun sits between the coat and the head; arms and head ride the body's bob. Layer depths stay a hair apart at your feet.
   const y=model.y;this.parts.legs.setDepth(y);this.parts.body.setDepth(y+.01);this.parts.arms.setDepth(y+.02).setVisible(gun);this.parts.head.setDepth(y+.03);}
