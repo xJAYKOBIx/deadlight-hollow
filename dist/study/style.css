@@ -1049,5 +1049,10 @@ dialog.jobs{width:min(560px,calc(100% - 24px))}
 .job-steps .now::before{background:var(--ember);border-color:var(--ember-hi);box-shadow:0 0 8px var(--ember)}
 .jobs-hint{margin:0;font:600 11px/1.35 var(--ui);letter-spacing:.07em;text-transform:uppercase;color:var(--dust)}
 @media(prefers-reduced-motion:reduce){#goalChip:active{transform:none}}
+/* v0.67: what the ride in waits for you to do (load your rifle), in the middle of the screen over the bottom bar, breathing. */
+#cineAct{position:absolute;left:50%;bottom:calc(min(9vh,60px) + 28px);transform:translateX(-50%);pointer-events:auto;display:inline-flex;align-items:center;gap:10px;min-height:46px;padding:0 18px;font:700 15px/1 var(--ui);letter-spacing:.1em;text-transform:uppercase;background:var(--ember);color:var(--ember-ink);border:1px solid var(--ember-hi);border-radius:3px;box-shadow:0 0 0 0 #ff9a5266;animation:act-breathe 1.6s ease-in-out infinite}
+#cineAct[hidden]{display:none}#cineAct kbd{background:var(--ember-ink);color:var(--ember-hi)}.touch #cineAct kbd{display:none}.touch #cineAct{min-height:56px;padding:0 26px;font-size:16px}
+@keyframes act-breathe{0%,100%{box-shadow:0 0 0 0 #ff9a5266}50%{box-shadow:0 0 0 10px #ff9a5200}}
+@media(prefers-reduced-motion:reduce){#cineAct{animation:none}}
 /* v0.66: Harlan Field has no fish to count, and its goal is one step with no jobs list behind it. */
 body.base #fishChip{display:none}body.base #goalChip{pointer-events:none}body.base #goalChip i{display:none}

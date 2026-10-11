@@ -544,6 +544,29 @@ Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack),
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
 
+## v0.67.0 — Operation Bell Jar, part two: the ride in
+
+**Getting on the truck.** Boarding at Harlan Field no longer ends on a card. The hangar goes black and the ride in plays, and Continue at that point (Route 9, On the truck) starts the ride again. At the end of the ride, the card reads "To be continued: Juniper Lane" and the title comes back. The operation itself is the next part. The operation's save gains a fifth stage, arrived, and Continue's line names the Hollow.
+
+**The ride** (`ride/`, the lines in `story/op.js`). Hollow Six's armored truck seen from above with its roof cut away, on the wet road at night. It plays like the briefing: every line waits for a tap and Skip (Esc) goes to the end.
+- Black, the ramp shutting and the engine, then the title card, Route 9.
+- You sit on the south bench with your back to us. Aaron Whitlock, your partner, sits across the bay in his helmet, and Gadget (Priya Nair) drives and runs the radio and the drone.
+- Aaron introduces himself and tells you to load up. The ride waits for you: a Load your rifle button (R on a keyboard, X on a controller, or a tap) chambers a round, and Aaron counts your magazines.
+- You walk him through the plan: the crash, the samples in the cold case, plant the beacon, back to the truck.
+- The cordon's checkpoint comes up out of the dark, built from the library's road props: barriers closing the far lane with their flashers going, cones, a flood light, sandbags and the gate's post. The truck pulls up with its cab at the gate's arm. The Guard corporal clears you through, the arm swings open and the truck pulls away.
+- Past the cordon the street lamps are out. Something hits the hull, the dome light catches and the camera shakes. Gadget says it was a person; Aaron says to keep driving.
+- At Juniper Lane the truck pulls up (only once the checkpoint is out of sight behind it), the ramp comes down onto the street with the light from inside spilling down it, and the screen goes black.
+The camera holds the whole truck with the road above and below it, and moves in on whoever is talking. Heads turn to the speaker.
+
+**How it moves.** The truck stays put and the road runs under it. The script keeps the truck's distance down the road, easing toward the speed each beat asks for, so the lamps, their light on the road and the checkpoint go by at the right rate. Pulling up at the gate brakes so the cab stops at the arm. The light is a map multiplied over everything: the night outside, and inside the truck a warm dome light touched with red, plus the dash's green and blue round Gadget. In the Hollow the dark falls on the road but not on the inside of the truck. Rain blows back past the truck at its speed. The engine loops, idling when the truck is stopped. On a phone the truck fills the screen across, with road and field above and below.
+
+**Master Creator c274a58.** For the Base set:
+- the truck's bay with its roof cut away: benches with harnesses, a grab rail, the dome light, a first aid kit and an extinguisher, the cab with the dash screens and the wheel, the cut ramp wall, the stencils H6 and LEET AF;
+- the driver's seat back;
+- the containment beacon (standing, lit or not) and its case (shut, or open with its parts in foam).
+
+Five new sounds in a Vehicles group: the truck's engine (driving or idling), an air brake, the ramp, a thump on the hull and a radio squelch.
+
 ## v0.66.0 — Operation Bell Jar, part one: the briefing
 
 **A new start.** New Game now starts the opening mission, Operation Bell Jar, as a LEET AF operator. The night at Marcus's house has its own entry on the title menu, Marcus's Night, and keeps its own save. Continue picks up whichever of the two you played last (`deadlight-last-v1`), and its line says where you are. Starting the operation over when one is going asks first. The operation saves its stage in `deadlight-op-v1`: the briefing, gearing up, armed, on the truck.

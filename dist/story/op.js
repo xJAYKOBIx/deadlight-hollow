@@ -1,6 +1,6 @@
 // Operation Bell Jar, the opening mission (v0.66): every line in one place, scene by scene, like night1.js. Lines are [who, text];
 // who is one of OP_SPEAKERS, or 'you' (the name you gave your survivor, or You). Story lines wait for a tap in the dialog box.
-export const OP_SPEAKERS={calloway:'Col. Calloway',hale:'Deputy Director Hale',okafor:'SSgt. Okafor',unit:'The unit'};
+export const OP_SPEAKERS={calloway:'Col. Calloway',hale:'Deputy Director Hale',okafor:'SSgt. Okafor',unit:'The unit',aaron:'Aaron',gadget:'Gadget',guard:'Guard corporal'};
 export const OP={
  // Part 1. The briefing in Hangar 3 at Harlan Field: Calloway opens, Hale gives the why, Calloway gives the who and where.
  title:['Operation Bell Jar','0300 · Harlan Field'],
@@ -28,8 +28,25 @@ export const OP={
   cases:[['you','Empty cold cases, waiting for the samples. Ours is already on the truck.']],locker:[['you','My locker. The photo\'s still taped inside the door. It stays here.']],
   podium:[['you','The Colonel\'s notes. Every sector has a time written next to it. Ours says 0420.']],screen:[['you','The Hollow, cut in eight. Six is lit up in amber.']],
   truck:[['you','Not without a rifle. Okafor\'s at the armory.']],board2:[['you','Hollow Six, boarding.']]},
- // The end of part one, until the ride in is built.
- end:['To be continued','The ride in']};
+ // Part 2. The ride in, in the back of Hollow Six's truck: Aaron across from you, Gadget driving, through the Guard's cordon and into
+ // the dark. load waits for you to load your rifle (ride/script.js).
+ ride:{title:['Route 9','0341 · Eastbound to the Hollow'],
+  meet:[['aaron','So you\'re the other half of Hollow Six.'],['aaron','Aaron Whitlock. Sit anywhere you like. Just not on the beacon.']],
+  prep:[['you','The Colonel said you were prepping the truck.'],['aaron','Beacon\'s charged, the cold case is strapped down, and I zeroed your optic. You\'re welcome.']],
+  gadget:[['gadget','And I\'m the one driving. Priya Nair. Everyone calls me Gadget.'],['gadget','I\'ve got a drone in a box up here. Once you\'re out, I stay with the truck and I\'m your eyes.'],
+   ['aaron','She\'s also the reason this truck still runs. Don\'t touch her cables.'],['gadget','Don\'t touch my cables.']],
+  load:[['aaron','Load up. Magazine in, safety on until the ramp drops.']],
+  loaded:[['aaron','Thirty a magazine, four magazines. Count them. They go faster than you think.']],
+  plan:[['aaron','Walk me through it, so I know you heard it.'],['you','The crash. The samples go in the cold case. Plant the beacon. Back to the truck.'],
+   ['aaron','One step at a time. If I go down, you get me up. If you go down, I get you up.'],['aaron','Nobody gets left in there.']],
+  cordon:[['gadget','Cordon\'s up ahead. Slowing down.']],
+  guard:[['guard','LEET AF, Hollow Six. You\'re cleared through.'],['guard','Nothing\'s come out. Not all night. Not one car.'],['gadget','Copy that. Thanks, Corporal.']],
+  dark:[['gadget','We\'re in. The power\'s out on the whole east side.'],['aaron','So nobody\'s home. Or nobody\'s turning the lights on.']],
+  hit:[['gadget','Hold on!'],['gadget','That was a person. Aaron, that was a person.'],['aaron','It was one of them. Keep driving.']],
+  close:[['gadget','Juniper Lane. Two minutes.'],['aaron','When the ramp drops, we go out together and we stay together.'],['gadget','I\'ll be on the radio the whole way. Bring them back cold.']],
+  ramp:[['aaron','Ready?'],['you','Ready.']]},
+ // The end of part two, until the operation itself is built.
+ end:['To be continued','Juniper Lane']};
 // The people in the hangar, and what each says when you walk up. lines rotate; a second visit gets the next one.
 export const OP_TALK={
  calloway:{gear:['Rifle first, Six. Okafor\'s at the armory.','Questions go through your partner. Your partner\'s on the truck.'],armed:['Your truck\'s on the apron. Ramp\'s down. Go.']},
@@ -40,5 +57,5 @@ export const OP_TALK={
  walsh:['Hale didn\'t say what happens if we don\'t plant the beacon. I noticed that.'],park:['If it\'s quiet in there, it\'s quiet. If it isn\'t...'],
  halvorsen:['Check your magazines twice. Okafor loads them, but check them anyway.'],mensah:['Truck five is ours. If you see us waving, it isn\'t hello.'],
  volkova:['Sixteen of us for eight sectors. Somebody did that math on a napkin.'],brandt:['The church on the hill\'s in our sector. I\'m not going in there.'],
- tanaka:['Gadget\'s running comms for the whole op tonight. If she says move, you move.'],holloway:['Hollow Eight. Holloway. Yes, I know. I\'ve heard it.'],
+ tanaka:['You\'ve got Gadget driving you in. If she says move, you move.'],holloway:['Hollow Eight. Holloway. Yes, I know. I\'ve heard it.'],
  malhotra:['The samples are cold-packed. Keep them cold, keep them closed, and don\'t drop them.']};
