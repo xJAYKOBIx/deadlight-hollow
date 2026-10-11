@@ -8,7 +8,7 @@
 import {GUNS,muzzle} from '../study/equipment.js';
 import {count,remove,add} from '../home/bag.js';
 import {ammoOf,advance,loot,scavenge,alarmed,DROPS} from '../home/kit.js';
-import {MAP,WAVES,ROAMERS,NOTICE,HEAR,WALK,solidAt,coverAt} from './data.js';
+import {MAP,WAVES,ROAMERS,NOTICE,HEAR,WALK,ROADS,CROSSES,solidAt,coverAt} from './data.js';
 import {Flow,clearLine} from './paths.js';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),facing=(dx,dy)=>(Math.round(Math.atan2(dy,dx)/(Math.PI/4))+8)%8;
 // Wanderers: how far they stroll from where they started and how slowly, when they give up on you, and how far off they stop
@@ -35,12 +35,19 @@ export const GORE_KILL={near:80,far:140,chance:.4,head:.22,crawl:.5};
 // Scavenging: a search takes this long standing still (moving, shooting, diving or getting hurt stops it), and a car alarm is heard
 // this far. What the dead drop lies where they fell until you walk over it.
 export const SEARCH={time:1.1,alarm:900,pick:18};
+// Heat: how much noise you have made lately, 0 to 100. Shots, alarms and kills raise it; a while of quiet lets it fall. Once the
+// tutorial's fight is over it brings the dead to you: patrols of a few drift through, more often the hotter it is, and at the top
+// a horde comes from one side, already hunting. levels are where Stirring, Hunted and Swarming start; patrol is seconds between
+// patrols at each level. Extra dead are capped, and the ones well away that have not seen you are let go.
+export const HEAT={shot:{'light-pistol':3,'pump-shotgun':6},kill:1,alarm:30,quiet:8,fall:2.5,levels:[0,25,50,80],names:['Quiet','Stirring','Hunted','Swarming'],
+ patrol:[90,50,30,20],size:[3,5],horde:{every:45,size:[10,14]},cap:40,spawn:{near:620,far:820},gone:1500,walk:26};
+const LOOKS=['neighbour','jogger','robe','worker','neighbour2'];
 export const CRAWLER={hp:25,speed:22,reach:16,windup:.55,damage:9,hold:.9,slow:.3,rise:.6,cool:1.4};
 export class Fight{
- constructor(model,{kit,setKit,grid}){Object.assign(this,{model,kit,setKit,grid,traces:[],fields:[],events:[],zombies:[],hp:PLAYER_HP,maxHp:PLAYER_HP,down:0,cooldown:0,reloadTime:0,throwCooldown:0,sinceShot:9,sinceHurt:9,dive:null,diveCool:0,alert:false,wave:-1,seed:1,held:null,grab:0,gore:true,searching:null,drops:[]});
+ constructor(model,{kit,setKit,grid}){Object.assign(this,{model,kit,setKit,grid,traces:[],fields:[],events:[],zombies:[],hp:PLAYER_HP,maxHp:PLAYER_HP,down:0,cooldown:0,reloadTime:0,throwCooldown:0,sinceShot:9,sinceHurt:9,dive:null,diveCool:0,alert:false,wave:-1,seed:1,held:null,grab:0,gore:true,searching:null,drops:[],heat:0,quiet:99,level:0,patrolT:30,hordeT:0});
   this.drill={bots:this.zombies,holdout:false,downed:false};this.flow=new Flow();}
  // Sets the street up for where the kit says you are: the cop waiting at the cruiser, the second wave coming, or nothing.
- start(){const k=this.kit();this.snapshot=k;this.hp=PLAYER_HP;this.down=0;this.dive=null;this.grab=0;this.searching=null;this.drops=[];this.diveCool=0;this.alert=false;this.traces=[];this.reloadTime=0;this.cooldown=0;this.held=k.held;this.zombies.length=0;
+ start(){const k=this.kit();this.snapshot=k;this.hp=PLAYER_HP;this.down=0;this.dive=null;this.grab=0;this.searching=null;this.drops=[];this.heat=0;this.quiet=99;this.level=0;this.patrolT=30;this.hordeT=0;this.diveCool=0;this.alert=false;this.traces=[];this.reloadTime=0;this.cooldown=0;this.held=k.held;this.zombies.length=0;
   if(k.street==='start')this.spawn(0);else if(k.street==='looted'){this.spawn(1);this.alert=true;}else{this.wave=-1;this.zombies.length=0;this.zombies.push(...this.roamers());}}
  // The ones you already put down stay where they fell when the next wave comes.
  spawn(i){this.wave=i;const fell=i>0?this.zombies.filter(z=>z.roam===undefined&&z.hp<=0):[];this.zombies.length=0;this.zombies.push(...fell);for(const s of WAVES[i]){const crawl=s.kind==='crawler',hp=crawl?CRAWLER.hp:ZOMBIE.hp[s.look]||60;this.zombies.push({kind:crawl?'crawler':'shambler',look:s.look,x:s.x,y:s.y,sx:s.x,sy:s.y,direction:s.direction??4,frame:0,phase:0,hp,max:hp,idle:!!s.idle,delay:s.delay||0,state:'chase',t:0,vx:0,vy:0,stagger:0,tell:0,cool:0,flash:0,groan:1+this.rand()*2});}
@@ -74,7 +81,7 @@ export class Fight{
  fire(){const g=this.gun,m=this.model;if(!g||this.down||this.dive||this.cooldown>0)return false;
   if(this.reloadTime>0){if(!g.shells||!this.ammo)return false;this.reloadTime=0;}
   if(!this.ammo){this.cooldown=.3;this.emit('empty');this.reload();return false;}
-  this.setAmmo(this.ammo-1);this.cooldown=g.interval;this.sinceShot=0;this.heard(m.x,m.y);
+  this.setAmmo(this.ammo-1);this.cooldown=g.interval;this.sinceShot=0;this.heard(m.x,m.y);this.noise(HEAT.shot[this.gunId]||4);
   const angle=this.aimAngle??m.direction*Math.PI/4,n=g.pellets||1;
   for(let k=0;k<n;k++){const off=n>1?((k/(n-1))-.5)*g.spread+(this.rand()-.5)*g.spread/(n*1.5):(this.rand()-.5)*.025;this.ray(angle+off,g,k>0);}
   this.emit('shot',{gun:this.gunId,angle});return true;}
@@ -89,13 +96,15 @@ export class Fight{
   const push=s.push*(this.gun?.pellets&&Math.hypot(z.x-m.x,z.y-m.y)<SHOVE.close.range?SHOVE.close.push:1)*(z.hp<=0?SHOVE.kill:1);z.vx+=dx*push;z.vy+=dy*push;z.stagger=Math.max(z.stagger,s.stagger);z.idle=false;if(z.roam!==undefined)z.hunt=true;
   if(z.state==='windup'&&this.gun?.pellets){z.state='chase';z.tell=0;z.cool=.5;}
   if(z.hp<=0){if(z.roam!==undefined)this.fallen.add(z.roam);z.state='dead';z.tell=0;z.frame=0;z._popped=true;z.fall=dx>=0?1:-1;
-   this.drop(z,dx,dy);const gore=z.gore=this.goreOf(z),crawler=gore==='half'&&this.rand()<GORE_KILL.crawl?this.crawler(z,dx,dy):null;this.emit('kill',{z,dx,dy,gore,crawler});this.check();}else this.emit('hit',{z,dx,dy});}
+   this.drop(z,dx,dy);this.noise(HEAT.kill);const gore=z.gore=this.goreOf(z),crawler=gore==='half'&&this.rand()<GORE_KILL.crawl?this.crawler(z,dx,dy):null;this.emit('kill',{z,dx,dy,gore,crawler});this.check();}else this.emit('hit',{z,dx,dy});}
+ // Noise raises the heat and resets the quiet.
+ noise(n){this.heat=Math.min(100,this.heat+n);this.quiet=0;}
  // Sometimes something falls out of a pocket.
  drop(z,dx,dy){if(z.kind==='crawler')return;for(const [id,p,a,b] of DROPS[z.look]||DROPS.any)if(this.rand()<p){this.drops.push({id,n:a+Math.floor(this.rand()*(b-a+1)),x:z.x+dx*10+(this.rand()-.5)*8,y:z.y+dy*6+(this.rand()-.5)*6,age:0});return;}}
  // Starts searching a spot; the search finishes in update, if you stay put.
  scavenge(t){if(this.down||this.dive||this.searching||!t?.loot||this.kit().looted?.includes(t.id))return false;this.searching={t,time:0};this.emit('search',{t});return true;}
  // A car alarm: every wanderer in earshot comes to see, and keeps coming.
- alarm(x,y){this.emit('alarm',{x,y});for(const z of this.zombies)if(z.roam!==undefined&&z.hp>0&&Math.hypot(z.x-x,z.y-y)<SEARCH.alarm)this.notice(z);this.heard(x,y);}
+ alarm(x,y){this.emit('alarm',{x,y});this.noise(HEAT.alarm);for(const z of this.zombies)if(z.roam!==undefined&&z.hp>0&&Math.hypot(z.x-x,z.y-y)<SEARCH.alarm)this.notice(z);this.heard(x,y);}
  // What a killing hit does to the body: nothing more, 'half' (in two at the waist) or 'head' (the head comes off).
  goreOf(z){if(!this.gore||z.kind==='crawler')return null;const m=this.model,d=Math.hypot(z.x-m.x,z.y-m.y),G=GORE_KILL;
   if(this.gun?.pellets)return d<G.near||d<G.far&&this.rand()<G.chance?'half':null;return this.rand()<G.head?'head':null;}
@@ -150,6 +159,11 @@ export class Fight{
   // A search under way: stop if you move, shoot or dive; otherwise, once it is done, what was there goes in your bag.
   const S=this.searching;if(S){if(Math.hypot(Number(input.x)||0,Number(input.y)||0)>.25||input.fire||this.dive||this.down){this.searching=null;this.emit('searchstop');}
    else if((S.time+=dt)>=SEARCH.time){this.searching=null;const r=scavenge(this.kit(),S.t,this.grid()),alarm=alarmed(S.t);this.setKit(r.k);this.emit('found',{t:S.t,items:r.items,alarm});if(alarm)this.alarm(S.t.x,S.t.y);}}
+  // The heat cools once it has been quiet a while; out on a quiet street, it sends patrols, and at the top, hordes.
+  this.quiet+=dt;if(this.quiet>HEAT.quiet)this.heat=Math.max(0,this.heat-HEAT.fall*dt);const lv=HEAT.levels.filter(v=>this.heat>=v).length-1;if(lv!==this.level){const up=lv>this.level;this.level=lv;this.emit('heat',{level:lv,up});if(up&&lv===3)this.hordeT=Math.min(this.hordeT,4);}
+  if(this.kit().street==='done'&&!this.down){if((this.patrolT-=dt)<=0){this.patrolT=HEAT.patrol[this.level]*(.8+this.rand()*.4);this.patrol(false);}if(this.level===3&&(this.hordeT-=dt)<=0){this.hordeT=HEAT.horde.every;this.patrol(true);}}
+  // Extra dead well away from you that are not after you are let go, and so are their bodies.
+  if(this.zombies.some(z=>z.extra&&(z.hp<=0||!z.hunt)&&Math.hypot(z.x-m.x,z.y-m.y)>HEAT.gone)){const keep=this.zombies.filter(z=>!(z.extra&&(z.hp<=0||!z.hunt)&&Math.hypot(z.x-m.x,z.y-m.y)>HEAT.gone));this.zombies.length=0;this.zombies.push(...keep);}
   // Walking over something the dead dropped picks it up.
   for(const d of this.drops){d.age+=dt;if(Math.hypot(d.x-m.x,(d.y-m.y)*1.3)<SEARCH.pick){const k=this.kit();this.setKit({...k,bag:add(k.bag,this.grid(),d.id,d.n)});d.taken=true;this.emit('pickup',{id:d.id,n:d.n});}}
   if(this.drops.some(d=>d.taken))this.drops=this.drops.filter(d=>!d.taken);
@@ -165,7 +179,7 @@ export class Fight{
   // Shoved: slide back along the hit, slowing fast. The dead slide too, a little further, and stop where they hit something.
   if(z.vx||z.vy){const k=Math.exp((z.hp>0?-9:-7)*dt),mx=z.vx*dt,my=z.vy*dt;if(!this.blockedZ(z,z.x+mx,z.y))z.x+=mx;else z.vx*=-.2;if(!this.blockedZ(z,z.x,z.y+my))z.y+=my;else z.vy*=-.2;z.vx*=k;z.vy*=k;if(Math.hypot(z.vx,z.vy)<2)z.vx=z.vy=0;}
   if(z.hp<=0)return;
-  if(z.delay>0&&!z.idle){if(this.alert)z.delay-=dt;if(z.delay>0)return;this.emit('groan',{z});}
+  if(z.delay>0&&!z.idle){if(this.alert||z.extra)z.delay-=dt;if(z.delay>0)return;this.emit('groan',{z});}
   if(z.kind==='crawler')return this.crawl(z,dt);
   z.cool=Math.max(0,z.cool-dt);if(z.stagger>0){z.stagger-=dt;z.frame=0;return;}
   if(z.idle){z.frame=0;return;}
@@ -193,8 +207,23 @@ export class Fight{
   if(d<C.reach+4&&!z.cool){z.state='windup';z.t=C.windup;z.tell=C.windup;this.emit('windup',{z});return;}
   let ax=dx/d,ay=dy/d;if(d>28){z.seeT=(z.seeT||0)-dt;if(z.seeT<=0){z.seeT=.25;z.clear=clearLine(z.x,z.y,m.x,m.y);}if(!z.clear){const w=this.flow.way(z.x,z.y);if(w){ax=w.x;ay=w.y;}}}
   const go=Math.min(Math.max(0,d-C.reach),C.speed*dt),moved=go?this.step(z,ax,ay,go):0;if(moved){z.phase=(z.phase+moved/14)%1;z.frame=Math.floor(z.phase*4);}}
+ // A patrol: a few of the dead come down a street from somewhere out of sight, heading to where you are now, and pick up on you
+ // as wanderers do. A horde is bigger, comes from one side and already knows where you are.
+ patrol(horde){const m=this.model,H=HEAT,live=this.zombies.filter(z=>z.extra&&z.hp>0).length,[a,b]=horde?H.horde.size:H.size,n=Math.min(a+Math.floor(this.rand()*(b-a+1)),H.cap-live);if(n<=0)return false;
+  let at=null;for(let t=0;t<30&&!at;t++){const ang=this.rand()*Math.PI*2,d=H.spawn.near+this.rand()*(H.spawn.far-H.spawn.near),px=m.x+Math.cos(ang)*d,py=m.y+Math.sin(ang)*d;
+   // Onto the nearest street or side street, so they come down a road.
+   const rd=ROADS.reduce((q,r)=>Math.abs(r.y+r.h/2-py)<Math.abs(q.y+q.h/2-py)?r:q),cr=CROSSES.reduce((q,c)=>Math.abs(c.x+c.w/2-px)<Math.abs(q.x+q.w/2-px)?c:q);
+   const p=Math.abs(rd.y+rd.h/2-py)<Math.abs(cr.x+cr.w/2-px)?{x:px,y:rd.y+rd.h/2,along:'x'}:{x:cr.x+cr.w/2,y:py,along:'y'};
+   if(p.x>WALK.left+40&&p.x<WALK.right-40&&p.y>WALK.top+40&&p.y<WALK.bottom-40&&Math.hypot(p.x-m.x,p.y-m.y)>H.spawn.near*.9&&!solidAt(p.x,p.y,10))at=p;}
+  if(!at)return false;const goal={x:m.x+(this.rand()-.5)*160,y:m.y+(this.rand()-.5)*100},pts=[at.along==='x'?{x:goal.x,y:at.y}:{x:at.x,y:goal.y},goal];
+  for(let i=0;i<n;i++){const look=LOOKS[Math.floor(this.rand()*LOOKS.length)],hp=ZOMBIE.hp[look]||60,sp=horde?90:30,x=at.x+(this.rand()-.5)*sp+(at.along==='x'?(i%3)*14:0),y=at.y+(this.rand()-.5)*sp*.7+(at.along==='y'?(i%3)*14:0);
+   this.zombies.push({kind:'shambler',extra:true,roam:-1,look,x,y,sx:x,sy:y,direction:facing(goal.x-x,goal.y-y),frame:0,phase:0,hp,max:hp,idle:false,delay:i*.35,state:horde?'chase':'wander',hunt:horde,t:0,vx:0,vy:0,stagger:0,tell:0,cool:0,flash:0,groan:1+this.rand()*4,wt:0,wx:x,wy:y,acc:0,
+    route:horde?null:pts.map(p=>({x:p.x+(this.rand()-.5)*24,y:p.y+(this.rand()-.5)*16}))});}
+  this.emit(horde?'horde':'patrol',{x:at.x,y:at.y,n});return true;}
  // Not seen you yet: stand a while, shuffle somewhere nearby, stand again. Bumping into something just ends the walk.
- wander(z,dt){z.wt-=dt;if(z.wt<=0){const S=ROAM.stroll;z.wx=z.sx+(this.rand()*2-1)*S.x;z.wy=z.sy+(this.rand()*2-1)*S.y;z.wt=4+this.rand()*5;}
+ wander(z,dt){if(z.route?.length){const p=z.route[0],dx=p.x-z.x,dy=p.y-z.y,d=Math.hypot(dx,dy);if(d<12){z.route.shift();if(!z.route.length){z.sx=z.x;z.sy=z.y;}return;}
+   const moved=this.step(z,dx/d,dy/d,Math.min(d,HEAT.walk*dt));z.direction=facing(dx,dy);if(moved){z.phase=(z.phase+moved/40)%1;z.frame=1+Math.floor(z.phase*8);}else{z.stuck=(z.stuck||0)+dt;if(z.stuck>2){z.route=null;z.sx=z.x;z.sy=z.y;}}return;}
+  z.wt-=dt;if(z.wt<=0){const S=ROAM.stroll;z.wx=z.sx+(this.rand()*2-1)*S.x;z.wy=z.sy+(this.rand()*2-1)*S.y;z.wt=4+this.rand()*5;}
   const dx=z.wx-z.x,dy=z.wy-z.y,d=Math.hypot(dx,dy);if(d<4){z.frame=0;z.phase=0;return;}
   const moved=this.step(z,dx/d,dy/d,Math.min(d,ROAM.walk*dt));z.direction=facing(dx,dy);
   if(moved){z.phase=(z.phase+moved/40)%1;z.frame=1+Math.floor(z.phase*8);}else{z.wx=z.x;z.wy=z.y;z.frame=0;z.phase=0;}}

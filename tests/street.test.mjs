@@ -92,3 +92,15 @@ test('scavenging: every car, bin, shed and stash and most houses can be searched
  const car=spots.find(o=>o.loot==='car');assert.ok(f.scavenge(car));run(f,m,.2,()=>({x:1,y:0}));assert.equal(f.searching,null);assert.ok(!box.k.looted.includes(car.id));});
 test('the dead sometimes drop things, and walking over them picks them up',()=>{const {box,m,f}=setup(),z=f.zombies[0];f.rand=()=>0;Object.assign(m,{x:z.x-200,y:z.y});f.hit(z,999,1,0);assert.equal(f.drops.length,1);
  const d=f.drops[0],had=count(box.k.bag,d.id);Object.assign(m,{x:d.x,y:d.y});run(f,m,.05);assert.equal(f.drops.length,0);assert.equal(count(box.k.bag,d.id),had+d.n);});
+test('heat: shots and alarms raise it and quiet lets it fall; on a quiet street it sends patrols, and at the top a horde that already knows where you are',async()=>{const {HEAT}=await import('../dist/street/fight.js');
+ const {box,m,f}=setup();box.k={...box.k,street:'done'};f.start();f.aimAngle=0;f.fire();assert.equal(f.heat,HEAT.shot['pump-shotgun']);run(f,m,HEAT.quiet-1);assert.equal(f.heat,HEAT.shot['pump-shotgun'],'it holds for a while');
+ run(f,m,4);assert.ok(f.heat<HEAT.shot['pump-shotgun'],'then cools');
+ // A patrol comes down a street from out of sight, heading your way.
+ f.patrolT=0;const n0=f.zombies.length;run(f,m,.05);const p=f.zombies.filter(z=>z.extra);assert.ok(p.length>=HEAT.size[0]&&p.length<=HEAT.size[1]);assert.ok(p.every(z=>Math.hypot(z.x-m.x,z.y-m.y)>HEAT.spawn.near*.8&&!z.hunt&&z.route?.length));
+ const d0=Math.min(...p.map(z=>Math.hypot(z.x-m.x,z.y-m.y)));run(f,m,8);assert.ok(Math.min(...p.map(z=>Math.hypot(z.x-m.x,z.y-m.y)))<d0-60,'they come closer');
+ // Swarming: a horde, hunting from the start.
+ f.noise(100);run(f,m,.05);assert.equal(f.level,3);run(f,m,5);const h=f.zombies.filter(z=>z.extra&&z.hunt&&z.state==='chase');assert.ok(h.length>=HEAT.horde.size[0],'a horde');
+ // Walk well away and the ones that have not seen you are let go.
+ for(const z of f.zombies)if(z.extra){z.hunt=false;z.x=m.x+HEAT.gone+100;}run(f,m,.05);assert.equal(f.zombies.filter(z=>z.extra).length,0);
+ // During the tutorial's own fight, no patrols.
+ const g=setup();g.f.patrolT=0;run(g.f,g.m,.1);assert.equal(g.f.zombies.filter(z=>z.extra).length,0);});

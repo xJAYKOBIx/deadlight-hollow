@@ -523,6 +523,18 @@ Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack),
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
 
+## v0.44.0 — Heat, patrols and hordes
+
+From the build order (2026-10-11): a heat meter, patrols and hordes, the Helldivers pressure loop.
+
+**Heat.** A meter from 0 to 100 of how much noise you have made lately (`HEAT` in `street/fight.js`). A pistol shot adds 3, a shotgun blast 6, a kill 1 and a car alarm 30. After 8 seconds of quiet it falls by 2.5 a second. Four levels, shown under your health with their name: Quiet, Stirring (25), Hunted (50) and Swarming (80, the name pulses).
+
+**Patrols.** Once the tutorial's fight is over, the neighbourhood sends patrols: three to five of the dead come down a street or side street from out of sight (620 to 820 units away) and head to where you were, noticing you the way wanderers do. One comes every 90 seconds while Quiet, 50 Stirring, 30 Hunted and 20 Swarming.
+
+**Hordes.** While Swarming, a horde of 10 to 14 comes from one side every 45 seconds (the first within a few seconds of hitting Swarming), already hunting you. A banner says which way it is coming from. Shooting your way out keeps the heat up; going quiet is the way to make it stop.
+
+**Limits.** At most 40 extra dead at once; any that have not seen you, and their bodies, are let go once you are 1500 units away.
+
 ## v0.43.0 — Scavenging
 
 From the build order (2026-10-11): ammo, scavenging, caches, drops from the dead, bigger loads.

@@ -712,3 +712,15 @@ html body.deck.street #vitals{display:none}
 #thought::before{content:'“'}#thought::after{content:'”'}
 html body.deck #thought{top:calc(var(--vy) + var(--gh) * .64);font-size:14px}
 .cine #thought{visibility:hidden}
+
+/* The heat: a thin strip under the health bar, amber to red as it climbs, with its name. */
+#drillHud .heat{display:flex;gap:8px;align-items:center;margin-top:4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+#drillHud .heat b{font-weight:700;min-width:72px;color:#e8d9b0}
+#drillHud .heat>i{position:relative;display:block;width:110px;height:6px;background:#0d0c0b;border:1px solid #000;box-shadow:0 0 0 1px #e8e0d11f;transform:skewX(-16deg);overflow:hidden}
+#drillHud .heat>i>i{display:block;height:100%;background:linear-gradient(#ffe0a0,#d8a040 50%,#8a5a1c);transition:width .3s}
+#drillHud .heat.h2>i>i{background:linear-gradient(#ffc08a,#e07a3a 50%,#9a3a1c)}
+#drillHud .heat.h2 b{color:#f0a060}
+#drillHud .heat.h3>i>i{background:linear-gradient(#ff9a7a,#e0403a 50%,#8a1a14)}
+#drillHud .heat.h3 b{color:#ff6a50;animation:heatPulse 1s ease-in-out infinite}
+@keyframes heatPulse{50%{opacity:.55}}
+@media(prefers-reduced-motion:reduce){#drillHud .heat.h3 b{animation:none}}
