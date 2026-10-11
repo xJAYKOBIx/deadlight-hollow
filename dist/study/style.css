@@ -688,6 +688,18 @@ dialog.bag{width:min(940px,calc(100% - 24px));--cell:min(50px,calc((min(100vw,94
 .street #goalChip:not([hidden]){display:block;max-width:min(62vw,300px);font-size:10px;letter-spacing:.04em;padding:4px 8px 4px 7px;color:var(--bone);border:1px solid var(--edge);border-left:2px solid var(--ember);background:#141311cc;font-family:var(--body);text-transform:none}
 .street .wh-gren,.street #grenadeDot{display:none!important}
 .street #throwGrenade.lit svg{color:#ffe2a0}
+/* The street: the mouse's own crosshair replaces the pointer over the game, and Dive sits by Run on a touch screen. */
+body.street:not(.touch) #game canvas{cursor:none}
+#diveBtn{display:none}
+body.street.touch:not(.pad):not(.talking) #diveBtn{display:grid;place-items:center;position:fixed;z-index:2;left:calc(var(--vx) + var(--sl) + 162px);bottom:calc(var(--sb) + 70px);width:50px;height:50px;min-width:0;min-height:0;padding:0;border-radius:50%;background:radial-gradient(circle at 50% 26%,#37322b,#171512 72%);border:1.5px solid #e8e0d13d;box-shadow:0 4px 10px #000a,inset 0 0 0 3px #0d0c0b88,inset 0 1px 0 #ffffff22;color:#e8e0d1;touch-action:none}
+#diveBtn svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;margin-top:-8px}
+#diveBtn span{position:absolute;bottom:6px;left:0;right:0;text-align:center;font:700 7.5px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:#cfc6b4}
+#diveBtn:active{transform:scale(.92)}
+/* On the phone deck, Dive sits over Run and Reload in the zoom bar's place (zoom is in the menu there). */
+html body.deck.street.touch:not(.pad):not(.talking) #diveBtn{z-index:5;left:calc(var(--vx) + var(--vw) * .5 - 22px);bottom:calc(var(--sb) + 132px);width:44px;height:44px}
+html body.deck.street.touch:not(.pad) #zoomBar{display:none}
+html body.deck.street.touch:not(.pad) #diveBtn svg{width:18px;height:18px;margin-top:-7px}
+html body.deck.street.touch:not(.pad) #diveBtn span{bottom:5px;font-size:7px}
 /* On the portrait deck the weapon panel takes the corner the stamina and goal use in the house; the Run ring still shows stamina,
    and the goal moves into the readout at the top of the deck. */
 html body.deck.street #vitals{display:none}

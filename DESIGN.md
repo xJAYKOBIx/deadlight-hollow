@@ -20,6 +20,7 @@ Two rooms provide movement space and collision/occlusion checks. The inspection 
 - Hub: a beautiful large cave with an ocean inlet and a little beach inside. Locally once known as Moonlight Hollow; after the disaster a large bustling survivor village called Deadlight Hollow.
 - Equipment should determine roles. Class/discipline leveling and eventually combining mastered disciplines remain candidate systems, not finalized mechanics.
 - Customizable characters; meaningful gathering/crafting for weapons, armor, consumables, and community needs. Balance to be developed through playtests.
+- Fights play like Helldivers 1; the loop around them plays like Monster Hunter (decided 2026-10-10). Jaykobi: "the actual gameplay loop of upgrading your weapons and building your armor sets and stuff should be closer to monster hunter. It doesn't have to quite be as in depth… but it does need one that keeps the grind worth it." And first: "before we start getting all of those systems in place, we need to make combat feel good first… We gotta get that down here in the tutorial." So the upgrade and armor-set loop waits until the tutorial fight feels like a solid twin-stick shooter (v0.40.0 is the first pass).
 
 ## The plan: co-op, big maps and the aim stick (decided 2026-10-10)
 
@@ -44,7 +45,7 @@ Jaykobi, 2026-10-10: "this will be the plan moving forward." The goals are Helld
 - Zombies far from every player move on a cheap, slow update with no sprite; they become full sprites near a player, from a reused pool, so sprites are not made and thrown away.
 - No leaks: a scene that is left stops its timers and listeners, and everything a chunk or a fight makes is freed with it. A long session's memory is checked as part of testing a new place.
 
-## The Helldivers loop: the combat plan (proposed 2026-10-10, waiting on Jaykobi's approval)
+## The Helldivers loop: the combat plan (proposed 2026-10-10; Jaykobi: "a good start for a plan", combat feel first)
 
 What Jaykobi asked for (2026-10-10): shooting is constant, as in Helldivers, but running through your ammo is not a punishment; staying supplied is a real thing to balance; different kinds of monsters keep every fight changing; and you are always on the move round the map, kiting crowds while you complete missions. The numbers below are starting points to tune by feel.
 
@@ -519,6 +520,24 @@ In the house, once you are awake, the Bag button (top right, Tab, or D-pad up on
 Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack), rifle rounds (60), gun oil, scrap metal, cloth and leather, powder, electronics, oil and solvent, each one cell with its weight; spare guns are items too (pistol 2 × 1, shotgun 6 × 1, rifle 6 × 2). The shotgun's spare shells are now the shells in your bag: the closet gives 16 shells and a bottle of gun oil with the gun, and older saves move their spare shells into the bag. Three new places to search in the house, none of them needed to leave: the kitchen drawers (3 scrap metal, 1 electronics), under the sink (oil and solvent) and the laundry basket (2 cloth).
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
+
+## v0.40.0 — Combat feel, first pass
+
+From Jaykobi (2026-10-10): the fight "just works, but it doesn't feel like a solid twin stick shooter. We gotta get that down here in the tutorial." The numbers live at the top of `dist/street/fight.js` and `dist/street/scene.js` so they can be tuned by feel.
+
+**Clock and controls.** The street fight now runs on a steady clock, sixty steps a second (up to four a frame), so it plays the same on a slow phone as on a fast one (`STEP` in `street/scene.js`). Shooting and reloading slow you less (`SLOW` in `street/fight.js`: 90% for a moment after a shot, 82% while reloading, was 80% and 72%), so you can back off while you fight. The touch stick turns faster (900° a second, was 720°) and pulls a little harder toward the dead (a 14° cone out to 300 units, was 12° and 260). A controller's stick now gets a gentler pull too (8°).
+
+**Shots with weight.** Each shot lights the street round you for an instant (stamped into the night's light map, wider for the shotgun), throws a hard little star of fire and sparks from the muzzle, kicks your arms and head back along the shot, and jolts the view away from it (`KICK`; skipped with reduced motion). The pistol throws a brass casing out of the right side of the gun; the shotgun's red hull comes out when you pump it. Casings bounce and stay on the ground (the newest 60). Shots that stop on a car, house or fence throw sparks back toward you and a puff of dust.
+
+**Hits you feel.** A hit zombie flashes white. Guns shove harder (`SHOVE`: pistol 80 and a 0.22 s stagger, shotgun 58 a pellet and 0.4 s, half as hard again from inside 70 units), and a killing hit throws the body nearly twice as far. The dead now slide to a stop on the ground (they used to freeze where they fell) and leave their pool of blood where they stop. Blood is thrown out of the far side along the shot, with a splash on the ground beyond.
+
+**The dive.** C on a keyboard, B on a controller, and a Dive button on a touch screen (next to Run in landscape; over Run and Reload on the phone deck, where the zoom bar was; zoom is still in the menu there). A burst of about 80 units along the way you are moving (or aiming, standing still), costing 24 stamina; too winded and the Run button shakes instead. While you are in the air a bite misses; then you are on the ground for a moment and cannot shoot until you are up (`DIVE`). You tip over onto your side the way you went and get back up.
+
+**Bigger, staggered groups.** The first wave is the cop and five more coming out of the dark one after another (was two). Opening the trunk brings twelve (was three), in three rushes: three from the west, four from the east, then five from all round.
+
+**Aim.** With a mouse, a crosshair (four ticks round a dot that spread after each shot) replaces the pointer over the street. The touch laser stops at the first thing it touches and shows a dot there.
+
+**Sound.** New Master Creator sounds (6747069): a gun thump layered under each shot (deeper for the shotgun), the dive, and casings landing (brass or hull). Any Master Creator sound can now be played quieter, and groans fade with distance: full close up, a murmur at the edge of hearing.
 
 ## v0.39.0 — Smarter dead, readable walls, and a flashlight
 

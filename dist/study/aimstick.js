@@ -2,7 +2,7 @@
 // face where the stick points, so a thumb landing off centre or a quick flick never sends a shot the wrong way. You turn fast but not
 // instantly, and a little pull toward the nearest zombie in a narrow cone in front helps on a small screen. Mouse and controller aim as before.
 const deg=Math.PI/180;
-export const AIM={fireAt:.85,turn:720*deg,facing:8*deg,dead:.15,cone:12*deg,range:260};
+export const AIM={fireAt:.85,turn:900*deg,facing:8*deg,dead:.15,cone:14*deg,range:300};
 // The signed turn from a to b, the short way round.
 export const turnTo=(a,b)=>{let d=(b-a)%(Math.PI*2);if(d>Math.PI)d-=Math.PI*2;if(d<-Math.PI)d+=Math.PI*2;return d;};
 // The pull: a zombie right on the line takes the whole aim, one at the edge of the cone none of it.

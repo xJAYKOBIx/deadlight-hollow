@@ -8,9 +8,9 @@ import {LAYERS,ORDER,origin,sheetSize,paintLayers,pose,armed} from '../study/lay
 import {DEFAULT_APPEARANCE,UNIFORMS} from '../study/appearance.js';
 import {Juice} from '../study/juice.js';
 import {iconArt,ICON,ICONS} from '../camp/art.js';
-import {MAP,CHUNK,PROPS,LIGHT_BAR,HOME} from './data.js';
+import {MAP,CHUNK,PROPS,LIGHT_BAR,HOME,coverAt} from './data.js';
 import {groundArt,lightArt,LIGHT_SCALE,propArt,PROP_PAD} from './art.js';
-import {Fight} from './fight.js';
+import {Fight,DIVE} from './fight.js';
 // The dead on this street. Everyone is a neighbour; the cop came with the cruiser.
 const POLICE=UNIFORMS.find(u=>u.id==='police').look,Z={zombie:1,pack:1,rot:1,decay:1,eyes:0,wounds:1};
 export const ZOMBIE_LOOKS={cop:{...DEFAULT_APPEARANCE,...POLICE,...Z,hair:1,skin:2,wounds:1},
@@ -35,6 +35,12 @@ const CRUISER_I=PROPS.findIndex(o=>o.id==='cruiser');
 // The flashlight: a cone of warm white light from the gun, len long and half wide either side, and a small pool round you. Painted
 // in the light map's own pixels (LIGHT_SCALE world units each), in six steps like the rest of the night's light.
 export const BEAM={len:240,half:24*Math.PI/180,pool:36,col:[255,244,220]};
+// The fight's clock: sixty steps a second whatever the screen manages (up to four a frame), so it plays the same on every phone.
+export const STEP=1/60,MAX_STEPS=4;
+// What a shot does to the picture: how long its flash lights the street and how far, how far the gun kicks back in your hands
+// and the view jolts away from the shot, and how many casings stay on the ground.
+export const KICK={'light-pistol':{light:.06,glow:3,arms:2,cam:2.4,flash:7},'pump-shotgun':{light:.09,glow:4.6,arms:4,cam:6,flash:12}};
+export const BRASS={keep:60,pump:.38};
 const step6=f=>Math.min(1,Math.round(f*6)/6);
 function beamArt(c){const w=c.canvas.width,h=c.canvas.height,img=c.createImageData(w,h),d=img.data,L=BEAM.len/LIGHT_SCALE,[R,G,B]=BEAM.col;
  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const dx=x+.5,dy=y+.5-h/2,r=Math.hypot(dx,dy),a=Math.abs(Math.atan2(dy,dx)),i=(y*w+x)*4;if(r>=L||a>=BEAM.half)continue;
@@ -70,12 +76,14 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   this.head=this.add.image(HOME.x+1500,HOME.y+238,'tg-glow-warm').setDepth(6001).setBlendMode(Phaser.BlendModes.ADD).setScale(1.6,.8).setAlpha(.35);
   this.juice=new Juice(this,{quality:bridge.quality,reduced:!!globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches});
   this.fx=this.add.graphics().setDepth(6004);
+  // Casings in the air sit just under the night; the ones on the ground are painted with the blood.
+  this.brass=[];this.lying=[];this.pumps=[];this.brassG=this.add.graphics().setDepth(5990);this.floorG=this.add.graphics().setDepth(.6);this.kick=null;this.jolt={x:0,y:0};this.acc=0;
   const icons=this.texture('camp-icons',ICON.w*2*ICONS.length,ICON.h*2,iconArt);ICONS.forEach((k,i)=>{if(!icons.has(k))icons.add(k,0,i*ICON.w*2,0,ICON.w*2,ICON.h*2);});
   this.marker=this.add.image(0,0,'camp-icons','chevron').setScale(.5).setOrigin(.5,1).setDepth(7001).setVisible(false);
   this.cameras.main.setBackgroundColor('#07080b').setBounds(0,0,MAP.w,MAP.h).setZoom(this.zoom());
   this.events.on('wake',()=>this.enter());this.enter();bridge.ready(this);}
  // Each time you step out of the door: the street as the kit says it is, you on your step.
- enter(){model.reset();this.fight.start();this.blood.length=0;this.bloodG.clear();for(const z of [...this.zs.keys()])this.free(z);this.setPlayerLook(bridge.look());this.setTrunk(bridge.kit().street!=='start'&&bridge.kit().street!=='cleared');this.cameras.main.centerOn(model.x,model.y-20);this.stream(true);}
+ enter(){model.reset();this.fight.start();this.blood.length=0;this.bloodG.clear();this.brass.length=0;this.lying.length=0;this.pumps.length=0;this.floorG.clear();this.kick=null;this.jolt={x:0,y:0};for(const z of [...this.zs.keys()])this.free(z);this.setPlayerLook(bridge.look());this.setTrunk(bridge.kit().street!=='start'&&bridge.kit().street!=='cleared');this.cameras.main.centerOn(model.x,model.y-20);this.stream(true);}
  // What the camera shows, in world units.
  view(){const s=this.scale,z=this.zoom(),w=s.width/z,h=s.height/z,x=Math.max(0,Math.min(MAP.w-w,model.x-w/2)),y=Math.max(0,Math.min(MAP.h-h,model.y-20-h/2));return {x,y,w,h};}
  // Takes hold of the chunks near the screen and lets go of the ones well past it, then paints: everything on screen now, the rest
@@ -107,6 +115,10 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   const b=this.fight.beam=bridge.flash?.()&&!this.fight.down&&armed(this.look)?{x:model.x,y:model.y,a:model.aim??model.direction*Math.PI/4}:null;
   if(b){const mz=muzzle(b.a,this.look.gun),add=Phaser.BlendModes.ADD;rt.stamp('nb-pool',undefined,(model.x-ox)/L,(model.y-14-oy)/L,{blendMode:add});
    rt.stamp('nb-beam',undefined,(model.x+mz.x-ox)/L,(model.y+mz.y-oy)/L,{originX:0,originY:.5,rotation:b.a,blendMode:add});}
+  // A shot lights the street round you for an instant, warm and wide, the shotgun more.
+  const K=KICK[this.fight.gunId],t=this.fight.sinceShot;if(K&&t<K.light&&this.shotA!==undefined){const mz=muzzle(this.shotA,this.look.gun),k=1-t/K.light;
+   const x=(model.x+mz.x*.6-ox)/L,y=(model.y+mz.y*.4-oy)/L,add=Phaser.BlendModes.ADD;rt.stamp('nb-pool',undefined,x,y,{blendMode:add,scale:K.glow*(.8+.2*k),alpha:k,tint:0xffd49a});
+   for(let i=0;i<2;i++)rt.stamp('nb-pool',undefined,x,y,{blendMode:add,scale:K.glow*.45,alpha:k,tint:0xfff0d0});}
   rt.render();}
  // A prop's picture for the talk box, painted fresh, since the one on screen may only live on the graphics card.
  face(id){const o=PROPS.find(p=>p.id===id);if(!o)return null;const c=document.createElement('canvas');c.width=(o.w+PROP_PAD*2)*2;c.height=(o.h+o.z+PROP_PAD*2)*2;propArt(c.getContext('2d'),o.id==='cruiser'?{...o,lit:1,trunk:this.trunk}:o);return c;}
@@ -117,34 +129,72 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
    const ctx={};for(const k of ORDER)ctx[k]=sheets[k].context;paintLayers(ctx,this.look);for(const k of ORDER)sheets[k].refresh();this.gunSheets[key]=sheets;}
   const sheets=this.gunSheets[key];for(const k of ORDER){const L=LAYERS[k];if(!this.parts[k])this.parts[k]=this.add.image(model.x,model.y,sheets[k].key,0).setOrigin(...origin(L)).setScale(.5);else this.parts[k].setTexture(sheets[k].key,0);}}
  zoom(){const s=this.scale;return Math.max(bridge.zoom(),s.width/MAP.w,s.height/MAP.h);}
- placeActor(){const p=pose(model),gun=armed(this.look),down=!!this.fight.down;
-  for(const k of ORDER){const s=this.parts[k],ride=k==='arms'||k==='head';s.setFrame(p[k]);s.setPosition(model.x+(ride&&!down?p.dx:0),model.y+(ride&&!down?p.dy:0));s.setAlpha(down?.5:1);}
+ // You: the layers in the pose the model is in. A shot kicks your arms and head back along the shot for a moment; a dive tips you
+ // over the way you went (onto your side, a little flatter going up or down the screen) and back up as you rise.
+ placeActor(){const p=pose(model),gun=armed(this.look),down=!!this.fight.down,K=this.kick,v=this.fight.dive,half=n=>Math.round(n*2)/2;
+  let kx=0,ky=0;if(K){const k=Math.max(0,1-K.t/K.dur);kx=-Math.cos(K.a)*K.n*k*k;ky=-Math.sin(K.a)*K.n*k*k*.6;}
+  let lean=0,flat=1,hop=0;if(v){const T=DIVE.time,k=v.t<T?Math.min(1,v.t/.07):Math.max(0,1-(v.t-T)/DIVE.rise),side=Math.abs(v.dx)>.4?Math.sign(v.dx):0;
+   lean=(side||(v.dy>0?-1:1))*(side?80:65)*k;flat=side?1:1-.2*k;hop=v.t<T*.55?Math.sin(v.t/(T*.55)*Math.PI)*6:0;}
+  for(const k of ORDER){const s=this.parts[k],ride=(k==='arms'||k==='head')&&!down&&!v,body=k==='body'&&!v;s.setFrame(p[k]);
+   s.setPosition(half(model.x+(ride?p.dx+kx:body?kx*.35:0)),half(model.y-hop+(ride?p.dy+ky:body?ky*.35:0)));s.setAlpha(down?.5:1);
+   if(v||this.leaned)s.setAngle(lean).setScale(.5,.5*flat);}this.leaned=!!v;
   const y=model.y;this.parts.legs.setDepth(y);this.parts.body.setDepth(y+.01);this.parts.arms.setDepth(y+.02).setVisible(gun);this.parts.head.setDepth(y+.03);}
  // A zombie's sprite while it is near the screen, taken from a pool and handed back when it is not, so a whole neighbourhood of the
  // dead only ever needs as many as you can see.
- sprite(z){let s=this.zs.get(z);if(!s){s=this.pool.pop()||this.add.image(0,0,'street-z-cop',0).setScale(.5);s.setTexture('street-z-'+(SHEET_OF[z.look]||z.look),0).setOrigin((FRAME.w/2-ZF.x)/ZF.w,(FRAME.footY*2-ZF.y)/ZF.h).setAngle(0).clearTint().setAlpha(1).setVisible(true);s.laid=false;this.zs.set(z,s);}return s;}
+ sprite(z){let s=this.zs.get(z);if(!s){s=this.pool.pop()||this.add.image(0,0,'street-z-cop',0).setScale(.5);s.setTexture('street-z-'+(SHEET_OF[z.look]||z.look),0).setOrigin((FRAME.w/2-ZF.x)/ZF.w,(FRAME.footY*2-ZF.y)/ZF.h).setAngle(0).clearTint().setAlpha(1).setVisible(true);s.laid=false;s.white=false;this.zs.set(z,s);}return s;}
  free(z){const s=this.zs.get(z);if(!s)return;s.setVisible(false);this.pool.push(s);this.zs.delete(z);}
  splat(x,y,n,seed){this.blood.push({x,y,n,seed});if(this.blood.length>160)this.blood.shift();const g=this.bloodG;g.clear();
   for(const b of this.blood)for(let i=0;i<b.n;i++){const a=((b.seed*(i*37+11))%97)/97*Math.PI*2,r=((b.seed*(i*53+7))%89)/89*b.n*1.6,s=1+((b.seed+i)%3)*.5;g.fillStyle(i%3?0x4a0c0c:0x6a1412,.9).fillRect(Math.round((b.x+Math.cos(a)*r)*2)/2,Math.round((b.y+Math.sin(a)*r*.6)*2)/2,s,s*.6);}}
  // What the fight just did, turned into sound, shake, blood and the HUD.
  react(now,e){const j=this.juice,z=e.z;
-  if(e.type==='shot'){const big=e.gun==='pump-shotgun';j.shake(big?'hurt':'down');if(big)j.hold(now,.025);}
-  else if(e.type==='hit'||e.type==='kill'){const a=Math.atan2(e.dy,e.dx);j.bits(e.type==='kill'?14:6,z.x,z.y,{dir:a,spread:1.1,speed:e.type==='kill'?90:60,lift:50,z:28,col:0x8a1a16,life:.55,kind:'drop'});this.splat(z.x+e.dx*10,z.y+e.dy*6,e.type==='kill'?7:3,(this.blood.length*31+7)|0);
-   if(e.type==='kill'){j.hold(now,.06);j.shake('down');this.splat(z.x,z.y+2,9,(this.blood.length*17+3)|0);}}
+  // A shot: the gun kicks, the view jolts away from the shot, sparks leave the muzzle and a casing flies (the shotgun's hull waits
+  // for the pump). The shotgun also shakes the view and holds the game for a breath.
+  if(e.type==='shot'){const big=e.gun==='pump-shotgun',K=KICK[e.gun]||KICK['light-pistol'],a=e.angle,mz=muzzle(a,this.look.gun);this.shotA=a;
+   this.kick={a,t:0,dur:big?.16:.09,n:K.arms};if(!j.reduced){this.jolt.x-=Math.cos(a)*K.cam;this.jolt.y-=Math.sin(a)*K.cam;}
+   j.bits(big?7:3,model.x+mz.x,model.y,{dir:a,spread:big?.7:.4,speed:big?220:160,lift:6,z:-mz.y,col:0xffd27a,life:big?.12:.08,kind:'spark',len:2});
+   if(big){j.shake('down');j.hold(now,.025);j.flash(model.x+mz.x,model.y+mz.y,.9,.75,.09);j.puff(model.x+mz.x+Math.cos(a)*8,model.y+mz.y+Math.sin(a)*5,.7,0x8a8a86,.7,-8);this.pumps.push(now+BRASS.pump*1000);}
+   else this.eject(a,false);}
+  // A hit: blood thrown out the far side along the shot, and a splash on the ground beyond. A kill throws more, holds the game for
+  // an instant, and leaves a pool where the body comes to rest.
+  else if(e.type==='hit'||e.type==='kill'){const a=Math.atan2(e.dy,e.dx),kill=e.type==='kill';j.bits(kill?18:8,z.x,z.y,{dir:a,spread:kill?.9:.7,speed:kill?150:105,lift:45,z:28,col:0x8a1a16,life:.55,kind:'drop'});
+   j.bits(kill?6:3,z.x,z.y,{dir:a,spread:.5,speed:60,lift:20,z:30,col:0x5a0e0c,life:.35,kind:'mist'});this.splat(z.x+e.dx*16,z.y+e.dy*10,kill?7:3,(this.blood.length*31+7)|0);
+   if(kill){j.hold(now,.05);j.shake('down');this.splat(z.x+e.dx*30,z.y+e.dy*18,5,(this.blood.length*13+5)|0);z._pool=true;}}
+  else if(e.type==='land'){j.puff(e.x,e.y-2,.9,0x6a6458,.6,-4);j.bits(5,e.x,e.y,{dir:Math.atan2(e.dy,e.dx),spread:1.6,speed:50,lift:30,z:0,col:0x6a6458,life:.4,kind:'debris'});}
   else if(e.type==='hurt')j.shake('hurt');
   else if(e.type==='down')j.shake('brute');
   else if(e.type==='stage'&&e.stage==='looted')this.setTrunk(true);
   else if(e.type==='restart')this.enter();
   bridge.event?.(e);}
+ // A casing out of the right side of the gun: brass from the pistol, a red hull from the shotgun.
+ eject(a,hull){const side=a+Math.PI/2+(Math.random()-.5)*.5,v=48+Math.random()*24;
+  this.brass.push({x:model.x+Math.cos(a)*5,y:model.y+Math.sin(a)*3,z:26,vx:Math.cos(side)*v-Math.cos(a)*14,vy:(Math.sin(side)*v-Math.sin(a)*14)*.6,vz:55+Math.random()*30,spin:Math.random()*4,hull});}
+ // Casings arc, bounce twice or so and lie where they stop, oldest first to go.
+ brassStep(dt){const g=this.brassG;g.clear();let landed=false;
+  this.brass=this.brass.filter(c=>{c.vz-=320*dt;c.x+=c.vx*dt;c.y+=c.vy*dt;c.z+=c.vz*dt;c.spin+=dt*24;
+   if(c.z<=0){c.z=0;if(c.vz<-30){c.vz*=-.38;c.vx*=.55;c.vy*=.55;bridge.event?.({type:'casing',hull:c.hull,x:c.x,y:c.y});}else{this.lying.push({x:Math.round(c.x*2)/2,y:Math.round(c.y*2)/2,up:(c.spin|0)%2,hull:c.hull});landed=true;return false;}}
+   this.casing(g,c.x,c.y-c.z,(c.spin|0)%2,c.hull);return true;});
+  if(landed){if(this.lying.length>BRASS.keep)this.lying.splice(0,this.lying.length-BRASS.keep);const f=this.floorG;f.clear();for(const c of this.lying)this.casing(f,c.x,c.y,c.up,c.hull,.8);}}
+ casing(g,x,y,up,hull,a=1){x=Math.round(x*2)/2;y=Math.round(y*2)/2;const w=up?1:hull?2.5:2,h=up?(hull?2.5:2):1;
+  g.fillStyle(hull?0xa3271f:0xc9a24a,a).fillRect(x,y,w,h);g.fillStyle(hull?0xd8b05a:0xf2d88e,a).fillRect(x,y,up?1:.5,up?.5:1);}
+ // One step of the fight on its clock.
+ tick(dt,input){const f=this.fight;model.update(dt,input);f.update(dt,input);}
  update(now,delta){const dt=Math.min(.05,delta/1000),paused=bridge.paused(),held=this.juice.stopped(now),f=this.fight;
-  if(!paused&&!held){const input=f.down?{}:bridge.input();model.update(dt,input);f.update(dt,input);}
+  // A dive press is kept until a step takes it, since a fast screen can draw a frame between two steps.
+  if(paused||held)this.acc=0;else{const input=f.down?{}:bridge.input();let dive=!!input.dive||this.diveWait;this.acc=Math.min(STEP*MAX_STEPS,this.acc+Math.min(.1,delta/1000));
+   while(this.acc>=STEP-1e-6){this.acc-=STEP;this.tick(STEP,{...input,dive});dive=false;}this.diveWait=dive;}
   for(const e of f.drain())this.react(now,e);
+  while(this.pumps.length&&now>=this.pumps[0]){this.pumps.shift();this.eject(this.shotA??0,true);}
+  if(this.kick&&(this.kick.t+=dt)>this.kick.dur)this.kick=null;const jk=Math.exp(-dt*16);this.jolt.x*=jk;this.jolt.y*=jk;
+  this.brassStep(dt);
   this.placeActor();this.stream();this.light();
   // The dead near the screen: walking, winding up, or lying where they fell.
   const V=grow(this.view(),120);for(const z of this.zs.keys())if(!f.zombies.includes(z))this.free(z);
   for(const z of f.zombies){if(z.delay>0&&!z.idle||z.x<V.x||z.x>V.x+V.w||z.y<V.y||z.y>V.y+V.h+100){this.free(z);continue;}const s=this.sprite(z);
-   if(z.hp<=0){if(!s.laid){s.laid=true;s.setFrame(z.direction).setAngle(90*z.fall).setOrigin(.5,.62).setDepth(z.y-10).setTint(0x9a8a8a);s.setPosition(z.x,z.y-6);}continue;}
-   s.setPosition(z.x,z.y).setDepth(z.y).setFrame(z.direction+z.frame*8).setAlpha(z.flash>0?.55:1);}
+   // Hit: a white flash for a few frames. Down: laid on its side, and still sliding from the shot that dropped it.
+   const white=z.flash>0;if(white!==!!s.white){s.white=white;if(white)s.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);else if(s.laid)s.clearTint().setTint(0x9a8a8a);else s.clearTint();}
+   if(z.hp<=0){if(!s.laid){s.laid=true;s.setFrame(z.direction).setAngle(90*z.fall).setOrigin(.5,.62);if(!white)s.setTint(0x9a8a8a);}s.setPosition(Math.round(z.x*2)/2,Math.round((z.y-6)*2)/2).setDepth(z.y-10);
+    if(z._pool&&!z.vx&&!z.vy){z._pool=false;this.splat(z.x,z.y+2,9,(this.blood.length*17+3)|0);}continue;}
+   s.setPosition(z.x,z.y).setDepth(z.y).setFrame(z.direction+z.frame*8);}
   // The light bar turns; the cruiser's own lamps swap with it.
   const on=Math.floor(now/260)%2,tex=`street-cruiser-${on+1}-${this.trunk?1:0}`,cr=this.held.get(CRUISER_I)?.img;if(cr&&cr.texture.key!==tex)cr.setTexture(tex);
   // Houses, trees and sheds you walk behind go see-through, so you never lose yourself or what is chasing you.
@@ -154,9 +204,23 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   // Tracers: a short bright streak running from the muzzle to where the shot stopped.
   const g=this.fx;g.clear();for(const t of f.traces){const k=Math.min(1,t.age/(t.dur||.001)),mx=t.x+t.ox,my=t.y+t.oy,ex=t.ex,ey=t.ey+t.oy,hx=mx+(ex-mx)*k,hy=my+(ey-my)*k,tx=mx+(ex-mx)*Math.max(0,k-.35),ty=my+(ey-my)*Math.max(0,k-.35),a=Math.max(0,t.life/(t.dur+.07));
    g.lineStyle(1,0xfff1c8,.85*a).lineBetween(tx,ty,hx,hy);if(t.done&&t.onto.kind!=='zombie'){g.fillStyle(0xffe2a0,a).fillRect(ex-.5,ey-.5-(t.onto.kind==='prop'?0:-t.oy),1.5,1.5);}}
-  // The touch stick's laser, while your thumb is on it.
-  const L=bridge.aimLine?.();if(L&&!f.down&&armed(this.look))drawLaser(g,model.x,model.y,muzzle(L.a,this.look.gun),L.a,L.fire);
+  // Where a shot stops on something solid: sparks back toward you and a little dust off it.
+  for(const t of f.traces)if(t.done&&!t._fx){t._fx=true;if(t.onto.kind!=='prop')continue;const a=Math.atan2(t.ey-t.y,t.ex-t.x)+Math.PI;
+   this.juice.bits(t.pellet?2:5,t.ex,t.ey,{dir:a,spread:1.8,speed:120,lift:50,z:-t.oy,col:0xffe6a8,life:.22,kind:'spark',len:2});if(!t.pellet)this.juice.puff(t.ex,t.ey+t.oy,.35,0x8a8478,.5,-6);}
+  // The muzzle flash itself: a hard little star of fire out of the barrel for the first frames of a shot.
+  const K=KICK[f.gunId];if(K&&f.sinceShot<.045&&this.shotA!==undefined&&!f.down){const a=this.shotA,mz=muzzle(a,this.look.gun),x=model.x+mz.x,y=model.y+mz.y,c=Math.cos(a),s=Math.sin(a),n=K.flash*(1-f.sinceShot/.09);
+   g.lineStyle(2,0xffb347,.9).lineBetween(x,y,x+c*n,y+s*n);g.lineStyle(1,0xfff6d8,1).lineBetween(x,y,x+c*n*.8,y+s*n*.8);g.lineStyle(1,0xffd27a,.85).lineBetween(x+c*2,y+s*2,x+c*2-s*n*.35,y+s*2+c*n*.35).lineBetween(x+c*2,y+s*2,x+c*2+s*n*.35,y+s*2-c*n*.35);}
+  // The touch stick's laser, while your thumb is on it, stopping on the first thing it touches with a dot.
+  const L=bridge.aimLine?.();if(L&&!f.down&&armed(this.look)){const mz=muzzle(L.a,this.look.gun),len=this.reach(L.a,150);drawLaser(g,model.x,model.y,mz,L.a,L.fire,len);
+   const ex=Math.round((model.x+Math.cos(L.a)*len)*2)/2,ey=Math.round((model.y+Math.sin(L.a)*len+mz.y)*2)/2;g.fillStyle(0xff4a3a,L.fire?.95:.7).fillRect(ex-.5,ey-.5,1.5,1.5);}
+  // The mouse's crosshair: four ticks round a dot, spreading for a moment after each shot.
+  const X=bridge.reticle?.();if(X&&!f.down&&armed(this.look)){const big=f.gunId==='pump-shotgun',open=3+Math.max(0,1-f.sinceShot/(big?.3:.16))*(big?7:3),x=Math.round(X.x*2)/2,y=Math.round(X.y*2)/2;
+   for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const x0=x+dx*open,y0=y+dy*open,w=dx?3:1,h=dy?3:1,rx=dx<0?x0-3:x0,ry=dy<0?y0-3:y0;g.fillStyle(0x111319,.8).fillRect(rx-.5,ry-.5,w+1,h+1);g.fillStyle(0xf2e6c8,.95).fillRect(rx,ry,w,h);}
+   g.fillStyle(0x111319,.8).fillRect(x-1,y-1,2,2);g.fillStyle(0xff6a4a,1).fillRect(x-.5,y-.5,1,1);}
   const target=f.down?null:paused&&this.target?this.target:model.target(t=>bridge.usable?.(t)!==false);this.target=target;
   if(target){const bob=Math.round(Math.sin(now/180)*2*2)/2;this.marker.setVisible(true).setPosition(target.mx??target.x,target.my+bob);}else this.marker.setVisible(false);
-  const cam=this.cameras.main;cam.setZoom(this.zoom());cam.centerOn(model.x,model.y-20);bridge.tick(now,this);}
+  const cam=this.cameras.main;cam.setZoom(this.zoom());cam.centerOn(model.x+this.jolt.x,model.y-20+this.jolt.y);bridge.tick(now,this);}
+ // How far a line from you goes before it meets something solid or one of the dead, up to max.
+ reach(a,max){const c=Math.cos(a),s=Math.sin(a),f=this.fight,near=f.zombies.filter(z=>f.out(z)&&Math.abs(z.x-model.x)<max+20&&Math.abs(z.y-model.y)<max+20);
+  for(let d=6;d<=max;d+=3){const x=model.x+c*d,y=model.y+s*d;if(coverAt(x,y)||near.some(z=>Math.hypot(z.x-x,(z.y-y)*1.2)<12))return d;}return max;}
 };}

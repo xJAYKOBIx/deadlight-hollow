@@ -106,11 +106,15 @@ export const OBJECTS=[
  {id:'door-w',prop:'west',verb:'Knock',name:'The corner house',role:'Next door',...H(157,150),mx:HOME.x+157,my:HOME.y+FRONT-Z-6,range:34,lines:['The door is open a crack. It is completely dark inside, and it smells wrong.','You pull it shut.']},
  ...BLOCKS.filter(b=>!b.home).flatMap(b=>b.houses.map((h,k)=>{const d=h.door0+17,s=(b.i*5+b.j)*3+k;return {id:'door-'+h.id,prop:h.id,verb:'Knock',name:NAMES[s%NAMES.length],role:'A neighbour',x:d,y:b.y+FRONT+WALL_T+20,mx:d,my:b.y+FRONT-Z-6,range:34,lines:KNOCKS[(s*7+3)%KNOCKS.length]};}))];
 // The dead. Each has a look (zombie looks in street/scene.js), where it starts, and when it comes: wave 1 is the cop at the cruiser
-// and the two the noise brings; wave 2 comes once you open the trunk.
+// and the five the noise brings out of the dark one after another; wave 2, once you open the trunk, is a crowd of twelve in three
+// rushes (from the west, then the east, then all round), so there is always something to turn and shoot.
 export const COP={...H(1376,292),direction:6};
 export const WAVES=[
- [{look:'cop',x:COP.x,y:COP.y,direction:COP.direction,idle:true},{look:'neighbour',...H(1285,140),delay:1.2},{look:'jogger',...H(1250,540),delay:2.4}],
- [{look:'robe',...H(20,300),delay:1},{look:'worker',...H(640,548),delay:2.2},{look:'neighbour2',...H(1620,420),delay:3.6}]];
+ [{look:'cop',x:COP.x,y:COP.y,direction:COP.direction,idle:true},{look:'neighbour',...H(1285,140),delay:1.2},{look:'jogger',...H(1250,540),delay:2.4},
+  {look:'robe',...H(1700,470),delay:3.8},{look:'worker',...H(1050,500),delay:5},{look:'neighbour2',...H(1500,160),delay:6.5}],
+ [{look:'robe',...H(850,320),delay:1},{look:'worker',...H(900,500),delay:1.4},{look:'neighbour',...H(820,200),delay:1.8},
+  {look:'jogger',...H(1900,300),delay:5},{look:'neighbour2',...H(1940,420),delay:5.4},{look:'worker',...H(1880,180),delay:5.8},{look:'robe',...H(1980,340),delay:6.2},
+  {look:'neighbour',...H(1200,540),delay:10},{look:'neighbour2',...H(1450,540),delay:10.4},{look:'jogger',...H(1600,170),delay:10.8},{look:'worker',...H(1150,170),delay:11.2},{look:'robe',...H(1700,520),delay:11.6}]];
 // The rest of the neighbourhood: two to four in every other block, wandering their yards and the street until they notice you.
 export const ROAMERS=[];{const R=rng(9091),LOOKS=['neighbour','jogger','robe','worker','neighbour2'];
  for(const b of BLOCKS){if(b.home)continue;for(let k=0,n=2+Math.floor(R()*3);k<n;k++)for(let tries=0;tries<20;tries++){const x=Math.round(b.x+40+R()*(BLOCK-80)),y=Math.round(b.y+(R()<.6?150+R()*230:BACK+30+R()*120));if(!solidAt(x,y,10)){ROAMERS.push({look:LOOKS[Math.floor(R()*LOOKS.length)],x,y});break;}}}}

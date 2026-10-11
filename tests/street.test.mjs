@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-const {Fight,ZOMBIE,PLAYER_HP,ROAM}=await import('../dist/street/fight.js');const {StreetModel}=await import('../dist/street/model.js');
+const {Fight,ZOMBIE,PLAYER_HP,ROAM,SLOW,DIVE,SHOVE}=await import('../dist/street/fight.js');const {StreetModel}=await import('../dist/street/model.js');
 const {normalizeHome,take,goal,useLines,loot,TRUNK}=await import('../dist/home/kit.js');const {count}=await import('../dist/home/bag.js');const {carrying}=await import('../dist/mc/assets/gear/bags.js');
 const {STREET,START,WAVES,COP,NOTICE,HEAR,PROPS,BLOCKS,HOUSES,OBJECTS,ROAMERS,solidAt,coverAt,COLS,ROWS}=await import('../dist/street/data.js');
 const grid=carrying({}),armed=(guns=['light-pistol','pump-shotgun'])=>guns.reduce((k,g)=>take(k,g,grid),{...normalizeHome(null),woke:true});
@@ -11,7 +11,7 @@ test('the street: you step out on your own step, and everything stands on the ma
  m.direction=2;assert.equal(m.target()?.id,undefined);m.direction=6;assert.equal(m.target()?.id,'frontdoor');});
 test('the cop waits at the cruiser until you come close or fire, then the others come out of the dark',()=>{const {m,f}=setup();assert.equal(waves(f).length,WAVES[0].length);
  assert.equal(f.out(f.zombies[1]),false,'the others are not out yet');run(f,m,2);assert.equal(f.alert,false);assert.equal(f.zombies[0].x,COP.x,'the cop has not moved');
- Object.assign(m,{x:COP.x-NOTICE+20,y:COP.y+40});run(f,m,.1);assert.equal(f.alert,true);run(f,m,3);assert.ok(f.zombies.every(z=>f.out(z)),'all three are out');});
+ Object.assign(m,{x:COP.x-NOTICE+20,y:COP.y+40});run(f,m,.1);assert.equal(f.alert,true);run(f,m,Math.max(...WAVES[0].map(w=>w.delay||0))+.5);assert.ok(f.zombies.every(z=>f.out(z)),'all of them are out');});
 test('a bite winds up first: step out of reach and it misses; stand there and it lands',()=>{const {m,f}=setup(),z=f.zombies[0];
  Object.assign(m,{x:z.x-ZOMBIE.reach+2,y:z.y});f.wake();run(f,m,.05);assert.equal(z.state,'windup');assert.ok(z.tell>0,'it shows a tell');
  m.x-=60;run(f,m,ZOMBIE.bite.windup+.05);assert.equal(f.hp,PLAYER_HP,'it missed');
@@ -23,12 +23,12 @@ test('the pistol never runs out of spare magazines; the shotgun reloads a shell 
  box.k={...box.k,held:'pump-shotgun',guns:{...box.k.guns,'pump-shotgun':{ammo:5}}};run(f,m,.5);const before=count(box.k.bag,'shells');assert.ok(f.reload());run(f,m,.5);assert.equal(f.ammo,6);assert.equal(count(box.k.bag,'shells'),before-1);
  run(f,m,1.2);assert.equal(f.ammo,8);assert.equal(count(box.k.bag,'shells'),before-3);
  // You move slower while reloading.
- box.k={...box.k,guns:{...box.k.guns,'pump-shotgun':{ammo:7}}};f.reload();run(f,m,.05);assert.equal(m.slow,.72);});
+ box.k={...box.k,guns:{...box.k.guns,'pump-shotgun':{ammo:7}}};f.reload();run(f,m,.05);assert.equal(m.slow,SLOW.reload);});
 test('with no shells left the shotgun clicks empty and will not reload',()=>{const k=armed();const {box,m,f}=setup({...k,bag:{items:[],spill:[]},guns:{...k.guns,'pump-shotgun':{ammo:0}}});
  assert.equal(f.fire(),false);const ev=f.drain().map(e=>e.type);assert.ok(ev.includes('empty')&&ev.includes('nospare'));assert.equal(f.reloadTime,0);});
 test('going down puts you back on your step with what you had when you came out',()=>{const {box,m,f}=setup();const snap=JSON.stringify(box.k);f.aimAngle=0;f.fire();f.fire();run(f,m,1);
  f.hurt(PLAYER_HP,{x:m.x+10,y:m.y});assert.ok(f.down>0);run(f,m,3.2);assert.equal(f.hp,PLAYER_HP);assert.equal(JSON.stringify(box.k),snap);assert.deepEqual([m.x,m.y],[START.x,START.y]);assert.equal(f.zombies[0].hp,f.zombies[0].max);});
-test('clear the first three, search the trunk, hold off the second wave, and the street is quiet',()=>{const {box,m,f}=setup();
+test('clear the first wave, search the trunk, hold off the second wave, and the street is quiet',()=>{const {box,m,f}=setup();
  const kill=()=>{for(const z of f.zombies){z.delay=0;z.idle=false;f.hit(z,999,1,0);}};
  assert.equal(goal(box.k,true),'See what crashed down the street');kill();assert.equal(box.k.street,'cleared');assert.match(goal(box.k,true),/cruiser/);
  const shells=count(box.k.bag,'shells');assert.ok(f.search());assert.equal(box.k.street,'looted');assert.equal(count(box.k.bag,'shells'),shells+TRUNK[0][1]);assert.equal(count(box.k.bag,'rounds'),TRUNK[1][1]);
@@ -65,3 +65,12 @@ test('your flashlight: a wanderer it falls on sees you from further off, one beh
  const r=f.zombies.find(z=>z.roam!==undefined&&clearLine(z.x-260,z.y,z.x,z.y)&&!solidAt(z.x-260,z.y,12));assert.ok(r,'a wanderer in the open');
  Object.assign(m,{x:r.x-260,y:r.y});f.beam={x:m.x,y:m.y,a:Math.PI};run(f,m,.2);assert.equal(r.hunt,false,'the light points away and it is out of sight');
  f.beam={x:m.x,y:m.y,a:0};f.update(1/60,{});assert.equal(r.hunt,true,'in the beam, it sees you');});
+test('the dive: a burst along the way you move that costs stamina, dodges a bite in the air and stops you shooting till you are up',async()=>{const {Stamina}=await import('../dist/camp/fishing.js');
+ const {m,f}=setup(),z=f.zombies[0];m.stamina=new Stamina();Object.assign(m,{x:z.x-ZOMBIE.reach+2,y:z.y});f.wake();run(f,m,.05);assert.equal(z.state,'windup');
+ const x0=m.x,s0=m.stamina.value;let first=true;run(f,m,ZOMBIE.bite.windup,()=>{const i={x:-1,y:0,dive:first};first=false;return i;});
+ assert.equal(f.hp,PLAYER_HP,'the bite missed');assert.ok(x0-m.x>50,'you went a good way: '+(x0-m.x));assert.ok(m.stamina.value<=s0-DIVE.cost+1,'it cost stamina');
+ assert.ok(f.dive,'still getting up');assert.equal(f.fire(),false,'no shooting on the ground');run(f,m,DIVE.rise+.1);assert.equal(f.dive,null,'back up');
+ // Winded, you cannot.
+ m.stamina.value=2;run(f,m,DIVE.cool+.05);run(f,m,1/60,()=>({x:1,y:0,dive:true}));assert.equal(f.dive,null);});
+test('a killing shot throws the body back, and it slides to a stop',()=>{const {m,f}=setup(),z=f.zombies[0];Object.assign(m,{x:z.x-60,y:z.y});f.wake();z.hp=1;f.aimAngle=0;
+ const x0=z.x;assert.ok(f.fire());run(f,m,1,()=>({}));assert.equal(z.hp,0);assert.ok(z.x>x0+20,'slid back: '+(z.x-x0));assert.equal(z.vx,0,'and stopped');});
