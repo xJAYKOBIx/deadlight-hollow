@@ -78,6 +78,8 @@ What Jaykobi asked for (2026-10-10): shooting is constant, as in Helldivers, but
 
 **Proposed build order:** v0.40 ammo, scavenging and pickups; v0.41 heat, patrols and hordes; v0.42 runner and brute; v0.43 the dive and climbing fences; v0.44 the first mission set with extraction; v0.45 screamer and bloater.
 
+**Build order as of 2026-10-11** (combat feel came first, so the rest moved back; proposed to Jaykobi): v0.40 combat feel (done, includes the dive); v0.41 combat polish (fire only at a full push on the touch stick by default, with a Settings slider; drawn dive frames; hit reactions, death falls, guns that move when fired); v0.42 gore (blown in half, crawling halves, gibs, more blood, a gore setting); v0.43 ammo, scavenging and pickups; v0.44 heat, patrols and hordes; v0.45 runner and brute; v0.46 climbing low fences and the first mission with extraction; v0.47 screamer and bloater. Then the Monster Hunter loop (weapon upgrades, armor sets, crafting at camp). Jaykobi finds the sounds cheap (2026-10-11): a sound pass is due, later.
+
 ## v0.3 implementation choices
 
 Phaser 4.2.1, original procedural sprite/scenery art, separate simulation. Established village with eight service NPCs and ambient residents. Services are outdoor interactions; buildings do not yet have enterable interiors. Hub is safe; weapons work only in the training yard.
