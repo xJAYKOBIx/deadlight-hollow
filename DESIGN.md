@@ -523,6 +523,10 @@ Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack),
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
 
+## v0.51.0 — Customize controls
+
+The editor the v0.50.0 settings were waiting for (`study/console-edit.js`). Menu → Customize controls (only with the phone upright) stops the game and puts a labelled frame on every control, Use included even when nothing is in reach. Drag a frame and the control, its socket in the plate and the move stick's touch area follow at once; a frame turns red with stripes where it overlaps another. The panel along the top: Size (80 to 130 percent, capped so the two sticks still fit side by side), See-through (0 to 65 percent), Glow (Ember, Bone, Toxic, Siren, Blood), Left-handed (mirrors the deck and any moved controls with it), Reset and Done. Saved on the device when Done is pressed (Esc works too).
+
 ## v0.50.0 — The control center (portrait)
 
 Jaykobi (2026-10-11): the deck has to fit every button without shrinking them, Use was hidden under other buttons and never lit, zoom could be a pinch on the game, the deck should look like the game (G.U.N. or LEET AF in the metal, wear, blood), a map button is coming, and everything should be customisable. "Your left thumb … is going to be our movement and we don't ever want the user to have to take their thumb off the movement stick." Both factions go on the plate equally: the player doesn't know who G.U.N. is yet. Left side: "only the move stick … menu buttons or inventory … you'll never need access to those while moving."
@@ -762,5 +766,5 @@ Bookmark set by Jaykobi before starting the Master Creator.
 2. **Tutorial:** complete in v0.49.0, from the dog waking you to the truck: the dark house and the flashlight, the crash, the guns, the street, the first job, the hold-out where the tutorial survivor dies (seen through a neighbour's window), the creator for your own survivor, putting him down, taking his gear back, and the truck to Firelight Camp. Next: tune it from Jaykobi's playthrough; the next intro video later.
 3. **Inventory:** the three bags (v0.33.0) and the inventory screen with supplies (v0.34.0) are in. Next, as the crafting plan orders them: wear (armor condition, gun fouling, gun oil), materials in the world, then Hollis's workbench.
 4. **Intro:** The Fall (v0.48.0) no longer opens the game (v0.49.0); its pieces get used later in the story, and a new introduction video comes later.
-5. **Control center:** the portrait deck is redone in v0.50.0. Next: the editor (drag controls, size, see-through, colour, left hand, reset), then the map button.
+5. **Control center:** the portrait deck is redone in v0.50.0, with Customize controls in v0.51.0. Next: the map button.
 6. **Later:** Mop the camp dog and his quest, Macy's pet makeovers, the landscape controller redesign, a trademark search on every in-world name before release.

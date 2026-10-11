@@ -803,3 +803,27 @@ html body.cc.deck.touch .identity,html body.cc.deck.touch #drillHud{left:calc(va
 html body.cc.deck.touch #drillHud{background:none;box-shadow:none;padding:2px 4px}
 html body.cc.deck.touch #vitals{left:calc(var(--vx) + var(--rt-x))!important;right:auto!important;top:auto!important;bottom:calc(var(--sb) + var(--dk) - var(--rt-y) - var(--rt-h) + 4px)!important;width:var(--rt-w);align-items:flex-end;padding-right:6px}
 @media(prefers-reduced-motion:reduce){html body.cc.deck.touch #rightPad #act[data-cc],html body.cc.deck.touch #rightPad #act[data-cc]::after{animation:none}}
+/* v0.50 Customize controls: a frame per control over the deck (red where two overlap), and a steel panel along the top with size,
+   see-through, the glow colour, the hand, reset and done. Only offered with the phone upright. */
+body:not(.cc) #ccCustomize{display:none}
+#ccEdit{position:fixed;inset:0;z-index:60;touch-action:none;background:linear-gradient(#000a,#0004 40%,#0000 60%)}
+#ccEdit .cc-frames{position:absolute;inset:0}
+.cc-frame{position:fixed;display:flex;align-items:center;justify-content:center;border:2px dashed #f3ece2cc;border-radius:10px;background:#0006;cursor:grab;touch-action:none;box-shadow:0 0 0 1px #000a}
+.cc-frame.round{border-radius:50%}
+.cc-frame span{max-width:none;padding:2px 3px;font:700 clamp(7px,calc(var(--fw) * .17),10px)/1.1 var(--ui);letter-spacing:.03em;white-space:nowrap;text-transform:uppercase;text-align:center;color:#f3ece2;background:#000b;border-radius:3px;pointer-events:none}
+.cc-frame.held{border-style:solid;border-color:var(--cc-glow,#ff9a52);background:#0003;cursor:grabbing;z-index:1}
+.cc-frame.clash{border:2px solid #ff3b2f;background:repeating-linear-gradient(135deg,#ff3b2f55 0 6px,#0000 6px 12px),#0008}
+.cc-panel{position:fixed;left:calc(var(--vx) + var(--sl, 12px));right:calc(100vw - var(--vx) - var(--vw) + var(--sr, 12px));top:calc(var(--vy) + var(--st) + 4px);display:grid;gap:10px;padding:12px 14px 14px;color:#ebe4da;background:linear-gradient(#2b2d33,#1c1d22);border:1px solid #4b4f58;border-top:3px solid var(--cc-accent,#dd6f2c);border-radius:6px;box-shadow:0 8px 24px #000c,inset 0 1px #ffffff14}
+.cc-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px}
+.cc-head b{font:700 16px/1.1 var(--ui);letter-spacing:.08em;text-transform:uppercase}
+.cc-head span{font:12px/1.2 var(--ui);color:#b4afb9}
+.cc-row{display:grid;grid-template-columns:92px minmax(0,1fr) 44px;align-items:center;gap:10px;min-height:36px;font:700 12px/1 var(--ui);letter-spacing:.06em;text-transform:uppercase}
+.cc-row output{text-align:right;font-variant-numeric:tabular-nums}
+.cc-row input[type=range]{width:100%;height:32px;accent-color:var(--cc-accent,#dd6f2c)}
+.cc-swatches{grid-column:2/-1;display:flex;gap:10px}
+.cc-swatches button{width:36px;height:36px;padding:0;border-radius:50%;border:2px solid #0008;background:radial-gradient(circle at 40% 35%,var(--sg),var(--sw) 60%,#000 100%);box-shadow:inset 0 1px #fff3}
+.cc-swatches button[aria-pressed=true]{outline:3px solid #f3ece2;outline-offset:2px}
+.cc-btns{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr);gap:8px}
+.cc-btns button{min-height:44px;padding:0 10px;font:700 13px/1 var(--ui);letter-spacing:.06em;text-transform:uppercase;color:#ebe4da;background:linear-gradient(#34363d,#24262b);border:1px solid #4b4f58;border-radius:4px}
+.cc-btns button[aria-pressed=true]{border-color:var(--cc-accent,#dd6f2c);box-shadow:inset 0 0 0 1px var(--cc-accent,#dd6f2c)}
+.cc-btns .primary{color:#1b0f07;background:var(--cc-accent,#dd6f2c);border-color:var(--cc-glow,#ff9a52)}
