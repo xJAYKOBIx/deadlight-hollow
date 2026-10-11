@@ -117,3 +117,27 @@ test('brutes: a shotgun barely moves one; it charges in a straight line, and one
  // A shotgun blast barely shoves it, and a stunned brute takes half as much again.
  const b=setup(),q=b.f.zombies[0];Object.assign(q,{kind:'brute',hp:BRUTE.hp,max:BRUTE.hp,idle:false});b.f.hit(q,100,1,0);assert.ok(Math.abs(q.vx)<SHOVE['pump-shotgun'].push*.5);assert.equal(q.stagger,0);
  q.stun=1;const before=q.hp;b.f.hit(q,100,1,0);assert.equal(before-q.hp,100*BRUTE.charge.weak);});
+test('climbing: push into a low fence for a moment and you hop over it, bites miss on the way, and the farm fence is too high',async()=>{const {VAULT}=await import('../dist/street/fight.js');const {box,m,f}=setup({...armed(),street:'done'});
+ const fence=PROPS.find(o=>o.id==='rear-y');Object.assign(m,{x:fence.x+200,y:fence.y+fence.h+m.radius*.85+1});const up=()=>({x:0,y:-1});
+ run(f,m,VAULT.push*.5,up);assert.equal(f.vault,null,'a brush against it is not a climb');run(f,m,VAULT.push*.6+.05,up);assert.ok(f.vault,'pushing a moment longer is');
+ assert.equal(f.air,true,'in the air bites miss');assert.equal(f.fire(),false,'and you cannot shoot');run(f,m,VAULT.time,up);assert.equal(f.vault,null);assert.ok(m.y<fence.y,'over it');
+ // A fence along the side of a yard is climbed east or west.
+ const side=PROPS.find(o=>o.kind==='woodfenceV');Object.assign(m,{x:side.x-m.radius*.85-1,y:side.y+side.h/2});f.vault=null;run(f,m,VAULT.push+VAULT.time+.1,()=>({x:1,y:0}));assert.ok(m.x>side.x+side.w,'over the side fence');
+ // The farm fence round the edge of town stays shut.
+ const farm=PROPS.find(o=>o.id==='farm-n2');Object.assign(m,{x:farm.x+300,y:farm.y+farm.h+m.radius*.85+1});run(f,m,1,up);assert.ok(m.y>farm.y,'still inside the farm fence');});
+test('the first job: three things anywhere in town in any order, then call the truck, hold out, and get in the back',async()=>{const {JOB}=await import('../dist/street/fight.js');const {jobsDone,GO_BAG}=await import('../dist/home/kit.js');const {TARGETS}=await import('../dist/street/model.js');
+ const {box,m,f}=setup({...armed(),street:'done'}),T=id=>TARGETS.find(t=>t.id===id),at=t=>Object.assign(m,{x:t.x,y:t.y});
+ assert.match(goal(box.k,true),/radio.*generator.*go-bag/);assert.equal(f.can(T('evac')),false,'the truck cannot be called yet');assert.equal(f.can(T('board')),false);
+ for(const id of ['job-radio','job-power','job-supplies'])assert.ok(!solidAt(T(id).x,T(id).y,8),id+' can be reached');
+ // The go-bag first: a moment standing still, then it is in your bag. Moving stops a job.
+ at(T('job-supplies'));const shells=count(box.k.bag,'shells');assert.ok(f.work(T('job-supplies')));run(f,m,.3,()=>({x:1,y:0}));assert.equal(f.searching,null,'walking off stops it');
+ at(T('job-supplies'));f.work(T('job-supplies'));run(f,m,JOB.time.supplies+.1);assert.deepEqual(box.k.mission.done,['supplies']);assert.equal(count(box.k.bag,'shells'),shells+GO_BAG.find(([id])=>id==='shells')[1]);assert.equal(f.can(T('job-supplies')),false);
+ // The generator is loud: the heat jumps and a horde comes a few seconds later.
+ at(T('job-power'));f.work(T('job-power'));run(f,m,JOB.time.power+.1);assert.ok(box.k.mission.done.includes('power'));assert.ok(f.heat>=JOB.power.noise);f.drain();run(f,m,JOB.power.horde+.1);assert.ok(f.drain().some(e=>e.type==='horde'),'a horde heard it');
+ // Going down after a job keeps the job done.
+ at(T('job-radio'));f.work(T('job-radio'));run(f,m,JOB.time.radio+.1);assert.ok(jobsDone(box.k));f.hurt(999,{x:m.x+10,y:m.y});run(f,m,3.2);assert.ok(jobsDone(box.k),'still done after going down');assert.match(goal(box.k,true),/east end/);
+ // The call: a hold-out against hordes, then the truck drives in, pulls up, and waits; getting in ends the night.
+ f.zombies.length=0;at(T('evac'));assert.ok(f.can(T('evac')));f.work(T('evac'));assert.equal(f.evac.state,'hold');f.drain();
+ for(let t=0;t<JOB.evac.hold;t+=1/60){f.hp=PLAYER_HP;m.update(1/60,{});f.update(1/60,{});}assert.ok(f.drain().filter(e=>e.type==='horde').length>=3,'hordes come all through the hold-out');
+ f.zombies.length=0;run(f,m,JOB.evac.drive+.1);assert.equal(f.evac.state,'wait');assert.ok(solidAt(T('board').x-30,T('board').y,4),'the truck is there and solid');assert.ok(f.can(T('board')));
+ at(T('board'));f.drain();assert.ok(f.work(T('board')));const ex=f.drain().find(e=>e.type==='extract');assert.ok(ex&&ex.stats.time>JOB.evac.hold,'the night is summed up');assert.equal(box.k.mission.out,true);assert.equal(f.can(T('board')),false);});

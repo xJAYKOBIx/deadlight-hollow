@@ -523,6 +523,24 @@ Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack),
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
 
+## v0.46.0 — Climbing fences, and the first job with extraction
+
+From the build order (2026-10-11): climbing low fences, and the first mission, ending in an extraction. This is the Helldivers loop: objectives anywhere on the map in any order, the noise they make, then a call, a hold-out and a ride out.
+
+**Climbing.** Push into a low fence (a picket fence, a wooden or chain-link back fence, a fence between yards) for 0.18 seconds and you hop over it in 0.45 seconds, lifted by about half the fence's height at the top. You cannot shoot or dive in the hop, and bites, grabs and leaps miss you. A fence running east-west is climbed north or south, one running north-south east or west, and only if there is room on the other side. The farm fence round the edge of town is too high. The dead cannot climb: they follow the flow round to the gap, so a fence is a way to buy time. (`VAULT` in `street/fight.js`.)
+
+**The job.** Once the street goes quiet after the tutorial fight, the cruiser's radio crackles: a Guard truck is coming through the Hollow tonight to the east end of your street, and will not drive into a dark town blind. Three things to do, in any order (`JOB` in `street/fight.js`, `JOBS` and `job()` in `home/kit.js`):
+
+- **Find a radio**: Daniel Okafor's ham radio, in the Okafor house two blocks north-west. A 2.4 second search.
+- **Start the generator**: Walt's generator and work light beside his house, out north-east. A 3.5 second pull-start; the work light comes on and lights the yard, the heat jumps by 45 and a horde comes 5 seconds later.
+- **Get the go-bag**: Mrs. Novak's go-bag, under a tarp with orange tape in a back yard to the south-west. 1.6 seconds; 12 shells, 2 cloth, a gun oil and 2 powder go in your bag.
+
+Each finished job is a checkpoint: going down after it puts you back on your step with what you had at that moment, and the job stays done. The goal chip lists what is left, and a mark sits over each job still to do; off screen it is pinned to the edge with an arrow and the distance in metres (40 units to the metre).
+
+**Extraction.** With all three done, a mark appears at the east end of your street: Call. A red flare lights, the heat is held at 85 or more, and a horde comes every 13 seconds (the first after 3) while a 60 second clock counts down in the readout. Then the truck (Master Creator `truck`, olive with a canvas cover) drives in from the east with its headlights on, pulls up in the far lane and drops its tailgate; it is solid once parked. Get in the back to end the night: a debrief shows the time out there, the dead put down, shots fired, places searched and times you went down, then the ride to Firelight Camp. Going down during the hold-out means calling again.
+
+New Master Creator props (a31412c): the portable generator (off, or running with its light and exhaust), the work floodlight (dark or lit) and the evac truck (tailgate up or down). Edge trees no longer stand on the streets where they run off into the fields.
+
 ## v0.45.0 — Runners and brutes
 
 From the build order (2026-10-11): the first two special dead.

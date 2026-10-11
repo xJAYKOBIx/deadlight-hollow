@@ -77,23 +77,35 @@ for(let j=0;j<ROWS;j++)for(let i=0;i<COLS;i++){const o=blockAt(i,j);BLOCKS.push(
 const tree=(x,y,seed,pine)=>P(`edge-${x}-${y}`,pine?'pine':'tree',x,y,pine?40:64,10,pine?96:104,{seed,box:pine?[16,0,8,10]:[28,0,8,10],fade:true});
 const EDGE_TREES=[];{const R=rng(4242);
  for(let x=60;x<STREET.w-60;x+=50+R()*60)for(const y of [40+R()*80,STREET.h-MARGIN+50+R()*110])EDGE_TREES.push(tree(Math.round(x),Math.round(y),Math.round(x+y),R()<.7));
- for(let y=MARGIN;y<STREET.h-MARGIN;y+=50+R()*60)for(const x of [30+R()*110,STREET.w-MARGIN+70+R()*110])EDGE_TREES.push(tree(Math.round(x),Math.round(y),Math.round(x*3+y),R()<.7));}
+ for(let y=MARGIN;y<STREET.h-MARGIN;y+=50+R()*60)for(const x of [30+R()*110,STREET.w-MARGIN+70+R()*110])EDGE_TREES.push(tree(Math.round(x),Math.round(y),Math.round(x*3+y),R()<.7));
+ // None out on the streets themselves, where they run off into the fields (the truck comes in that way).
+ for(let i=EDGE_TREES.length-1;i>=0;i--){const t=EDGE_TREES[i];if(ROADS.some(rd=>t.y+t.h>rd.sn-10&&t.y-t.z*.3<rd.ss+30))EDGE_TREES.splice(i,1);}}
 const FIELD_FENCES=[];for(let i=0;i<COLS;i++){const o=blockAt(i,0),q=blockAt(i,ROWS-1);FIELD_FENCES.push(P(`farm-n${i}`,'chainlink',o.x,o.y+BACK,BLOCK,4,30,{see:true}),P(`farm-s${i}`,'chainlink',q.x,q.y+SIDEWALK_S.y+SIDEWALK_S.h+30,BLOCK,4,30,{see:true}));}
 export const HOUSES=BLOCKS.flatMap(b=>b.houses);
 // Stashes other survivors left: one in about half the other blocks' back yards, under a tarp with orange tape on it.
 const CACHES=[];{const R=rng(5150);for(const b of BLOCKS){if(b.home||R()<.45)continue;for(let t=0;t<30;t++){const x=Math.round(b.x+60+R()*(BLOCK-160)),y=Math.round(b.y+BACK+40+R()*110);
  if(!b.props.some(o=>!o.flat&&x<o.x+o.w+30&&x+26>o.x-30&&y<o.y+o.h+24&&y+14>o.y-24)){CACHES.push(P(`cache-${b.i}${b.j}`,'cache',x,y,26,14,10));break;}}}}
-export const PROPS=[...BLOCKS.flatMap(b=>b.props),...CACHES,...EDGE_TREES,...FIELD_FENCES];
+// The first job (street/fight.js): a radio in a house two blocks to the north-west, a generator and work light beside a house out
+// to the north-east, and a go-bag a survivor buried under a tarp in a back yard to the south-west. Each is put somewhere clear in
+// its block, from a seed, like the stashes.
+const blockOf=(i,j)=>BLOCKS.find(b=>b.i===i&&b.j===j),clear=(b,x,y,w,h)=>![...b.props,...CACHES].some(o=>!o.flat&&x<o.x+o.w+30&&x+w>o.x-30&&y<o.y+o.h+24&&y+h>o.y-24);
+const spot=(b,w,h,y0,y1,seed)=>{const R=rng(seed);for(let t=0;t<80;t++){const x=Math.round(b.x+60+R()*(BLOCK-120-w)),y=Math.round(b.y+y0+R()*(y1-y0));if(clear(b,x,y,w,h))return {x,y};}return {x:b.x+BLOCK/2,y:b.y+y0};};
+export const RADIO_HOUSE=blockOf(0,1).houses[1];
+const GEN=spot(blockOf(4,0),56,14,FRONT+WALL_T+30,SIDEWALK_N.y-30,8181),PACK=spot(blockOf(1,4),26,14,BACK+40,BACK+150,6262);
+const JOB_PROPS=[P('job-gen','generator',GEN.x,GEN.y,22,14,18,{job:'power'}),P('job-light','floodlight',GEN.x+38,GEN.y-2,16,10,44,{job:'power'}),P('job-pack','cache',PACK.x,PACK.y,26,14,10,{job:'supplies'})];
+export const PROPS=[...BLOCKS.flatMap(b=>b.props),...CACHES,...JOB_PROPS,...EDGE_TREES,...FIELD_FENCES];
 // What stops feet: everything standing up, by its footprint or, for a tree, its trunk. What stops bullets: anything 20 or more tall
 // you cannot see through.
 const boxOf=o=>o.box?{x:o.x+o.box[0],y:o.y+o.box[1],w:o.box[2],h:o.box[3]}:{x:o.x,y:o.y,w:o.w,h:o.h};
-export const SOLIDS=PROPS.filter(o=>!o.flat).map(o=>({...boxOf(o),z:o.z,see:!!o.see,id:o.id}));
+export const SOLIDS=PROPS.filter(o=>!o.flat).map(o=>({...boxOf(o),z:o.z,see:!!o.see,id:o.id,kind:o.kind}));
 // A grid over the map, so feet and bullets only check what is near them.
 const CELL=128,grid=new Map(),key=(cx,cy)=>cx+cy*1000,cells=(b,f)=>{for(let cy=Math.floor(b.y/CELL);cy<=Math.floor((b.y+b.h)/CELL);cy++)for(let cx=Math.floor(b.x/CELL);cx<=Math.floor((b.x+b.w)/CELL);cx++)f(key(cx,cy));};
 for(const s of SOLIDS)cells(s,k=>{if(!grid.has(k))grid.set(k,[]);grid.get(k).push(s);});
 const inRect=(x,y,r,b)=>{const dx=x-Math.max(b.x,Math.min(x,b.x+b.w)),dy=y-Math.max(b.y,Math.min(y,b.y+b.h));return dx*dx+dy*dy<r*r;};
 // The first solid a circle of radius r at (x, y) touches, if any.
-export function solidAt(x,y,r){let hit=null;cells({x:x-r,y:y-r,w:r*2,h:r*2},k=>{if(hit)return;for(const s of grid.get(k)||[])if(inRect(x,y,r,s)){hit=s;return;}});return hit;}
+// MOVING holds anything solid that is not always there (the truck, once it has pulled up).
+export const MOVING=[];
+export function solidAt(x,y,r){let hit=null;cells({x:x-r,y:y-r,w:r*2,h:r*2},k=>{if(hit)return;for(const s of grid.get(k)||[])if(inRect(x,y,r,s)){hit=s;return;}});if(!hit)for(const s of MOVING)if(inRect(x,y,r,s))return s;return hit;}
 // What would stop a bullet at this point.
 export function coverAt(x,y){for(const s of grid.get(key(Math.floor(x/CELL),Math.floor(y/CELL)))||[])if(s.z>=20&&!s.see&&x>=s.x&&x<=s.x+s.w&&y>=s.y&&y<=s.y+s.h)return s;return null;}
 // Where you come out, on your step, and the door back in.
@@ -108,15 +120,26 @@ const SEARCHABLE={car:{verb:'Search',name:'Parked car',role:'The doors are unloc
  shed:{verb:'Search',name:'Garden shed',role:'The door hangs open',range:38},cache:{verb:'Search',name:'Survivor\'s stash',role:'Orange tape on the handle',range:32}};
 // You stand in front of it if you can, otherwise beside it or behind it.
 const standAt=o=>{const cx=o.x+o.w/2,below=o.y+o.h+(o.kind==='car'?14:10);for(const [x,y] of [[cx,below],[cx,below+10],[o.x-12,o.y+o.h/2],[o.x+o.w+12,o.y+o.h/2],[cx,o.y-12],[o.x-12,below],[o.x+o.w+12,below]])if(!solidAt(x,y,9))return {x,y};return {x:cx,y:below};};
-const SPOTS=PROPS.filter(o=>SEARCHABLE[o.kind]).map(o=>({id:'search-'+o.id,prop:o.id,loot:o.kind,...SEARCHABLE[o.kind],...standAt(o),mx:o.x+o.w/2,my:o.y-o.z-6}));
+const SPOTS=PROPS.filter(o=>SEARCHABLE[o.kind]&&!o.job).map(o=>({id:'search-'+o.id,prop:o.id,loot:o.kind,...SEARCHABLE[o.kind],...standAt(o),mx:o.x+o.w/2,my:o.y-o.z-6}));
+// The first job's spots, the place at the east end of your street to call the truck from, and the truck's tailgate once it is
+// there. Where the truck pulls up: on your street in the far lane, nose west, just short of the last side street.
+export const EVAC={x:CROSSES[COLS].x-150,y:ROADS[HOME_BLOCK.j].y+26};
+export const TRUCK={x:EVAC.x-120,y:ROADS[HOME_BLOCK.j].y+56,w:200,h:60,z:64,from:STREET.w+60};
+const jobAt=(o,e)=>({prop:o.id,...standAt(o),mx:o.x+o.w/2,my:o.y-o.z-6,...e});
+const RH=RADIO_HOUSE,RD=RH.door0+17,RB=BLOCKS.find(b=>b.houses.includes(RH));
+const JOB_SPOTS=[{id:'job-radio',job:'radio',prop:RH.id,verb:'Search',name:'The Okafor house',role:'Daniel\'s ham radio',x:RD,y:RB.y+FRONT+WALL_T+20,mx:RD,my:RB.y+FRONT-Z-6,range:34},
+ jobAt(PROPS.find(o=>o.id==='job-gen'),{id:'job-power',job:'power',verb:'Start',name:'Walt\'s generator',role:'Pull the cord',range:36}),
+ jobAt(PROPS.find(o=>o.id==='job-pack'),{id:'job-supplies',job:'supplies',verb:'Take',name:'Mrs. Novak\'s go-bag',role:'Under the tarp',range:32}),
+ {id:'evac',job:'evac',verb:'Call',name:'The east end',role:'Call the truck in',x:EVAC.x,y:EVAC.y,mx:EVAC.x,my:EVAC.y-26,range:40},
+ {id:'board',job:'board',verb:'Get in',name:'The truck',role:'Time to go',x:TRUCK.x+TRUCK.w+12,y:TRUCK.y+TRUCK.h/2,mx:TRUCK.x+TRUCK.w-10,my:TRUCK.y-TRUCK.z+4,range:46}];
 export const OBJECTS=[
  {id:'frontdoor',prop:'yours',verb:'Go in',name:'Your front door',role:'Home',...H(717,146),mx:HOME.x+717,my:HOME.y+FRONT-Z-6,range:34,facing:true},
  {id:'cruiser',prop:'cruiser',verb:'Search',name:'Police cruiser',role:'The trunk',x:cr.x+22,y:cr.y+cr.h+12,mx:cr.x+22,my:cr.y-cr.z-4,range:44},
  {id:'door-e1',prop:'east1',verb:'Knock',name:'The Parks\' house',role:'Next door',...H(1077,150),mx:HOME.x+1077,my:HOME.y+FRONT-Z-6,range:34,lines:['You knock, softly. Nothing.','Through the glass, a candle moves away from the door and goes out.']},
  {id:'door-w',prop:'west',verb:'Knock',name:'The corner house',role:'Next door',...H(157,150),mx:HOME.x+157,my:HOME.y+FRONT-Z-6,range:34,lines:['The door is open a crack. It is completely dark inside, and it smells wrong.','You pull it shut.']},
- ...BLOCKS.filter(b=>!b.home).flatMap(b=>b.houses.map((h,k)=>{const d=h.door0+17,s=(b.i*5+b.j)*3+k,at={x:d,y:b.y+FRONT+WALL_T+20,mx:d,my:b.y+FRONT-Z-6,range:34,name:NAMES[s%NAMES.length]};
+ ...BLOCKS.filter(b=>!b.home).flatMap(b=>b.houses.map((h,k)=>{if(h===RADIO_HOUSE)return null;const d=h.door0+17,s=(b.i*5+b.j)*3+k,at={x:d,y:b.y+FRONT+WALL_T+20,mx:d,my:b.y+FRONT-Z-6,range:34,name:NAMES[s%NAMES.length]};
   return s%3?{id:'search-'+h.id,prop:h.id,loot:'house',verb:'Search',role:'The door is not locked',...at}:{id:'door-'+h.id,prop:h.id,verb:'Knock',role:'A neighbour',...at,lines:KNOCKS[(s*7+3)%KNOCKS.length]};})),
- ...SPOTS];
+ ...SPOTS,...JOB_SPOTS].filter(Boolean);
 // The dead. Each has a look (zombie looks in street/scene.js), where it starts, and when it comes: wave 1 is the cop at the cruiser
 // and the five the noise brings out of the dark one after another; wave 2, once you open the trunk, is a crowd of twelve in three
 // rushes (from the west, then the east, then all round) and one that lost its legs before tonight, dragging itself up from the

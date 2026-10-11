@@ -724,3 +724,17 @@ html body.deck #thought{top:calc(var(--vy) + var(--gh) * .64);font-size:14px}
 #drillHud .heat.h3 b{color:#ff6a50;animation:heatPulse 1s ease-in-out infinite}
 @keyframes heatPulse{50%{opacity:.55}}
 @media(prefers-reduced-motion:reduce){#drillHud .heat.h3 b{animation:none}}
+/* The first job: a mark over each spot still to do, pinned to the screen's edge with an arrow and the distance when it is off it. */
+#marks{position:fixed;inset:0;z-index:2;pointer-events:none;overflow:hidden}body:not(.street) #marks{display:none}
+#marks .mark{position:absolute;left:0;top:0;display:flex;flex-direction:column;align-items:center;gap:2px;margin:-9px 0 0 -40px;width:80px;font:700 10px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:#ffcf8a;text-shadow:0 1px 0 #000,0 0 4px #000}
+#marks .mark i{display:block;width:12px;height:12px;background:var(--ember);border:2px solid #1b0f07;transform:rotate(45deg);box-shadow:0 0 8px #dd6f2c99}
+#marks .mark.edge i{width:0;height:0;background:none;border:5px solid transparent;border-right:0;border-left:15px solid var(--ember-hi);box-shadow:none;transform-origin:35% 50%;filter:drop-shadow(0 0 2px #000)}
+#marks .mark span{color:var(--bone);font-weight:600;opacity:.85}
+#marks .mark b{font-weight:700;white-space:nowrap}
+/* On the truck: how the night went. */
+.summary .options-body>p{margin:0 0 14px;color:var(--bone);line-height:1.45}
+.summary-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:0 0 16px}
+.summary-stats>div{padding:10px 12px;background:#1c1a17;border:1px solid var(--hud-edge);border-left:2px solid var(--ember)}
+.summary-stats dt{font:600 10px/1.2 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--dust)}
+.summary-stats dd{margin:4px 0 0;font:700 22px/1 var(--ui);color:var(--bone);font-variant-numeric:tabular-nums}
+#summaryGo{display:flex;width:100%;justify-content:center;min-height:48px;padding:10px 14px;font:700 15px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;background:var(--ember);color:var(--ember-ink);border:1px solid var(--ember-hi);border-radius:3px;cursor:pointer}

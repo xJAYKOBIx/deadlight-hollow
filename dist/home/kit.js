@@ -14,6 +14,15 @@ export const FRESH=true;
 // trunk waits; looted: you took what was in it and more are coming; done: the street is quiet.
 export const STREET_STAGES=['start','cleared','looted','done'];
 // The cruiser's trunk: a box of shells and a carton of rifle rounds, for a rifle you do not have yet.
+// The first job, once the street is quiet: three things to do anywhere in town, in any order, then the truck out. done lists the
+// ones finished; out is true once you are on the truck.
+export const JOBS=['radio','power','supplies'];
+// What the survivor's go-bag holds.
+export const GO_BAG=[['shells',12],['cloth',2],['gun-oil',1],['powder',2]];
+// Finishing a job, and getting on the truck.
+export function job(k,id,grid=carrying({})){if(!JOBS.includes(id)||k.mission.done.includes(id))return k;return {...k,bag:id==='supplies'?pack(k,grid,GO_BAG):k.bag,mission:{...k.mission,done:[...k.mission.done,id]}};}
+export const jobsDone=k=>JOBS.every(id=>k.mission?.done.includes(id));
+export const board=k=>({...k,mission:{...k.mission,out:true}});
 export const TRUNK=[['shells',12],['rounds',30]];
 // What each find holds: rounds loaded, and what goes into the bag with it. A pistol is a secondary, so its spare rounds never run
 // out; the shotgun is a primary and only has the shells in your bag.
@@ -29,7 +38,8 @@ export function normalizeHome(v,grid=carrying({})){const guns={};for(const id of
  // Saves from before the bag kept the shotgun's spare shells on the gun; they move into the bag.
  if(!v?.bag&&guns['pump-shotgun'])bag=add(bag,grid,'shells',Math.max(0,Math.floor(Number(v.guns['pump-shotgun'].reserve)||0)));
  const street=STREET_STAGES.includes(v?.street)?v.street:'start',looted=[...new Set((Array.isArray(v?.looted)?v.looted:[]).filter(id=>typeof id==='string'))];
- return {woke:v?.woke===true,guns,held,bag,searched,street,looted};}
+ const mission={done:[...new Set((Array.isArray(v?.mission?.done)?v.mission.done:[]).filter(id=>JOBS.includes(id)))],out:v?.mission?.out===true};
+ return {woke:v?.woke===true,guns,held,bag,searched,street,looted,mission};}
 export function readHome(storage,grid,fresh=FRESH){if(fresh)return normalizeHome(null,grid);try{return normalizeHome(JSON.parse(storage.getItem(HOME_KEY)),grid);}catch{return normalizeHome(null,grid);}}
 export function saveHome(storage,v){try{storage.setItem(HOME_KEY,JSON.stringify(v));return true;}catch{return false;}}
 const pack=(k,grid,list)=>list.reduce((b,[id,n])=>add(b,grid,id,n),k.bag);
@@ -63,8 +73,11 @@ export const found=(k,id)=>!!k.guns[id];
 export const spare=(k,id)=>ammoOf(id)?count(k.bag,ammoOf(id)):Infinity;
 export function rounds(k,id=k.held){const g=k.guns[id];if(!g)return '';const s=spare(k,id);return `${g.ammo} / ${s===Infinity?'∞':s}`;}
 // What to do next, shown under the place name. outside is true on the street.
+export const JOB_NAMES={radio:'find a radio',power:'start the generator',supplies:'get the go-bag'};
 export function goal(k,outside=false){if(!k.woke)return '';const p=found(k,'light-pistol'),s=found(k,'pump-shotgun');
  if(!p&&!s)return 'Find something to protect yourself with';
+ if(k.street==='done'&&k.mission){const m=k.mission;if(m.out)return 'You made it out';if(jobsDone(k))return 'Call the truck at the east end of your street';
+  return 'Get ready to leave: '+JOBS.filter(id=>!m.done.includes(id)).map(id=>JOB_NAMES[id]).join(', ');}
  if(outside||k.street!=='start')return {start:'See what crashed down the street',cleared:'Search the police cruiser',looted:'Hold them off',done:'The street is quiet, for now'}[k.street];
  return 'Go and see what crashed down the street';}
 // What the nightstand, the closet, the searchable spots and the front door say, and what using them does. act names what

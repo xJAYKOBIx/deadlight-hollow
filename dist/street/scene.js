@@ -8,9 +8,9 @@ import {LAYERS,ORDER,origin,sheetSize,paintLayers,paintRacked,paintDive,DIVE as 
 import {DEFAULT_APPEARANCE,UNIFORMS} from '../study/appearance.js';
 import {Juice} from '../study/juice.js';
 import {iconArt,ICON,ICONS} from '../camp/art.js';
-import {MAP,CHUNK,PROPS,LIGHT_BAR,HOME,coverAt} from './data.js';
+import {MAP,CHUNK,PROPS,LIGHT_BAR,HOME,EVAC,TRUCK,coverAt} from './data.js';
 import {groundArt,lightArt,LIGHT_SCALE,propArt,PROP_PAD} from './art.js';
-import {Fight,DIVE,CRAWLER,SEARCH,BRUTE} from './fight.js';
+import {Fight,DIVE,CRAWLER,SEARCH,BRUTE,JOB} from './fight.js';
 import {ITEM_IDS,itemArt} from '../mc/assets/gear/items.js';
 import {painter} from '../mc/assets/core/paint.js';
 import {zombiePiece,GORE_PARTS,crawlArt,CRAWL,gibArt,GIBS,bloodArt,BLOOD_BOX} from '../mc/assets/effects/gore.js';
@@ -48,6 +48,8 @@ const meets=(a,b)=>a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h,grow=(v,n)
 // Each chunk's ground is painted a strip at a time, so no one frame does much of it.
 export const AHEAD=224,KEEP=480,BUDGET=4,STRIPS=8;
 const CRUISER_I=PROPS.findIndex(o=>o.id==='cruiser');
+// The first job's generator and work light (dark until the generator is running), and the truck out.
+const GEN=PROPS.find(o=>o.id==='job-gen'),FLOOD=PROPS.find(o=>o.id==='job-light');
 // The flashlight: a cone of warm white light from the gun, len long and half wide either side, and a small pool round you. Painted
 // in the light map's own pixels (LIGHT_SCALE world units each), in six steps like the rest of the night's light.
 export const BEAM={len:240,half:24*Math.PI/180,pool:36,col:[255,244,220]};
@@ -109,11 +111,17 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   // Casings in the air sit just under the night; the ones on the ground are painted with the blood.
   this.brass=[];this.lying=[];this.pumps=[];this.brassG=this.add.graphics().setDepth(5990);this.floorG=this.add.graphics().setDepth(.6);this.kick=null;this.jolt={x:0,y:0};this.acc=0;
   const icons=this.texture('camp-icons',ICON.w*2*ICONS.length,ICON.h*2,iconArt);ICONS.forEach((k,i)=>{if(!icons.has(k))icons.add(k,0,i*ICON.w*2,0,ICON.w*2,ICON.h*2);});
+  // The truck, shut and with the tailgate down, nose to the west; its headlights; the flare you light to call it; the work light.
+  for(const open of [0,1])this.texture('street-truck-'+open,(TRUCK.w+PROP_PAD*2)*2,(TRUCK.h+TRUCK.z+PROP_PAD*2)*2,c=>propArt(c,{kind:'truck',w:TRUCK.w,h:TRUCK.h,z:TRUCK.z,open:!!open}));
+  this.truck=this.add.image(0,0,'street-truck-0').setOrigin(0).setScale(.5).setFlipX(true).setVisible(false);
+  this.lamps=[0,1].map(()=>this.add.image(0,0,'tg-glow-warm').setDepth(6001).setBlendMode(Phaser.BlendModes.ADD).setScale(.5,.35).setVisible(false));
+  this.flare=this.add.image(EVAC.x,EVAC.y,'street-glow-w').setDepth(6001).setBlendMode(Phaser.BlendModes.ADD).setTint(0xff3020).setVisible(false);
+  this.flood=this.add.image(FLOOD.x+FLOOD.w/2,FLOOD.y-FLOOD.z+6,'tg-glow-warm').setDepth(6001).setBlendMode(Phaser.BlendModes.ADD).setScale(.7,.5).setAlpha(.8).setVisible(false);
   this.marker=this.add.image(0,0,'camp-icons','chevron').setScale(.5).setOrigin(.5,1).setDepth(7001).setVisible(false);
   this.cameras.main.setBackgroundColor('#07080b').setBounds(0,0,MAP.w,MAP.h).setZoom(this.zoom());
   this.events.on('wake',()=>this.enter());this.enter();bridge.ready(this);}
  // Each time you step out of the door: the street as the kit says it is, you on your step.
- enter(){model.reset();this.fight.start();for(const i of this.dropImgs.values())i.destroy();this.dropImgs.clear();for(const i of [...this.stains,...this.bits.map(b=>b.img),...this.lain])i.destroy();this.stains.length=0;this.bits.length=0;this.lain.length=0;this.brass.length=0;this.lying.length=0;this.pumps.length=0;this.floorG.clear();this.kick=null;this.jolt={x:0,y:0};for(const z of [...this.zs.keys()])this.free(z);this.setPlayerLook(bridge.look());this.setTrunk(bridge.kit().street!=='start'&&bridge.kit().street!=='cleared');this.cameras.main.centerOn(model.x,model.y-20);this.stream(true);}
+ enter(){model.reset();this.fight.start();for(const i of this.dropImgs.values())i.destroy();this.dropImgs.clear();for(const i of [...this.stains,...this.bits.map(b=>b.img),...this.lain])i.destroy();this.stains.length=0;this.bits.length=0;this.lain.length=0;this.brass.length=0;this.lying.length=0;this.pumps.length=0;this.floorG.clear();this.kick=null;this.jolt={x:0,y:0};for(const z of [...this.zs.keys()])this.free(z);this.setPlayerLook(bridge.look());this.setTrunk(bridge.kit().street!=='start'&&bridge.kit().street!=='cleared');this.setPower(!!bridge.kit().mission?.done.includes('power'));this.cameras.main.centerOn(model.x,model.y-20);this.stream(true);}
  // What the camera shows, in world units.
  view(){const s=this.scale,z=this.zoom(),w=s.width/z,h=s.height/z,x=Math.max(0,Math.min(MAP.w-w,model.x-w/2)),y=Math.max(0,Math.min(MAP.h-h,model.y-20-h/2));return {x,y,w,h};}
  // Takes hold of the chunks near the screen and lets go of the ones well past it, then paints: everything on screen now, the rest
@@ -132,12 +140,14 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   if(c.s===STRIPS){c.t.refresh();if(worthBaking(R.w*2,R.h*2))bake(this,c.t,ctx=>groundArt(ctx,R));c.s++;return false;}
   c.t=null;c.g=this.add.image(R.x,R.y,key).setOrigin(0).setScale(.5).setDepth(-10);
   this.texture('nb-l-'+k,Math.ceil(R.w/LIGHT_SCALE),Math.ceil(R.h/LIGHT_SCALE),ctx=>lightArt(ctx,R));c.l=true;return true;}
- paintProp(i){const o=PROPS[i],p=this.held.get(i),key=i===CRUISER_I?`street-cruiser-1-${this.trunk?1:0}`:'nb-p-'+o.id;
-  if(i!==CRUISER_I)this.texture(key,(o.w+PROP_PAD*2)*2,(o.h+o.z+PROP_PAD*2)*2,c=>propArt(c,o));
+ paintProp(i){const o=PROPS[i],p=this.held.get(i),on=o.job==='power'&&this.power,key=i===CRUISER_I?`street-cruiser-1-${this.trunk?1:0}`:'nb-p-'+o.id+(on?'-on':'');
+  if(i!==CRUISER_I)this.texture(key,(o.w+PROP_PAD*2)*2,(o.h+o.z+PROP_PAD*2)*2,c=>propArt(c,on?{...o,on:true}:o));
   p.img=this.add.image(o.x-PROP_PAD,o.y-o.z-PROP_PAD,key).setOrigin(0).setScale(.5).setDepth(o.flat?0:o.y+o.h+i*1e-5);if(o.fade)this.fades.add(i);}
  forget(key){unbake(key);if(this.textures.exists(key))this.textures.remove(key);}
  drop(k){const c=this.chunks.get(k);this.chunks.delete(k);this.todo.delete(k);c.g?.destroy();this.forget('nb-g-'+k);this.forget('nb-l-'+k);
-  for(const i of BY_CHUNK[k]){const p=this.held.get(i);if(!p||--p.n>0)continue;this.held.delete(i);this.todo.delete(-1-i);this.fades.delete(i);if(p.img){p.img.destroy();if(i!==CRUISER_I)this.forget('nb-p-'+PROPS[i].id);}}}
+  for(const i of BY_CHUNK[k]){const p=this.held.get(i);if(!p||--p.n>0)continue;this.held.delete(i);this.todo.delete(-1-i);this.fades.delete(i);if(p.img){p.img.destroy();if(i!==CRUISER_I)this.forget(p.img.texture.key);}}}
+ // The generator and work light, painted again once the generator is running.
+ setPower(on){if(this.power===on)return;this.power=on;for(const o of [GEN,FLOOD]){const i=PROPS.indexOf(o),p=this.held.get(i);if(!p?.img)continue;const old=p.img.texture.key;p.img.destroy();this.forget(old);this.paintProp(i);}}
  // The light over the screen: each chunk's light map, then the flashlight added where the gun points.
  light(){const V=grow(this.view(),24),L=LIGHT_SCALE,ox=Math.floor(V.x/L)*L,oy=Math.floor(V.y/L)*L,w=Math.ceil(V.w/L)+2,h=Math.ceil(V.h/L)+2,rt=this.lit;
   if(rt.width!==w||rt.height!==h)rt.resize(w,h);rt.setPosition(ox,oy);rt.clear();
@@ -145,6 +155,12 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   const b=this.fight.beam=bridge.flash?.()&&!this.fight.down&&armed(this.look)?{x:model.x,y:model.y,a:model.aim??model.direction*Math.PI/4}:null;
   if(b){const mz=muzzle(b.a,this.look.gun),add=Phaser.BlendModes.ADD;rt.stamp('nb-pool',undefined,(model.x-ox)/L,(model.y-14-oy)/L,{blendMode:add});
    rt.stamp('nb-beam',undefined,(model.x+mz.x-ox)/L,(model.y+mz.y-oy)/L,{originX:0,originY:.5,rotation:b.a,blendMode:add});}
+  // The work light, once the generator runs: a wide warm pool in front of it. The flare: a red pool that flickers. The truck's
+  // headlights: two beams ahead of it, to the west.
+  const add=Phaser.BlendModes.ADD,f=this.fight,ev=f.evac,flick=.8+.2*Math.sin(this.time.now/47)*Math.sin(this.time.now/131);
+  if(this.power&&meets(grow(V,200),{x:FLOOD.x,y:FLOOD.y,w:1,h:1}))rt.stamp('nb-pool',undefined,(FLOOD.x+8-ox)/L,(FLOOD.y+16-oy)/L,{blendMode:add,scale:6,alpha:.9,tint:0xfff0d0});
+  if(ev&&meets(grow(V,200),{x:EVAC.x,y:EVAC.y,w:1,h:1}))rt.stamp('nb-pool',undefined,(EVAC.x-ox)/L,(EVAC.y-oy)/L,{blendMode:add,scale:4.2*flick,alpha:.95,tint:0xff5a40});
+  if(ev&&ev.state!=='hold'){const tx=ev.x,ty=TRUCK.y+TRUCK.h*.5;for(const dy of [-16,14])rt.stamp('nb-beam',undefined,(tx-ox)/L,(ty+dy-oy)/L,{originX:0,originY:.5,rotation:Math.PI,blendMode:add,alpha:.8});}
   // A shot lights the street round you for an instant, warm and wide, the shotgun more.
   const K=KICK[this.fight.gunId],t=this.fight.sinceShot;if(K&&t<K.light&&this.shotA!==undefined){const mz=muzzle(this.shotA,this.look.gun),k=1-t/K.light;
    const x=(model.x+mz.x*.6-ox)/L,y=(model.y+mz.y*.4-oy)/L,add=Phaser.BlendModes.ADD;rt.stamp('nb-pool',undefined,x,y,{blendMode:add,scale:K.glow*(.8+.2*k),alpha:k,tint:0xffd49a});
@@ -173,8 +189,10 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   if(v){const T=DIVE.time,ph=v.t<.1?0:v.t<T?1:2,hop=v.t<T*.55?Math.sin(v.t/(T*.55)*Math.PI)*5:0,d=(Math.round(Math.atan2(v.dy,v.dx)/(Math.PI/4))+8)%8;
    this.diveImg.setVisible(true).setFrame(d+ph*8).setPosition(half(model.x),half(model.y-hop)).setDepth(model.y+.02).setAlpha(down?.5:1);for(const k of ORDER)this.parts[k].setVisible(false);return;}
   this.diveImg.setVisible(false);for(const k of ORDER)this.parts[k].setVisible(true);
+  // Going over a fence, all of you is lifted by the hop.
+  const lift=f.vault?f.vault.h||0:0;
   for(const k of ORDER){const s=this.parts[k],ride=(k==='arms'||k==='head')&&!down,body=k==='body';s.setFrame(p[k]);
-   s.setPosition(half(model.x+(ride?p.dx+kx:body?kx*.35:0)),half(model.y+(ride?p.dy+ky:body?ky*.35:0)));s.setAlpha(down?.5:1);}
+   s.setPosition(half(model.x+(ride?p.dx+kx:body?kx*.35:0)),half(model.y-lift+(ride?p.dy+ky:body?ky*.35:0)));s.setAlpha(down?.5:1);}
   const y=model.y;this.parts.legs.setDepth(y);this.parts.body.setDepth(y+.01);this.parts.arms.setDepth(y+.02).setVisible(gun);this.parts.head.setDepth(y+.03);}
  // A zombie's sprite while it is near the screen, taken from a pool and handed back when it is not, so a whole neighbourhood of the
  // dead only ever needs as many as you can see.
@@ -239,6 +257,9 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   else if(e.type==='down')j.shake('brute');
   else if(e.type==='stage'&&e.stage==='looted')this.setTrunk(true);
   else if(e.type==='restart')this.enter();
+  // Over a fence: a little dust where you land. The generator coughs into life in a cloud of smoke.
+  else if(e.type==='over')j.puff(e.x,e.y-2,.6,0x6a6458,.5,-4);
+  else if(e.type==='job'&&e.job==='power'){this.setPower(true);j.puff(GEN.x+4,GEN.y-12,1,0x6a6a66,.7,-12);}
   bridge.event?.(e);}
  // A casing out of the right side of the gun: brass from the pistol, a red hull from the shotgun.
  eject(a,hull){const side=a+Math.PI/2+(Math.random()-.5)*.5,v=48+Math.random()*24;
@@ -282,6 +303,14 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   const on=Math.floor(now/260)%2,tex=`street-cruiser-${on+1}-${this.trunk?1:0}`,cr=this.held.get(CRUISER_I)?.img;if(cr&&cr.texture.key!==tex)cr.setTexture(tex);
   // Houses, trees and sheds you walk behind go see-through, so you never lose yourself or what is chasing you.
   for(const i of this.fades){const o=PROPS[i],img=this.held.get(i).img,behind=model.y<o.y+o.h&&model.y>o.y-o.z&&model.x>o.x-8&&model.x<o.x+o.w+8,a=img.alpha+((behind?.4:1)-img.alpha)*Math.min(1,dt*10);if(Math.abs(a-img.alpha)>.002)img.setAlpha(a);}
+  // The job out here: smoke off the running generator, the flare spitting and smoking, and the truck driving in.
+  const ev=f.evac,near=(x,y)=>Math.abs(x-model.x)<700&&Math.abs(y-model.y)<500;this.smokeT=(this.smokeT||0)-dt;
+  if(this.smokeT<=0){this.smokeT=.35;if(this.power&&near(GEN.x,GEN.y))this.juice.puff(GEN.x+2,GEN.y-10,.5,0x5a5a58,.45,-14);if(ev&&near(EVAC.x,EVAC.y))this.juice.puff(EVAC.x+Math.random()*4-2,EVAC.y-6,.8,0x8a4a44,.55,-22);}
+  const fl=.75+.25*Math.sin(now/41)*Math.sin(now/97);this.flare.setVisible(!!ev).setScale(1.1*fl,.8*fl).setAlpha(.5*fl);this.flood.setVisible(!!this.power);
+  if(ev&&ev.state==='hold'&&near(EVAC.x,EVAC.y)&&Math.random()<dt*20)this.juice.bits(1,EVAC.x,EVAC.y,{dir:-Math.PI/2,spread:2.4,speed:40,lift:40,z:4,col:0xffb0a0,life:.3,kind:'spark',len:1});
+  const tr=ev&&ev.state!=='hold',tx=tr?ev.x:0;this.truck.setVisible(!!tr);for(const l of this.lamps)l.setVisible(!!tr);
+  if(tr){this.truck.setTexture('street-truck-'+(ev.state==='wait'?1:0)).setPosition(Math.round(tx*2)/2-PROP_PAD,TRUCK.y-TRUCK.z-PROP_PAD+(ev.state==='drive'?Math.round(Math.sin(now/40))*.5:0)).setDepth(TRUCK.y+TRUCK.h);
+   this.lamps.forEach((l,i)=>l.setPosition(tx-4,TRUCK.y+TRUCK.h*.5-18+i*10));if(ev.state==='drive'){this.dustT2=(this.dustT2||0)-dt;if(this.dustT2<=0){this.dustT2=.08;this.juice.puff(tx+TRUCK.w-10,TRUCK.y+TRUCK.h,.9,0x5a5650,.5,-6);}}}
   this.bar[0].setAlpha(on?.05:.42);this.bar[1].setAlpha(on?.42:.05);this.head.setAlpha(.3+.04*Math.sin(now/90));
   this.juice.update(now,held?0:dt,f);
   // Tracers: a short bright streak running from the muzzle to where the shot stopped.
@@ -305,7 +334,7 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   for(const d of f.drops){let img=this.dropImgs.get(d);if(!img){img=this.add.image(d.x,d.y,'loot-icons',d.id).setScale(.5).setOrigin(.5,1);this.dropImgs.set(d,img);}const bob=Math.round(Math.sin(now/260+d.x)*1.5*2)/2;img.setPosition(Math.round(d.x*2)/2,Math.round(d.y*2)/2-2+bob).setDepth(d.y);
    if(Math.floor(now/700+d.x/37)%4===0)g.fillStyle(0xfff6d8,.9).fillRect(Math.round(d.x*2)/2+2,Math.round(d.y*2)/2-8+bob,1,1);}
   // A search under way: a ring round the spot filling as it goes.
-  const S=f.searching;if(S){const k=Math.min(1,S.time/SEARCH.time),x=S.t.mx??S.t.x,y=(S.t.my??S.t.y)-4,a0=-Math.PI/2;g.lineStyle(3,0x111319,.7).strokeCircle(x,y,7);g.lineStyle(1.5,0xf2e6c8,.35).strokeCircle(x,y,7);
+  const S=f.searching;if(S){const k=Math.min(1,S.time/(S.need||SEARCH.time)),x=S.t.mx??S.t.x,y=(S.t.my??S.t.y)-4,a0=-Math.PI/2;g.lineStyle(3,0x111319,.7).strokeCircle(x,y,7);g.lineStyle(1.5,0xf2e6c8,.35).strokeCircle(x,y,7);
    g.lineStyle(1.5,0xffb347,1).beginPath().arc(x,y,7,a0,a0+k*Math.PI*2,false).strokePath();}
   const target=f.down?null:paused&&this.target?this.target:model.target(t=>bridge.usable?.(t)!==false);this.target=target;
   if(target){const bob=Math.round(Math.sin(now/180)*2*2)/2;this.marker.setVisible(true).setPosition(target.mx??target.x,target.my+bob);}else this.marker.setVisible(false);
