@@ -5,7 +5,7 @@
 // The rest of the neighbourhood is out there too: wanderers in every other block, who drift round their yards until they see you
 // or hear a shot, and give up once you are well away. Far from you they are only thought about twice a second.
 // It changes the kit (ammo, shells, the street stage) only through the setKit it is given, so the game saves as it goes.
-import {GUNS,muzzle} from '../study/equipment.js';
+import {GUNS,muzzle} from '../study/equipment.js';import {pick,AIM} from '../study/aimstick.js';
 import {count,remove,add} from '../home/bag.js';
 import {ammoOf,advance,loot,scavenge,alarmed,DROPS,jobsDone,board,reclaim,reclaimed} from '../home/kit.js';
 import {MAP,WAVES,ROAMERS,NOTICE,HEAR,WALK,roadNear,EVAC,TRUCK,MOVING,OBJECTS,BREACHES,solidAt,coverAt} from './data.js';
@@ -61,6 +61,8 @@ export const JOB={power:{noise:45,horde:5},evac:{hold:60,every:13,heat:85,drive:
 // The hold-out in the bus lot: the dead come in through its breaches (street/data.js BREACHES) one after another, at these seconds
 // into it and then every so often, each called out this long before it gives. What comes through each: runners and shamblers
 // through the fence, crawlers up out of the drain, a crowd out of the gym.
+// The shot's own pull, for every way of aiming: a miss by less than this bends onto the zombie.
+export const MAGNET={cone:5*Math.PI/180};
 export const BREACH={at:[3,13,24,33],every:11,warn:3,packs:{'gap-e':[['runner',2],['shambler',3]],drain:[['crawler',5]],gym:[['shambler',6],['runner',1]],'gap-w':[['shambler',4],['runner',2]]}};
 // Screamers: frail, and they keep their distance. One that sees you with a clear line stops, throws its head back and screams (the
 // tell): if it finishes, the heat jumps and a horde comes, already hunting. Any hit breaks the scream for a moment; kill it first.
@@ -133,15 +135,26 @@ export class Fight{
   // A gun that takes both hands: whatever you were carrying goes down first.
   if(ammoOf(this.gunId))this.jobs.putDown();
   this.setAmmo(this.ammo-1);this.cooldown=g.interval;this.sinceShot=0;this.stats.shots++;this.heard(m.x,m.y);this.noise(HEAT.shot[this.gunId]||4);
-  const angle=this.aimAngle??m.direction*Math.PI/4,n=g.pellets||1;
+  const angle=this.magnet(this.aimAngle??m.direction*Math.PI/4),n=g.pellets||1;
   for(let k=0;k<n;k++){const off=n>1?((k/(n-1))-.5)*g.spread+(this.rand()-.5)*g.spread/(n*1.5):(this.rand()-.5)*.025;this.ray(angle+off,g,k>0);}
   this.emit('shot',{gun:this.gunId,angle});return true;}
  // One bullet or pellet along a line: it stops at the first zombie or the first thing tall enough to hide behind.
- ray(angle,g,pellet){const m=this.model,dx=Math.cos(angle),dy=Math.sin(angle),reach=g.range+20,near=this.zombies.filter(z=>this.out(z)&&Math.abs(z.x-m.x)<reach&&Math.abs(z.y-m.y)<reach);let end={x:m.x,y:m.y},onto={kind:'floor'};
-  for(let d=6;d<=g.range;d+=3){const x=m.x+dx*d,y=m.y+dy*d;if(x<0||x>MAP.w||y<0||y>MAP.h)break;if(coverAt(x,y)){onto={kind:'prop'};break;}end={x,y};
-   const z=near.find(z=>Math.hypot(z.x-x,(z.y-y)*1.2)<(z.kind==='brute'?17:12));if(z){this.hit(z,g.damage*(pellet||g.pellets?(d>150?.55:1):1),dx,dy);onto={kind:'zombie',ref:z};break;}}
+ ray(angle,g,pellet){const m=this.model,L=this.lineOf(angle,g.range),end=L.end,onto=L.onto,dx=Math.cos(angle),dy=Math.sin(angle);
+  if(L.z)this.hit(L.z,g.damage*(pellet||g.pellets?(L.d>150?.55:1):1),dx,dy);
   const mz=muzzle(angle,this.gunId),dist=Math.hypot(end.x-m.x,end.y-m.y),dur=dist/BULLET_SPEED;
   this.traces.push({x:m.x,y:m.y,ex:end.x,ey:end.y,ox:mz.x,oy:mz.y,age:0,dur,life:dur+.07,col:onto.kind==='zombie'?'#7a1a16':'#b8ab88',onto,done:false,pellet});}
+ // Where a line from you stops, up to range: the first zombie on it or the first cover. The laser and the crosshair show the line at
+ // the gun's height, and a standing body is hit where they cross it; a crawler is too low for that, so it is hit wherever the laser
+ // crosses it as well as where the line runs under it (its ghost: the crawler moved the gun's height down, square to the line).
+ lineOf(angle,range){const m=this.model,dx=Math.cos(angle),dy=Math.sin(angle),h=-muzzle(angle,this.gunId).y-4,gx=-h*dy*dx,gy=h*dx*dx,reach=range+h+20,
+   near=this.zombies.filter(z=>this.out(z)&&Math.abs(z.x-m.x)<reach&&Math.abs(z.y-m.y)<reach);let end={x:m.x,y:m.y};
+  for(let d=6;d<=range;d+=3){const x=m.x+dx*d,y=m.y+dy*d;if(x<0||x>MAP.w||y<0||y>MAP.h)break;if(coverAt(x,y))return {end,onto:{kind:'prop'},d};end={x,y};
+   const z=near.find(z=>Math.hypot(z.x-x,(z.y-y)*1.2)<(z.kind==='brute'?17:12)||z.kind==='crawler'&&Math.hypot(z.x+gx-x,(z.y+gy-y)*1.2)<13);if(z)return {end,onto:{kind:'zombie',ref:z},z,d};}
+  return {end,onto:{kind:'floor'},d:range};}
+ // Where to point to hit a zombie, as an offset from you: at its feet, or for a crawler at its ghost, so the laser lies across it.
+ aimAt(z){const m=this.model,x=z.x-m.x,y=z.y-m.y;if(z.kind!=='crawler')return {x,y,ref:z};const a=Math.atan2(y,x),c=Math.cos(a),s=Math.sin(a),h=-muzzle(a,this.gunId).y-4;return {x:x-h*s*c,y:y+h*c*c,ref:z};}
+ // A shot that just misses one of the dead bends onto it: a few degrees at most, whatever you aim with.
+ magnet(angle){const g=this.gun;if(!g)return angle;const t=this.zombies.filter(z=>this.out(z)).map(z=>this.aimAt(z));return pick(angle,t,{...AIM,cone:MAGNET.cone,lock:.6,range:g.range}).a;}
  // A hit: damage, a shove along the shot and a stagger. The shotgun's shove breaks a bite that is winding up.
  hit(z,dmg,dx,dy){const s=SHOVE[this.gunId]||SHOVE['light-pistol'],m=this.model,big=z.kind==='brute';if(big&&z.stun>0)dmg*=BRUTE.charge.weak;z.hp=Math.max(0,z.hp-dmg);z.flash=.07;
   const push=s.push*(this.gun?.pellets&&Math.hypot(z.x-m.x,z.y-m.y)<SHOVE.close.range?SHOVE.close.push:1)*(z.hp<=0?SHOVE.kill:1)*(big?BRUTE.shove:1);z.vx+=dx*push;z.vy+=dy*push;if(!big)z.stagger=Math.max(z.stagger,s.stagger);z.idle=false;if(z.roam!==undefined)z.hunt=true;

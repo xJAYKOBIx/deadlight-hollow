@@ -239,3 +239,9 @@ test('spitters lob acid where you are going: stand there and it lands on you, mo
  // Walk away from the next one and it misses.
  Object.assign(m,{x:5300,y:2100});f.hp=PLAYER_HP;z.cool=0;run(f,m,P.tell+.05,()=>({x:-1,y:0}));assert.equal(f.globs.length,1);run(f,m,P.flight+.05,()=>({x:-1,y:0}));assert.equal(f.hp,PLAYER_HP,'it misses you on the move');
  assert.ok(Math.hypot(z.x-m.x,z.y-m.y)>SPITTER.keep[0]-20,'it keeps its distance');});
+test('a crawler is hit where the laser lies across it, and where the line runs under it, but not from well above',()=>{
+ for(const [dy,hit] of [[-32,true],[0,true],[-90,false]]){const {m,f}=setup();f.zombies.length=0;const c=special(f,'crawler',m.x+80,m.y+dy);c.cool=9;f.aimAngle=0;f.magnet=a=>a;
+  assert.ok(f.fire());assert.equal(c.hp<c.max,hit,`crawler ${dy} from the line`);}});
+test('a shot that just misses bends onto the zombie, and the touch pull aims a crawler across the laser',()=>{
+ const {m,f}=setup();f.zombies.length=0;const z=special(f,'shambler',m.x+120,m.y+Math.tan(3*Math.PI/180)*120);z.look='cop';f.aimAngle=0;assert.ok(f.fire());assert.ok(z.hp<z.max,'bent onto it');
+ const c=special(f,'crawler',m.x+80,m.y-32),t=f.aimAt(c),L=f.lineOf(Math.atan2(t.y,t.x),190);assert.equal(L.z,c,'aiming where aimAt says hits the crawler');});

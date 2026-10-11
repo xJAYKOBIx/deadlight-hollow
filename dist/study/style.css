@@ -878,3 +878,34 @@ body.saying #prompt,body.saying #act,body.saying #thought,body.saying #cineLine{
 @keyframes title-card{0%{opacity:0}12%,80%{opacity:1}100%{opacity:0}}
 @keyframes title-words{0%,14%{opacity:0;transform:translateY(6px)}34%,72%{opacity:1;transform:none}92%,100%{opacity:0}}
 @media (prefers-reduced-motion:reduce){#cine::before,#cine::after{animation:none}#titleCard b,#titleCard span{transform:none!important}}
+/* Health and stamina on the street: one plate low in the middle, big enough to read at a glance. Health is the thick bar with its
+   number (amber below 60, red and pulsing below 30); the pale chunk behind it is what the last hit took, draining away a moment
+   later. Stamina is the thinner bar under it. The old stamina gauge at the top left is for camp only now. */
+#life{display:none;position:fixed;z-index:3;left:50%;bottom:calc(var(--sb) + 10px);transform:translateX(-50%);gap:5px;width:min(340px,calc(var(--vw) - var(--sl) - var(--sr) - 24px));padding:7px 12px 8px;background:linear-gradient(#211e1ae6,#121110e6);border:1px solid var(--plate-edge);border-radius:3px;box-shadow:0 0 0 1px #000a,inset 0 1px 0 #ffffff12,0 8px 22px #0008;pointer-events:none;font-family:var(--ui)}
+body.street #life{display:grid}body.street #vitals .stamina{display:none}
+#life .lb{display:grid;grid-template-columns:58px 1fr 44px;align-items:center;gap:8px}
+#life b{font:700 11px/1 var(--ui);letter-spacing:.18em;text-transform:uppercase;color:var(--bone);text-shadow:0 1px 0 #000}
+#life output{font:400 19px/1 var(--display);color:var(--bone);text-align:right;font-variant-numeric:tabular-nums;text-shadow:0 2px 0 #000}
+#life .lbar{position:relative;display:block;height:14px;background:#0d0c0b;border:1px solid #000;box-shadow:0 0 0 1px #e8e0d12e;transform:skewX(-16deg);overflow:hidden}
+#life .lbar::after{content:'';position:absolute;inset:0;background:var(--seg);pointer-events:none}
+#life .lbar>i{position:absolute;inset:0;transform-origin:left;transform:scaleX(var(--p,1))}
+#life .hp .fill{background:linear-gradient(#c4f08a,var(--ok) 50%,#4f8f2c);transition:transform .12s}
+#life .hp .trail{background:#f4ead6;transition:transform .5s .35s}
+#life.mid .hp .fill{background:linear-gradient(#ffe08a,#e8b83a 50%,#a07a1c)}
+#life.low .hp .fill{background:linear-gradient(#ff9a7a,var(--hurt) 50%,#9a2a1c)}
+#life.low{animation:lifePulse 1s ease-in-out infinite}
+@keyframes lifePulse{50%{box-shadow:0 0 0 1px #000a,0 0 0 2px #e0503aa0,0 8px 22px #0008}}
+#life .st .lbar{height:8px}
+#life .st .fill{background:linear-gradient(#bfe2ff,#6fb2ec 55%,#3a6fa8)}
+#life .st output{font:700 11px/1 var(--ui);letter-spacing:.1em;text-transform:uppercase;color:#ff7a5a;text-shadow:0 1px 0 #000}
+#life.winded .st .fill{background:#8a3a2a}#life.winded .st b{color:#ff7a5a}
+@media(prefers-reduced-motion:reduce){#life.low{animation:none}}
+@media(orientation:landscape) and (max-height:560px){#life{width:min(280px,calc(var(--vw) - 560px));min-width:220px;bottom:calc(var(--sb) + 6px);padding:5px 10px 6px}#life .lb{grid-template-columns:50px 1fr 38px}#life .lbar{height:11px}#life .st .lbar{height:6px}#life output{font-size:16px}}
+html body.deck #life{bottom:calc(var(--sb) + var(--dk) + 12px);width:min(320px,calc(var(--vw) - 40px))}
+/* The bag's tooltip: a small plate over the item the mouse, the keys or a tap is on, with the item's name, kind, description and facts. */
+.bag-tip{position:absolute;z-index:20;display:grid;gap:3px;width:max-content;max-width:min(260px,calc(100% - 16px));padding:9px 11px 10px;background:linear-gradient(#262220f7,#141210f7);border:1px solid var(--plate-edge);border-left:2px solid var(--ember);border-radius:2px;box-shadow:0 0 0 1px #000c,0 10px 24px #000a;pointer-events:none;text-align:left}
+.bag-tip>b{font:700 15px/1.15 var(--ui);letter-spacing:.06em;text-transform:uppercase;color:var(--bone)}
+.bag-tip-kind{font:700 10px/1 var(--ui);letter-spacing:.2em;text-transform:uppercase;color:var(--ember-hi)}
+.bag-tip p{margin:2px 0 3px;font:400 12.5px/1.4 var(--body);color:#cfc6b6}
+.bag-tip-line{font:600 12px/1.3 var(--ui);letter-spacing:.04em;color:#e6d3a8;font-variant-numeric:tabular-nums}
+.bag-tip-line::before{content:'';display:inline-block;width:4px;height:4px;margin:0 7px 2px 0;background:var(--ember);transform:rotate(45deg)}

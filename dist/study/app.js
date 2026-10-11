@@ -184,21 +184,22 @@ const roomBody=new StudyModel();roomBody.radius=FOLLOW.radius;const roomPet=new 
 let shown={};
 function paintWeapon(p,id=loadout.gun){const g=GUNS[id],mag=p.mag,reload=g&&p.reloadTime?1-p.reloadTime/p.reloadFull:0,cool=p.throwCooldown/1.5,ammo=g?p.ammo:0,key=[id,ammo,mag,Math.round(reload*40),Math.round(cool*30),p.spare].join();if(key===shown.key)return;
  if(g&&ammo<shown.ammo&&shown.gun===id&&device==='pad')pad.rumble(g.rifle?.08:.15,.3,g.rifle?35:55);shown={key,ammo,gun:id};
- $('weaponName').textContent=g?.name||'Unarmed';$('weaponHud').style.setProperty('--paint',PAINT[id]||'transparent');$('ammoNow').textContent=g?ammo:'–';$('ammoMag').textContent=g?'/ '+mag:'';$('magFill').style.width=(g?(p.reloadTime?reload:ammo/mag)*100:0)+'%';
+ $('weaponName').textContent=g?.name||'Unarmed';$('weaponHud').style.setProperty('--paint',PAINT[id]||'transparent');$('ammoNow').textContent=g?ammo:'–';$('ammoMag').textContent=g?'/ '+(p.spare===undefined||p.spare===Infinity?'∞':p.spare):'';$('magFill').style.width=(g?(p.reloadTime?reload:ammo/mag)*100:0)+'%';
  const low=g&&!p.reloadTime&&ammo<=Math.ceil(mag*.25),h=$('weaponHud');h.classList.toggle('low',!!low);h.classList.toggle('reloading',!!p.reloadTime);h.classList.toggle('empty',!!g&&!ammo&&!p.reloadTime);
- // Out on the street the spare rounds are real: the shells in your bag (a pistol's never run out).
- $('ammoWord').textContent=(p.reloadTime?'Reloading':ammo?'Reload':'Empty · reload')+(p.spare===undefined?'':' · '+(p.spare===Infinity?'∞':p.spare)+' spare');
+ // Loaded over what you carry: out on the street the spare rounds are real, the shells in your bag (a pistol's never run out, and
+ // nothing does on the range). How many the gun holds is in its description.
+ $('ammoWord').textContent=(p.reloadTime?'Reloading':ammo?'Reload':'Empty · reload')+(p.spare===0?' · none left':'');
  $('reloadRing').style.setProperty('--p',p.reloadTime?reload:g?ammo/mag:0);$('reload').classList.toggle('busy',!!p.reloadTime);$('reload').classList.toggle('low',!!low);
  $('throwRing').style.setProperty('--p',cool?1-cool:1);$('throwFill').style.width=(cool?1-cool:1)*100+'%';$('throwGrenade').classList.toggle('busy',cool>0);}
 // Twin-stick input for the places you fight in (the room and the street): moving, running, aiming and firing.
 // What the touch stick may pull toward: the dead on the street, the robots and paper targets in the Training Grounds, as offsets from you.
-function aimTargets(m){const f=street()&&streetScene?.fight,p=!street()&&scene?.practice;const list=f?f.zombies.filter(z=>f.out(z)):p?[...p.drill.bots.filter(b=>b.hp>0),...p.targets.filter(t=>t.hp>0)]:[];return list.map(t=>({x:t.x-m.x,y:t.y-m.y}));}
+function aimTargets(m){const f=street()&&streetScene?.fight,p=!street()&&scene?.practice;if(f)return f.zombies.filter(z=>f.out(z)).map(z=>f.aimAt(z));const list=p?[...p.drill.bots.filter(b=>b.hp>0),...p.targets.filter(t=>t.hp>0)]:[];return list.map(t=>({x:t.x-m.x,y:t.y-m.y,ref:t}));}
 function touchStep(m){if(!touchAim.on){touchAt=0;laser=null;return;}const now=performance.now(),dt=touchAt?(now-touchAt)/1000:0;touchAt=now;const r=touchAim.step(Math.min(.1,dt),aimTargets(m));
  if(r.a!==null)aim={x:Math.cos(r.a),y:Math.sin(r.a)};firing=r.fire;aimZone.classList.toggle('firing',firing);laser=r.aiming?{a:r.a,fire:r.fire}:null;}
 // A dive asked for by C, B on a controller or the Dive button, taken by the next step of the fight.
 let diveAsk=false;function askDive(){if(street()&&!paused()){diveAsk=true;buzz(14);}}
 // A controller's stick gets a gentler pull toward the dead than the touch stick, since a thumb on a stick is steadier.
-const PAD_AIM={...AIM,cone:8*Math.PI/180,range:320};
+const PAD_AIM={...AIM,cone:14*Math.PI/180,range:340};
 function fightInput(s,m){touchStep(m);const pa=padState.aim;if(pa.x||pa.y){mousePoint=null;const a=assist(Math.atan2(pa.y,pa.x),aimTargets(m),PAD_AIM);aim={x:Math.cos(a),y:Math.sin(a)};}else if(mousePoint){const p=s.cameras.main.getWorldPoint(mousePoint.x,mousePoint.y);aim={x:p.x-m.x,y:p.y+35-m.y};}return {x:move.x+padState.move.x+Number(keys.has('d')||keys.has('arrowright'))-Number(keys.has('a')||keys.has('arrowleft')),y:move.y+padState.move.y+Number(keys.has('s')||keys.has('arrowdown'))-Number(keys.has('w')||keys.has('arrowup')),run:(running&&touch())||padState.run||keys.has('shift'),aimX:aim.x,aimY:aim.y,fire:firing||mouseFire||padState.fire||keys.has(' '),dive:diveAsk&&!(diveAsk=false)};}
 const bridge={quality,here:()=>place==='room',aimLine:()=>laser,petLook:()=>petLook(companion),pet:()=>roomPet,petStep:dt=>{if(!halted())roomPet.update(dt,ownerOf(model));},paused,loadout:gear,appearance:()=>appearance,zoom,res:RES,input:()=>fightInput(scene,model),ready:s=>{scene=s;ready=true;connectMouse(s);s.practice.setMods(mods(wallet));if(place!=='room')setTimeout(()=>travel(place));else $('loading').hidden=true;},tick:now=>{paintRun();paintWeapon(scene.practice);paintDrill(scene.practice.drill,now);roomPrompt(scene);if($('inspection').open)paintInspection(now);},contextLost:()=>{contextMissing=true;resetInput();$('status').textContent='Graphics paused. Waiting to reconnect…';},contextRestored:()=>{contextMissing=false;$('status').textContent='';}};
 
@@ -341,7 +342,7 @@ const streetBridge={quality,paused,zoom,res:RES,aimLine:()=>laser,flash:()=>flas
  // The door back in stays shut while anything out here is coming for you, and the trunk waits until the street is clear.
  usable:t=>t.remains?!!streetScene?.fight.remains&&!homeKit.corpse?.taken&&!streetScene.fight.searching:t.id==='frontdoor'&&homeKit.phase==='own'?false:t.job?!!streetScene?.fight.can(t)&&!streetScene.fight.searching:t.loot?!homeKit.looted?.includes(t.id)&&!streetScene?.fight.searching&&!homeKit.mission?.carry:t.id==='frontdoor'?!streetScene?.fight.threat().length:t.id==='cruiser'?homeKit.street==='cleared':true,
  event:e=>streetEvent(e),ready:s=>{streetScene=s;if(place==='street')$('loading').hidden=true;},
- tick:(now,s)=>{paintWatch(now,s.fight);airTick(s.fight);arrive(now);paintRun();paintWeapon(s.fight,homeKit.held);streetHud(s.fight);paintMarks(s);roomPrompt(s);if($('inspection').open)paintInspection(now);think(now);}};
+ tick:(now,s)=>{paintWatch(now,s.fight);airTick(s.fight);arrive(now);paintRun();paintWeapon(s.fight,homeKit.held);streetHud(s.fight);paintLife(s.fight);paintMarks(s);roomPrompt(s);if($('inspection').open)paintInspection(now);think(now);}};
 // Your thoughts (home/thoughts.js): one line at a time under you, at home and on the street. They wait while you talk, read or watch.
 function think(now){const dt=Math.min(.1,Math.max(0,(now-(thoughtAt||now))/1000));thoughtAt=now;const home=place==='home',f=streetScene?.fight;
  const st=home?{place,kit:homeKit,x:homeModel.x,y:homeModel.y,pets:homeScene?.pets?.map(p=>({x:p.pet.x,y:p.pet.y,def:p.def}))}:{place,kit:homeKit,x:streetModel.x,y:streetModel.y,cruiser:Math.hypot(streetModel.x-CRUISER.x,streetModel.y-CRUISER.y),fight:f&&{alert:f.alert,hp:f.hp,maxHp:f.maxHp}};
@@ -468,6 +469,10 @@ function paintMarks(s){const box=$('marks'),f=s.fight,k=homeKit;let list=[];
   d.children[1].textContent=t.mark||MARK_ICON[t.job||(t.remains?'remains':'')];d.children[2].textContent=on&&dist<4?'':dist+' m';});}
 // The readout over the street: what is happening, how many are left, and your health once the fight is on.
 // The district you are in names the place in the corner.
+// Health and stamina, low in the middle of the street screen; the trail behind health lags so a hit shows how much it took.
+let lifeShown='';function paintLife(f){const s=stamina(),max=f.maxHp||100,hp=Math.max(0,Math.min(max,f.hp)),p=hp/max,q=s.value/s.max,key=[Math.ceil(hp),Math.round(q*100),s.winded].join();if(key===lifeShown)return;lifeShown=key;
+ const L=$('life');for(const [sel,v] of [['.hp .fill',p],['.hp .trail',p],['.st .fill',q]])L.querySelector(sel).style.setProperty('--p',v.toFixed(3));$('lifeHp').textContent=Math.ceil(hp);$('lifeSt').textContent=s.winded?'Winded':'';
+ L.classList.toggle('low',p<=.3);L.classList.toggle('mid',p>.3&&p<=.6);L.classList.toggle('winded',s.winded);L.setAttribute('aria-label',`Health ${Math.ceil(hp)} of ${max}, stamina ${Math.round(q*100)} percent${s.winded?', winded':''}`);}
 let streetHudShown=null;function streetHud(f){const area=areaAt(streetModel.x,streetModel.y);if(area&&area!==areaShown){areaShown=area;$('placeName').innerHTML=`${AREA_NAMES[area]} <i>Night one</i>`;}
  const n=f.threat().length,pct=Math.round(f.hp/f.maxHp*100),fighting=n>0,deckGoal=document.body.classList.contains('deck')&&goal(homeKit,true);
  // On the portrait deck the goal lives here too, since the deck's corner is the weapon panel's.
@@ -478,11 +483,10 @@ let streetHudShown=null;function streetHud(f){const area=areaAt(streetModel.x,st
   fx?`<b>${fx.title}</b><span>${fx.hint}</span>`:hold?`<b>Hold the light</b><span>${J.near?clock(HOLD.time-J.hold):'Get back to it'}</span>${many}`:fighting?`<b>Contact</b><span>${plural(n,'zombie')}</span>`:carry?`<b>Carrying</b><span>${PART_NAME[carry]}</span>`:pct<100?'<b>Hurt</b><span>It will close up</span>':deckGoal?`<b>Goal</b><span>${deckGoal}</span>`:'';
  const dial=fx?`<div class="fix ${fx.kind}"><i>${fx.zone?`<i class="zone" style="left:${(fx.zone[0]*100).toFixed(1)}%;width:${((fx.zone[1]-fx.zone[0])*100).toFixed(1)}%"></i><i class="cur"></i>`:`<i class="fill" style="width:${Math.round(fx.cur*100)}%"></i>`}</i><span class="dots">${Array.from({length:fx.of},(_,i)=>`<i${i<fx.done?' class="on"':''}></i>`).join('')}</span></div>`
   :hold?`<div class="fix hold"><i><i class="fill" style="width:${Math.floor(J.hold/HOLD.time*100)}%"></i></i></div>`:'';
- const bar=fighting||f.down||pct<100?`<div class="vitals"><i class="hp${pct<=30?' low':''}" role="img" aria-label="Health ${Math.round(f.hp)} of ${f.maxHp}"><i style="width:${pct}%"></i></i></div>`:'';
  // The heat, once you have made any noise: how loud you have been, and what that is bringing.
  // While a swarm is on you the meter holds still and counts down what is left of it instead.
  const lv=f.level,sl=f.swarmLeft(),heat=f.heat>1?`<div class="heat h${lv}"><b>${sl?`Swarm · ${sl} left`:HEAT.names[lv]}</b><i role="img" aria-label="Heat ${Math.round(f.heat)} of 100"><i style="width:${Math.round(f.heat)}%"></i></i></div>`:'';
- const html=top||heat?`${top?`<div class="row">${top}</div>`:''}${dial}${bar}${heat}`:'';
+ const html=top||heat?`${top?`<div class="row">${top}</div>`:''}${dial}${heat}`:'';
  if(html!==streetHudShown){streetHudShown=html;const h=$('drillHud');h.innerHTML=html;h.hidden=!html;}
  if(fx?.zone){const c=$('drillHud').querySelector('.fix .cur');if(c)c.style.left=(fx.cur*100).toFixed(1)+'%';}}
 // The Use prompt floats over whatever is in reach.

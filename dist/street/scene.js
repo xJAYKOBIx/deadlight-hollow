@@ -2,7 +2,7 @@
 // the dead, the night light, the cruiser's light bar and the fight's effects. The map is far too big to hold as one picture, so it
 // is kept in square chunks: the ground and light of the chunks round the screen are painted as you come near and let go once you
 // are well past, and each prop is painted while any chunk its picture touches is held. The fight is street/fight.js; this draws it.
-import {CineCam} from '../study/camera.js';import {bake,unbake,worthBaking} from '../study/memory.js';import {drawLaser} from '../study/aimstick.js';import {muzzle,lightAt} from '../study/equipment.js';
+import {CineCam} from '../study/camera.js';import {bake,unbake,worthBaking} from '../study/memory.js';import {drawLaser,LASER} from '../study/aimstick.js';import {muzzle,lightAt} from '../study/equipment.js';
 import {survivor,FRAME} from '../study/character.js';
 import {LAYERS,ORDER,origin,sheetSize,paintLayers,paintRacked,paintDive,DIVE as DIVE_ART,pose,armed} from '../study/layers.js';
 import {DEFAULT_APPEARANCE,UNIFORMS} from '../study/appearance.js';
@@ -69,6 +69,8 @@ const PART_ART={battery:{kind:'carbattery',w:14,h:8,z:10},fuel:{kind:'gascan',w:
 export const BEAM={len:240,half:24*Math.PI/180,pool:36,col:[255,244,220]};
 // The fight's clock: sixty steps a second whatever the screen manages (up to four a frame), so it plays the same on every phone.
 export const STEP=1/60,MAX_STEPS=4;
+// The ring round each player's feet: its size, the gap behind the legs, how strong, and the colours handed out in co-op (me: yours).
+export const RING={rx:11,ry:4.5,gap:.6,alpha:.6,cols:[0x5fd3c6,0xf2c46a,0xc28ff0,0x8fc4ff],me:0};
 // What a shot does to the picture: how long its flash lights the street and how far, how far the gun kicks back in your hands
 // and the view jolts away from the shot, and how many casings stay on the ground.
 export const KICK={'light-pistol':{light:.06,glow:3,arms:2,cam:2.4,flash:7},'heavy-pistol':{light:.07,glow:3.6,arms:3,cam:3.4,flash:9},'pump-shotgun':{light:.09,glow:4.6,arms:4,cam:6,flash:12}};
@@ -364,7 +366,7 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   this.bar[0].setAlpha(on?.05:.42);this.bar[1].setAlpha(on?.42:.05);this.head.setAlpha(.3+.04*Math.sin(now/90));
   this.juice.update(now,held?0:dt,f);
   // Tracers: a short bright streak running from the muzzle to where the shot stopped.
-  const g=this.fx;g.clear();for(const t of f.traces){const k=Math.min(1,t.age/(t.dur||.001)),mx=t.x+t.ox,my=t.y+t.oy,ex=t.ex,ey=t.ey+t.oy,hx=mx+(ex-mx)*k,hy=my+(ey-my)*k,tx=mx+(ex-mx)*Math.max(0,k-.35),ty=my+(ey-my)*Math.max(0,k-.35),a=Math.max(0,t.life/(t.dur+.07));
+  const g=this.fx;g.clear();this.ring(g,f);for(const t of f.traces){const k=Math.min(1,t.age/(t.dur||.001)),mx=t.x+t.ox,my=t.y+t.oy,ex=t.ex,ey=t.ey+t.oy,hx=mx+(ex-mx)*k,hy=my+(ey-my)*k,tx=mx+(ex-mx)*Math.max(0,k-.35),ty=my+(ey-my)*Math.max(0,k-.35),a=Math.max(0,t.life/(t.dur+.07));
    g.lineStyle(1,0xfff1c8,.85*a).lineBetween(tx,ty,hx,hy);if(t.done&&t.onto.kind!=='zombie'){g.fillStyle(0xffe2a0,a).fillRect(ex-.5,ey-.5-(t.onto.kind==='prop'?0:-t.oy),1.5,1.5);}}
   // Where a shot stops on something solid: sparks back toward you and a little dust off it.
   for(const t of f.traces)if(t.done&&!t._fx){t._fx=true;if(t.onto.kind!=='prop')continue;const a=Math.atan2(t.ey-t.y,t.ex-t.x)+Math.PI;
@@ -373,8 +375,7 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   const K=KICK[f.gunId];if(K&&f.sinceShot<.045&&this.shotA!==undefined&&!f.down){const a=this.shotA,mz=muzzle(a,this.look.gun),x=model.x+mz.x,y=model.y+mz.y,c=Math.cos(a),s=Math.sin(a),n=K.flash*(1-f.sinceShot/.09);
    g.lineStyle(2,0xffb347,.9).lineBetween(x,y,x+c*n,y+s*n);g.lineStyle(1,0xfff6d8,1).lineBetween(x,y,x+c*n*.8,y+s*n*.8);g.lineStyle(1,0xffd27a,.85).lineBetween(x+c*2,y+s*2,x+c*2-s*n*.35,y+s*2+c*n*.35).lineBetween(x+c*2,y+s*2,x+c*2+s*n*.35,y+s*2-c*n*.35);}
   // The touch stick's laser, while your thumb is on it, stopping on the first thing it touches with a dot.
-  const L=bridge.aimLine?.();if(L&&!f.down&&armed(this.look)){const mz=muzzle(L.a,this.look.gun),len=this.reach(L.a,150);drawLaser(g,model.x,model.y,mz,L.a,L.fire,len);
-   const ex=Math.round((model.x+Math.cos(L.a)*len)*2)/2,ey=Math.round((model.y+Math.sin(L.a)*len+mz.y)*2)/2;g.fillStyle(0xff4a3a,L.fire?.95:.7).fillRect(ex-.5,ey-.5,1.5,1.5);}
+  const L=bridge.aimLine?.();if(L&&!f.down&&armed(this.look)){const mz=muzzle(L.a,this.look.gun),R=f.lineOf(L.a,LASER.len);drawLaser(g,model.x,model.y,mz,L.a,L.fire,R.d,!!R.z);}
   // The mouse's crosshair: four ticks round a dot, spreading for a moment after each shot.
   const X=bridge.reticle?.();if(X&&!f.down&&armed(this.look)){const big=f.gunId==='pump-shotgun',open=3+Math.max(0,1-f.sinceShot/(big?.3:.16))*(big?7:3),x=Math.round(X.x*2)/2,y=Math.round(X.y*2)/2;
    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const x0=x+dx*open,y0=y+dy*open,w=dx?3:1,h=dy?3:1,rx=dx<0?x0-3:x0,ry=dy<0?y0-3:y0;g.fillStyle(0x111319,.8).fillRect(rx-.5,ry-.5,w+1,h+1);g.fillStyle(0xf2e6c8,.95).fillRect(rx,ry,w,h);}
@@ -412,7 +413,12 @@ export function makeStreetScene(model,bridge){return class Street extends Phaser
   for(const [o,a] of this.hz)if(!keep.has(o)){for(const i of a)i.destroy();this.hz.delete(o);}
   // A scream: rings off its head, faster as it builds.
   for(const z of f.zombies)if(z.state==='scream'&&z.hp>0&&this.zs.has(z)){const C=SCREAMER.scream,k=1-z.t/C.tell;for(let q=0;q<3;q++){const ph=((now/(420-k*200))+q/3)%1;g.lineStyle(1.5,0xe0c8ff,.55*(1-ph)*(.4+.6*k)).strokeEllipse(z.x,z.y-52,16+ph*70,10+ph*40);}}}
- // How far a line from you goes before it meets something solid or one of the dead, up to max.
- reach(a,max){const c=Math.cos(a),s=Math.sin(a),f=this.fight,near=f.zombies.filter(z=>f.out(z)&&Math.abs(z.x-model.x)<max+20&&Math.abs(z.y-model.y)<max+20);
-  for(let d=6;d<=max;d+=3){const x=model.x+c*d,y=model.y+s*d;if(coverAt(x,y)||near.some(z=>Math.hypot(z.x-x,(z.y-y)*1.2)<12))return d;}return max;}
+ // Your ring: a thin coloured ellipse round your feet, so you can be picked out of a crowd (in co-op each player gets the next colour).
+ // It sits above the night so it never goes dark, with a gap at the back where your legs stand. Under it, while you are hurt, a small
+ // health bar. Both stay out of the way: one line and one sliver.
+ ring(g,f){if(f.down||f.dead)return;const x=model.x,y=model.y+.5,col=RING.cols[RING.me%RING.cols.length],pts=[];
+  for(let a=-Math.PI/2+RING.gap;a<=Math.PI*1.5-RING.gap+1e-6;a+=Math.PI/24)pts.push({x:Math.round((x+Math.cos(a)*RING.rx)*2)/2,y:Math.round((y+Math.sin(a)*RING.ry)*2)/2});
+  g.lineStyle(1,col,RING.alpha).strokePoints(pts,false);
+  const p=Math.max(0,f.hp)/(f.maxHp||100);if(p>=1)return;const w=RING.rx*2-2,bx=Math.round((x-w/2)*2)/2,by=Math.round((y+RING.ry+2.5)*2)/2;
+  g.fillStyle(0x0d0c0b,.8).fillRect(bx-.5,by-.5,w+1,2.5);g.fillStyle(p<=.3?0xe0503a:p<=.6?0xe8b83a:0x9fd65a,.95).fillRect(bx,by,Math.max(.5,Math.round(w*p*2)/2),1.5);}
 };}

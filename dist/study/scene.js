@@ -81,7 +81,7 @@ export function makeStudyScene(model,bridge){return class CharacterRoom extends 
  for(const o of OBJECTS){const td=Math.hypot(model.x-o.x,model.y-o.y);if(td<best){best=td;this.target=o;}}
  if(this.pet){bridge.petStep(delta/1000);placePet(this.pet,bridge.pet());}let cam=this.cameras.main;cam.setZoom(bridge.zoom());const lead=bridge.lead?.(delta/1000)||{x:0,y:0};// When the view is bigger than the room, the room sits in the middle of it.
  const vw=cam.width/cam.zoom,vh=cam.height/cam.zoom,bx=Math.min(0,(ROOM.w-vw)/2),by=Math.min(0,(ROOM.h-vh)/2);cam.setBounds(bx,by,ROOM.w-2*bx,ROOM.h-2*by);cam.centerOn(model.x+lead.x,model.y-20+lead.y);
- this.paintMarks();this.drawBots();practiceEffects(this.fx,this.practice);const L=bridge.aimLine?.();if(L&&!drill.downed&&armed(this.look))drawLaser(this.fx,model.x,model.y,muzzle(L.a,this.look.gun),L.a,L.fire);this.juice.update(now,held?0:delta/1000,this.practice);this.drawFloorFx(now);
+ this.paintMarks();this.drawBots();practiceEffects(this.fx,this.practice);const L=bridge.aimLine?.();if(L&&!drill.downed&&armed(this.look))drawLaser(this.fx,model.x,model.y,muzzle(L.a,this.look.gun),L.a,L.fire,150);this.juice.update(now,held?0:delta/1000,this.practice);this.drawFloorFx(now);
  for(let i=0;i<this.targetSprites.length;i++){const t=this.practice.targets[i],tp=this.targetPaint[i];this.targetSprites[i].setAlpha(t.hp>0?1:.3);if(tp.n!==t.paint.length){tp.n=t.paint.length;this.drawPaint(tp.g,t.paint,t.x,t.y);}tp.g.setAlpha(t.hp>0?1:.3);}
  this.glows.forEach((g,i)=>g.setAlpha(.3+.03*Math.sin(now*.004+i*1.7)));this.drawBlink(now);bridge.tick(now);}
 };}
