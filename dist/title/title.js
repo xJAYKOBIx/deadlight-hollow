@@ -35,7 +35,7 @@ export function mountTitle(o){
  <div class="ti-press" aria-live="polite"></div><nav class="ti-menu" aria-label="Main menu"></nav><section class="ti-panel" hidden></section></div>
  <footer class="ti-foot"><span class="ti-hints"></span><span class="ti-ver"></span></footer><div class="ti-black" aria-hidden="true"></div>`;
  document.body.append(el);const q=s=>el.querySelector(s),menu=q('.ti-menu'),panel=q('.ti-panel'),press=q('.ti-press');q('.ti-ver').textContent='v'+o.version;
- let state='off',from=null,shown=false,bed=null,bedT=0,raf=0,last=0,flashAt=0,stickAt=0,leaving=false,opened=0;
+ let state='off',from=null,downOn=null,shown=false,bed=null,bedT=0,raf=0,last=0,flashAt=0,stickAt=0,leaving=false,opened=0;
  const sound=id=>o.audio.play(id,{},.03);
  // The rain: a few hundred thin streaks falling on a slant, drawn at the screen's own size.
  const rain=q('.ti-rain'),rc=rain.getContext('2d');let drops=[];
@@ -52,11 +52,14 @@ export function mountTitle(o){
  // Hints for the way you are playing.
  function hints(){const d=o.device();q('.ti-hints').innerHTML=d==='pad'?'<kbd>Ⓐ</kbd> Choose <kbd>Ⓑ</kbd> Back':d==='keys'?'<kbd>↑</kbd><kbd>↓</kbd> Move <kbd>Enter</kbd> Choose <kbd>Esc</kbd> Back':'';
   press.textContent=d==='touch'?'Tap to start':d==='pad'?'Press any button':'Press any key';}
- // A list of choices (the menu, or a panel's): buttons, each with its line under it; moving onto one ticks.
- function list(box,rows,pick){box.innerHTML='';for(const r of rows){const b=document.createElement('button');b.type='button';b.className='ti-item';b.dataset.id=r.id;b.disabled=!!r.off;
+ // A list of choices (the menu, or a panel's): buttons, each with its line under it; moving onto one ticks. A press counts only if
+ // it began on that button (or came from the keys or a controller, which click with no pointer): the tap that wakes the title
+ // brings the menu up under a finger still on the glass, and lifting it must not choose whatever is there (v0.70.1).
+ function list(box,rows,pick){box.innerHTML='';downOn=null;for(const r of rows){const b=document.createElement('button');b.type='button';b.className='ti-item';b.dataset.id=r.id;b.disabled=!!r.off;
    b.innerHTML=`<span class="ti-mark" aria-hidden="true"></span><span class="ti-text"><b>${r.label}</b>${r.sub?`<small>${r.sub}</small>`:''}</span>`;
    b.addEventListener('pointerenter',()=>{if(!b.disabled&&document.activeElement!==b&&state!=='off'){b.focus({preventScroll:true});sound('menu-move');}});
-   b.addEventListener('click',()=>{if(!b.disabled&&!leaving)pick(r.id,b);});box.append(b);}
+   b.addEventListener('pointerdown',()=>{downOn=b;});
+   b.addEventListener('click',e=>{const mine=e.detail===0||downOn===b;downOn=null;if(!b.disabled&&!leaving&&mine)pick(r.id,b);});box.append(b);}
   const first=[...box.querySelectorAll('.ti-item')].find(b=>!b.disabled);first?.focus({preventScroll:true});}
  function showMenu(focus){state='menu';panel.hidden=true;menu.hidden=false;el.classList.add('ti-menuing');el.classList.remove('ti-paneled');const s=o.save();
   const m=o.marcusSave?.();list(menu,ITEMS.map(([id,label,sub])=>id==='continue'?{id,label,sub:s?`${s.label} · ${s.detail}`:'Nothing in progress',off:!s}:id==='marcus'&&m?{id,label,sub:`${m.label} · ${m.detail}`}:

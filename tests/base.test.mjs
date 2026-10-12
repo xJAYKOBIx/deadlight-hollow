@@ -63,3 +63,8 @@ test('the operation remembers the furthest you got, and New Game offers each par
  const app=fs.readFileSync(new URL('../dist/study/app.js',import.meta.url),'utf8'),title=fs.readFileSync(new URL('../dist/title/title.js',import.meta.url),'utf8');
  assert.match(app,/op\.stage==='done'\)return null/,'a finished operation is nothing to continue');assert.match(app,/parts:\(\)=>opStarted\?opParts\(op\):null/);assert.match(app,/onPart:enterPart/);assert.match(app,/setOp\(patch\)\{op=advance\(op,patch\)/);
  assert.match(title,/o\.parts\?\.\(\)\?parts\(\):o\.opSave\?\.\(\)\?confirmNew\(\):leave\(o\.onNew\)/,'New Game opens the parts once there are any');assert.match(title,/if\(o\.opSave\?\.\(\)\)confirmNew\(p\)/,'a part asks first when an operation is going');});
+test('the tap that wakes the title does not choose the menu button that comes up under it',()=>{
+ const title=fs.readFileSync(new URL('../dist/title/title.js',import.meta.url),'utf8');
+ assert.match(title,/addEventListener\('pointerdown',\(\)=>\{downOn=b;\}\)/,'a press is remembered on the button it began on');
+ assert.match(title,/const mine=e\.detail===0\|\|downOn===b/,'a click counts only from that press, or from the keys or a controller');
+ assert.match(title,/function list\(box,rows,pick\)\{box\.innerHTML='';downOn=null;/,'a new list forgets any press from before');});

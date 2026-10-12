@@ -544,6 +544,10 @@ Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack),
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
 
+## v0.70.1 — The tap that starts the title no longer opens Survivor
+
+**Fixed:** on a phone, tapping "Tap to start" could open the character creator. The tap brings the menu up 60 ms later, before the finger has left the glass, so lifting it landed a click on whichever button was now under it, usually Survivor in the middle of the screen (reproduced with a tap held a quarter of a second). A menu or panel button now only acts on a click whose press began on that same button, or on one from the keys or a controller (`title/title.js` `list`, `downOn`). Touch, mouse, keys and the controller still choose as before.
+
 ## v0.70.0 — Operation Bell Jar, part five: the title, after the operation
 
 The last part of the opening mission is the title screen around it. Marcus's night already lives on the menu as its own story (part one), so this part is about what the menu offers once you have played the operation.
