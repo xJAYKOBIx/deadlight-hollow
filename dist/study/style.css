@@ -13,64 +13,114 @@ html,body{background:var(--ash)}
 #run.active{background:#dd6f2c99;border-color:var(--ember-hi)}button:active{background:#3a2a1f}
 dialog:not(.creator){background:var(--grit),linear-gradient(160deg,#23201c,#161412);border-color:var(--edge);border-radius:4px}dialog:not(.creator) h1{font-family:var(--display);font-size:24px;text-transform:uppercase}.primary{background:var(--ember);color:var(--ember-ink);border-color:var(--ember-hi)}.options-body a{color:var(--ember-hi)}.status{background:var(--bone);color:var(--ember-ink)}
 
-dialog.creator{position:fixed;inset:0;margin:0;width:100%;height:100%;max-width:none;max-height:none;padding:0;border:0;border-radius:0;box-shadow:none;overflow:hidden;color:var(--bone);font-family:var(--body);background:radial-gradient(120% 90% at 20% 40%,#211d19 0%,var(--ash) 60%);touch-action:manipulation}
-dialog.creator[open]{display:grid;grid-template-rows:auto minmax(0,1fr) auto}dialog.creator::backdrop{background:var(--ash)}
-.creator button{font-family:var(--ui);font-weight:600;letter-spacing:.06em;text-transform:uppercase;border-radius:3px;background:var(--panel-2);border-color:var(--edge);color:var(--bone)}
-.creator button:focus-visible,.creator input:focus-visible{outline:2px solid var(--ember-hi);outline-offset:2px}.creator button:active{background:#3a2a1f}
+/* v0.71 creator: the survivor intake station, at night. Field-kit iron and hazard stripe like every other panel, and the preview on a
+   lineup wall marked in feet (drawn under the character in the canvas, so the marks keep its scale). Layout: a header (back, title,
+   who you are making, Done); the stage (preview, then the name tape, poses, turning and undo); the section tabs; and the choices,
+   which show a More below tab while there is more to scroll to. Portrait stacks it with the stage side by side and every section tab
+   in one row; landscape and desktop put the stage and the tabs down the left. */
+dialog.creator{position:fixed;inset:0;margin:0;width:100%;height:100%;max-width:none;max-height:none;padding:0;border:0;border-radius:0;box-shadow:none;overflow:hidden;color:var(--bone);font-family:var(--body);touch-action:manipulation;
+ background:var(--grit),radial-gradient(80% 55% at 75% -5%,#1c2633 0%,transparent 70%),radial-gradient(120% 90% at 15% 70%,#1e1a16 0%,#0f1011 72%)}
+dialog.creator[open]{display:grid;grid-template-rows:auto minmax(0,1fr) auto}dialog.creator::backdrop{background:#0b0a09}
+.creator button{font-family:var(--ui);font-weight:600;letter-spacing:.08em;text-transform:uppercase;border-radius:2px;background:linear-gradient(#2a2622,#1c1916);border:1px solid var(--plate-edge);color:var(--bone);box-shadow:inset 0 1px 0 #ffffff10,0 1px 0 #0008}
+.creator button:hover{border-color:var(--edge-hi)}.creator button:active{background:#3a2a1f}.creator button:disabled{opacity:.38;cursor:default}
+.creator button:focus-visible,.creator input:focus-visible{outline:2px solid var(--ember-hi);outline-offset:2px}
 .creator svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
-.cr-bar{position:relative;display:flex;align-items:center;gap:10px;padding:max(8px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) 9px max(14px,env(safe-area-inset-left));background:var(--grit),linear-gradient(#1f1c19,#171512);border-bottom:1px solid var(--edge)}
-.cr-bar::after{content:'';position:absolute;left:0;right:0;bottom:-4px;height:3px;background:repeating-linear-gradient(-45deg,var(--ember) 0 5px,transparent 5px 11px);opacity:.55;pointer-events:none}
-.cr-back{display:flex;align-items:center;gap:2px;padding:0 12px 0 6px;min-height:40px;background:transparent!important;border-color:transparent!important;color:var(--dust)!important;font-size:14px}.cr-back:hover{color:var(--bone)!important}
-.cr-title{display:flex;flex-direction:column;gap:1px;min-width:0}.cr-kicker{font:600 10px/1 var(--ui);letter-spacing:.2em;text-transform:uppercase;color:var(--ember-hi)}
-.cr-title h1{font:400 22px/1.05 var(--display);letter-spacing:.02em;text-transform:uppercase;margin:0;white-space:nowrap;text-wrap:balance}
-.cr-name{display:flex;align-items:center;gap:8px;margin-left:12px;font:600 11px/1 var(--ui);letter-spacing:.16em;text-transform:uppercase;color:var(--dust)}
-.cr-name input{width:150px;height:38px;padding:0 10px;font:600 16px var(--ui);letter-spacing:.04em;color:var(--bone);background:#100f0d;border:1px solid var(--edge);border-radius:3px;user-select:text;-webkit-user-select:text;touch-action:manipulation}.cr-name input::placeholder{color:#6e665b}.cr-name input:focus{border-color:var(--ember)}
-.cr-actions{display:flex;gap:6px;margin-left:auto}.cr-btn{min-height:40px;padding:0 12px;font-size:14px}.cr-btn:disabled{opacity:.38;cursor:default}
-.cr-done{min-height:40px;padding:0 20px;font-size:15px;font-weight:700!important;background:var(--ember)!important;color:var(--ember-ink)!important;border-color:var(--ember-hi)!important;clip-path:polygon(0 0,calc(100% - 9px) 0,100% 9px,100% 100%,9px 100%,0 calc(100% - 9px))}.cr-done:active{background:var(--ember-hi)!important}
-.cr-main{display:grid;grid-template-columns:minmax(200px,35%) 70px minmax(0,1fr);gap:10px;min-height:0;padding:12px max(14px,env(safe-area-inset-right)) 0 max(14px,env(safe-area-inset-left))}
-.cr-stage{display:grid;grid-template-rows:minmax(0,1fr) auto;gap:8px;min-height:0}
-.cr-frame{position:relative;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid var(--edge);background:linear-gradient(transparent 76%,#ffffff07 76.3%,transparent 77%),radial-gradient(50% 22% at 50% 82%,#4a3523 0%,transparent 100%),radial-gradient(80% 70% at 50% 35%,#2b2622,#151311 80%);cursor:grab;touch-action:none}
-.cr-frame:active{cursor:grabbing}.cr-frame canvas{position:relative;height:100%;width:auto;max-width:100%;aspect-ratio:280/360;object-fit:contain}
-.cr-corner{position:absolute;inset:7px;pointer-events:none;background:linear-gradient(var(--ember),var(--ember)) 0 0/14px 2px,linear-gradient(var(--ember),var(--ember)) 0 0/2px 14px,linear-gradient(var(--ember),var(--ember)) 100% 0/14px 2px,linear-gradient(var(--ember),var(--ember)) 100% 0/2px 14px,linear-gradient(var(--ember),var(--ember)) 0 100%/14px 2px,linear-gradient(var(--ember),var(--ember)) 0 100%/2px 14px,linear-gradient(var(--ember),var(--ember)) 100% 100%/14px 2px,linear-gradient(var(--ember),var(--ember)) 100% 100%/2px 14px;background-repeat:no-repeat;opacity:.7}
-.cr-facing,.cr-hint{position:absolute;font:600 11px/1 var(--ui);letter-spacing:.16em;text-transform:uppercase;pointer-events:none}.cr-facing{top:15px;left:18px;color:var(--bone)}.cr-hint{bottom:15px;right:18px;color:#8a8172}
-.cr-stage-controls{display:flex;gap:6px}.cr-turn{width:44px;min-height:40px;padding:0;display:flex;align-items:center;justify-content:center}.cr-poses{flex:1;display:flex;gap:4px}.cr-poses button{flex:1;min-height:40px;padding:0 4px;font-size:13px;color:var(--dust)}
-.cr-poses button[aria-pressed=true]{color:var(--ember-hi);border-color:var(--ember);background:#2c2019}
-.cr-rail{display:flex;flex-direction:column;gap:4px;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}.cr-rail::-webkit-scrollbar{display:none}
-.cr-rail button{flex:0 0 auto;min-height:0;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 2px 6px;background:transparent;border-color:transparent;color:var(--dust);font-size:11px;font-weight:600;letter-spacing:.05em}
-.cr-rail button[aria-pressed=true]{color:var(--bone);background:var(--panel-2);border-color:var(--edge);box-shadow:inset 3px 0 0 var(--ember)}.cr-rail button[aria-pressed=true] svg{stroke:var(--ember-hi)}
-.cr-panel{min-height:0;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;display:flex;flex-direction:column;gap:16px;padding:12px 14px 18px;background:var(--grit),var(--panel);border:1px solid var(--edge)}
-.cr-panel-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;border-bottom:1px solid var(--edge);padding-bottom:8px}.cr-panel-head h2{margin:0;font:400 21px/1 var(--display);letter-spacing:.03em;text-transform:uppercase}.cr-panel-head span{font:600 12px/1 var(--ui);letter-spacing:.14em;color:var(--dust);font-variant-numeric:tabular-nums}
-.cr-row h3{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin:0 0 8px;font:600 12px/1.2 var(--ui);letter-spacing:.16em;text-transform:uppercase;color:var(--dust)}.cr-row h3 b{font-weight:600;letter-spacing:.04em;text-transform:none;font-size:14px;color:var(--bone)}
-.cr-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:6px}
-.cr-tile{min-height:0;min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:4px;padding:4px 4px 6px;background:var(--panel-2);border:1px solid var(--edge)}
-.cr-tile canvas{width:100%;height:auto;aspect-ratio:1;background:radial-gradient(70% 70% at 50% 45%,#36312b,#1b1916)}
-.cr-tile span{font-size:12px;font-weight:600;letter-spacing:.03em;text-transform:none;line-height:1.1;color:var(--dust);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
-.cr-tile[aria-pressed=true]{border-color:var(--ember);box-shadow:inset 0 0 0 1px var(--ember),0 0 14px var(--ember-glow);background:linear-gradient(225deg,var(--ember) 8px,transparent 8.5px),var(--panel-2)}.cr-tile[aria-pressed=true] span{color:var(--bone)}
-.cr-none canvas{background:repeating-linear-gradient(135deg,#ffffff08 0 4px,transparent 4px 9px),#1b1916}
-.cr-swatches{display:flex;flex-wrap:wrap;gap:8px}
-.cr-swatch{width:40px;height:40px;min-height:0;padding:0;border-radius:3px;background:var(--c)!important;border:2px solid var(--ash)!important;box-shadow:0 0 0 1px var(--edge-hi)}
-.cr-swatch[aria-pressed=true]{box-shadow:0 0 0 2px var(--ember-hi),0 0 12px var(--ember-glow)}
-.cr-note{margin:8px 0 0;font-size:13px;line-height:1.5;color:var(--dust);max-width:60ch}
-.cr-status{margin:0;padding:6px max(14px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));font:600 11px/1.2 var(--ui);letter-spacing:.12em;text-transform:uppercase;color:#857c6e}
-@media(max-width:860px){.cr-title{display:none}.cr-name{margin-left:0}.cr-btn{padding:0 10px;font-size:13px}}
-@media(orientation:landscape) and (max-height:560px){.cr-bar{padding-bottom:7px}.cr-main{padding-top:9px;gap:8px}.cr-tiles{grid-template-columns:repeat(auto-fill,minmax(70px,1fr))}.cr-panel{gap:12px;padding:10px 12px 14px}.cr-swatch{width:36px;height:36px}.cr-hint{display:none}.cr-status{padding-top:4px}.cr-rail{gap:2px}.cr-rail button{flex:1 0 34px;justify-content:center;gap:1px;padding:2px;font-size:10px}.cr-rail svg{width:18px;height:18px}}
-@media(orientation:portrait){
- .cr-bar{flex-wrap:wrap;row-gap:8px}.cr-bar::before{content:'';order:4;flex-basis:100%}.cr-back{order:1}.cr-title{display:flex;order:2;flex:1}.cr-title h1{font-size:19px}.cr-actions{display:contents}.cr-done{order:3;margin-left:auto}
- .cr-name{order:5;flex:1;margin:0}.cr-name input{width:100%;min-width:0}.cr-btn{order:6;padding:0 9px;font-size:13px}
- .cr-main{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(150px,32%) auto minmax(0,1fr);gap:8px;padding-top:10px}
- .cr-stage{grid-template-columns:minmax(0,1fr) auto;grid-template-rows:minmax(0,1fr)}.cr-stage-controls{flex-direction:column;width:auto}.cr-poses{flex-direction:column;flex:0 0 auto}.cr-poses button{padding:0 10px}.cr-turn{width:auto}.cr-hint{display:none}
- .cr-rail{flex-direction:row;overflow-x:auto;overflow-y:hidden}.cr-rail button{min-width:62px}.cr-rail button[aria-pressed=true]{box-shadow:inset 0 -3px 0 var(--ember)}
- .cr-tiles{grid-template-columns:repeat(auto-fill,minmax(72px,1fr))}}
-@media(prefers-reduced-motion:reduce){.creator *{transition:none!important;animation:none!important}}
 .cr-frame canvas,.cr-tile canvas{image-rendering:pixelated;image-rendering:crisp-edges}
-@media(min-width:1100px) and (min-height:600px){.cr-tiles{grid-template-columns:repeat(auto-fill,minmax(108px,1fr))}.cr-tile span{font-size:14px}.cr-swatch{width:46px;height:46px}.cr-panel{padding:16px 20px 22px;gap:22px}.cr-panel-head h2{font-size:26px}.cr-row h3{font-size:13px}.cr-row h3 b{font-size:16px}.cr-tiles{max-width:760px}}
+/* The header: welded plate, hazard stripe fading out under it. */
+.cr-bar{position:relative;z-index:2;display:flex;align-items:center;gap:12px;padding:max(8px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) 8px max(8px,env(safe-area-inset-left));background:var(--grit),linear-gradient(#25211d,#161412);box-shadow:0 1px 0 var(--seam),inset 0 -1px 0 #ffffff0a}
+.cr-bar::after{content:'';position:absolute;left:0;right:0;bottom:-5px;height:4px;background:var(--hazard);opacity:.85;-webkit-mask:linear-gradient(90deg,#000 0 30%,transparent 80%);mask:linear-gradient(90deg,#000 0 30%,transparent 80%);pointer-events:none}
+.cr-back{display:flex;align-items:center;gap:2px;min-height:40px;padding:0 10px 0 4px;background:none!important;border-color:transparent!important;box-shadow:none!important;color:var(--dust)!important;font-size:14px}.cr-back:hover{color:var(--bone)!important}
+.cr-title{display:flex;flex-direction:column;gap:4px;min-width:0}
+.cr-kicker{display:flex;align-items:center;gap:7px;font:700 10px/1 var(--ui);letter-spacing:.24em;text-transform:uppercase;color:var(--ember-hi);white-space:nowrap}
+.cr-kicker::before{content:'';flex:none;width:6px;height:6px;background:var(--ember);transform:rotate(45deg)}
+.cr-title h1{margin:0;font:400 23px/1 var(--display);letter-spacing:.03em;text-transform:uppercase;white-space:nowrap;text-shadow:0 2px 0 #000,0 0 22px #dd6f2c30}
+.cr-kind{display:flex;margin-left:auto;border:1px solid var(--plate-edge);background:#0f0e0c;box-shadow:inset 0 1px 3px #000a}
+.cr-kind button{min-height:36px;padding:0 18px;border:0;border-radius:0;background:none;box-shadow:none;color:var(--dust);font-size:13px;letter-spacing:.16em}
+.cr-kind button+button{border-left:1px solid var(--plate-edge)}
+.cr-kind button[aria-pressed=true]{color:var(--ember-ink);background:linear-gradient(var(--ember-hi),var(--ember))}.cr-kind button[data-kind=zombie][aria-pressed=true]{color:#141a08;background:#9fc23a}
+.cr-done{min-height:40px;padding:0 22px;font-size:15px;font-weight:700!important;letter-spacing:.14em!important;background:var(--ember)!important;color:var(--ember-ink)!important;border-color:var(--ember-hi)!important;clip-path:polygon(0 0,calc(100% - 9px) 0,100% 9px,100% 100%,9px 100%,0 calc(100% - 9px))}.cr-done:active{background:var(--ember-hi)!important}
+/* The main area: stage | tabs | choices. */
+.cr-main{display:grid;grid-template-columns:minmax(250px,31%) 78px minmax(0,1fr);gap:12px;min-height:0;padding:16px max(14px,env(safe-area-inset-right)) 0 max(14px,env(safe-area-inset-left))}
+.cr-stage{display:grid;grid-template-rows:minmax(0,1fr) auto;gap:10px;min-height:0}
+/* The lineup wall: the canvas paints the wall, its feet marks and the light on the floor; round it, the same wall and floor, so the
+   picture runs to the frame's edges at any size. */
+.cr-frame{position:relative;min-height:0;display:flex;align-items:flex-end;justify-content:center;overflow:hidden;border:1px solid var(--plate-edge);background:linear-gradient(to top,#0d0e0f 7.8%,#171a1e 7.8%);box-shadow:inset 0 0 0 1px #000,inset 0 0 50px #000b;cursor:grab;touch-action:none}
+.cr-frame:active{cursor:grabbing}.cr-frame canvas{position:relative;display:block;height:100%;width:auto;max-width:100%;aspect-ratio:280/360;object-fit:contain}
+.cr-corner{position:absolute;z-index:1;inset:7px;pointer-events:none;background:linear-gradient(var(--ember),var(--ember)) 0 0/14px 2px,linear-gradient(var(--ember),var(--ember)) 0 0/2px 14px,linear-gradient(var(--ember),var(--ember)) 100% 0/14px 2px,linear-gradient(var(--ember),var(--ember)) 100% 0/2px 14px,linear-gradient(var(--ember),var(--ember)) 0 100%/14px 2px,linear-gradient(var(--ember),var(--ember)) 0 100%/2px 14px,linear-gradient(var(--ember),var(--ember)) 100% 100%/14px 2px,linear-gradient(var(--ember),var(--ember)) 100% 100%/2px 14px;background-repeat:no-repeat;opacity:.75}
+.cr-facing,.cr-hint{position:absolute;z-index:1;font:600 11px/1 var(--ui);letter-spacing:.16em;text-transform:uppercase;pointer-events:none;text-shadow:0 1px 0 #000}.cr-facing{top:15px;left:18px;color:var(--bone)}.cr-hint{bottom:15px;right:18px;color:#8a8172}
+/* Beside or under the picture: the name on a stitched tape, the poses, turning, and undo, random and reset. */
+.cr-side{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;min-width:0}
+.cr-name{grid-column:1/-1;display:flex;align-items:center;gap:0;min-width:0;border:1px solid var(--plate-edge);background:#0f0e0c}
+.cr-name span{align-self:stretch;display:flex;align-items:center;padding:0 9px;font:700 10px/1 var(--ui);letter-spacing:.22em;text-transform:uppercase;color:var(--ember-hi);background:#1a1714;border-right:1px solid var(--plate-edge)}
+.cr-name input{flex:1;min-width:0;width:100%;height:38px;margin:3px;padding:0 9px;font:400 17px/1 var(--display);letter-spacing:.08em;text-transform:uppercase;color:var(--bone);background:linear-gradient(#2a2a20,#22231b);border:1px dashed #5d5a45;border-radius:1px;user-select:text;-webkit-user-select:text;touch-action:manipulation}
+.cr-name input::placeholder{color:#77735f}.cr-name input:focus{border-color:var(--ember-hi);outline:none}
+.cr-poses{grid-column:1/-1;display:flex;gap:4px}.cr-poses button{flex:1;min-height:36px;padding:0 4px;font-size:13px;color:var(--dust)}
+.cr-poses button[aria-pressed=true]{color:var(--ember-hi);border-color:var(--ember);background:linear-gradient(#33241a,#24190f)}
+.cr-pet-only{display:none}.cr-pet .cr-poses .cr-pet-only{display:block}
+.cr-turns{display:flex;align-items:center;gap:4px}.cr-turns span{display:none}.cr-turn{width:40px;min-height:36px;padding:0;display:flex;align-items:center;justify-content:center}
+.cr-actions{display:flex;gap:4px;min-width:0}.cr-btn{flex:1;min-width:0;min-height:36px;padding:0 6px;font-size:13px}
+/* The section tabs. */
+.cr-rail{display:flex;flex-direction:column;gap:4px;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}.cr-rail::-webkit-scrollbar{display:none}
+.cr-rail button{flex:0 0 auto;min-height:0;display:flex;flex-direction:column;align-items:center;gap:4px;padding:9px 2px 8px;background:none;border-color:transparent;box-shadow:none;color:var(--dust);font-size:11px;letter-spacing:.08em}
+.cr-rail button:hover{color:var(--bone);border-color:transparent}
+.cr-rail button[aria-pressed=true]{color:var(--bone);background:var(--grit),linear-gradient(90deg,#2e2721,#1d1a17);border-color:var(--plate-edge);box-shadow:inset 3px 0 0 var(--ember)}.cr-rail button[aria-pressed=true] svg{stroke:var(--ember-hi)}
+/* The choices: an iron plate that scrolls, with a More below tab and a fade over the bottom edge while there is more. */
+.cr-pane{position:relative;min-height:0;display:flex;flex-direction:column;border:1px solid var(--plate-edge);background:var(--screws),var(--grit),linear-gradient(172deg,#25221e,#181614 70%);box-shadow:0 0 0 1px var(--seam),inset 0 1px 0 #ffffff12}
+.cr-pane::after{content:'';position:absolute;z-index:1;left:1px;right:1px;bottom:1px;height:64px;background:linear-gradient(#16141200,#161412f2 80%);opacity:0;transition:opacity .2s;pointer-events:none}
+.cr-panel{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;display:flex;flex-direction:column;gap:18px;padding:14px 18px 30px;scrollbar-width:thin;scrollbar-color:var(--edge-hi) transparent}
+.cr-more{position:absolute;z-index:2;left:50%;bottom:10px;display:flex;align-items:center;gap:7px;min-height:30px;padding:0 13px 0 15px;font-size:12px!important;letter-spacing:.18em!important;color:var(--ember-hi)!important;background:#1a1410!important;border-color:var(--ember)!important;border-radius:15px!important;box-shadow:0 4px 14px #000c!important;transform:translate(-50%,8px);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
+.cr-more::after{content:'';width:7px;height:7px;margin-top:-4px;border:solid currentColor;border-width:0 2px 2px 0;transform:rotate(45deg);animation:cr-nudge 1.6s ease-in-out infinite}
+@keyframes cr-nudge{0%,100%{translate:0 0}50%{translate:0 3px}}
+.cr-pane.more::after{opacity:1}.cr-pane.more .cr-more{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.cr-panel-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding-bottom:9px;border-bottom:1px solid var(--plate-edge)}
+.cr-panel-head h2{margin:0;font:400 22px/1 var(--display);letter-spacing:.03em;text-transform:uppercase;text-shadow:0 2px 0 #000}.cr-panel-head span{font:600 12px/1 var(--ui);letter-spacing:.16em;color:var(--dust);font-variant-numeric:tabular-nums}
+.cr-row h3{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin:0 0 9px;font:700 11px/1.2 var(--ui);letter-spacing:.22em;text-transform:uppercase;color:var(--ember-hi)}
+.cr-row h3::before{content:'';flex:none;width:5px;height:5px;background:var(--ember);transform:rotate(45deg)}
+.cr-row h3 b{font:600 15px/1.1 var(--ui);letter-spacing:.04em;text-transform:none;color:var(--bone)}
+.cr-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--tile,86px),1fr));gap:6px}
+.cr-tile{position:relative;min-height:0;min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:0;padding:0;overflow:hidden;background:#121110;border:1px solid var(--plate-edge);box-shadow:none}
+.cr-tile canvas{width:100%;height:auto;aspect-ratio:1;background:linear-gradient(to top,#101112 10%,transparent 10%),radial-gradient(75% 70% at 50% 42%,#2a2e33,#16181b)}
+.cr-tile span{padding:4px 3px 5px;font-size:12px;font-weight:600;letter-spacing:.03em;text-transform:none;line-height:1.1;color:var(--dust);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;background:#0f0e0d;border-top:1px solid #2c2823}
+.cr-tile[aria-pressed=true]{border-color:var(--ember);box-shadow:inset 0 0 0 1px var(--ember),0 0 14px var(--ember-glow)}
+.cr-tile[aria-pressed=true]::before{content:'';position:absolute;top:0;right:0;border-style:solid;border-width:0 13px 13px 0;border-color:transparent var(--ember) transparent transparent}
+.cr-tile[aria-pressed=true] span{color:var(--ember-ink);background:var(--ember);border-top-color:var(--ember)}
+.cr-none canvas{background:repeating-linear-gradient(135deg,#ffffff08 0 4px,transparent 4px 9px),#16181b}
+.cr-swatches{display:flex;flex-wrap:wrap;gap:8px}
+.cr-swatch{width:40px;height:40px;min-height:0;padding:0;border-radius:2px;background:var(--c)!important;border:2px solid #0d0c0b!important;box-shadow:0 0 0 1px var(--edge-hi)!important}
+.cr-swatch[aria-pressed=true]{box-shadow:0 0 0 2px var(--ember-hi),0 0 12px var(--ember-glow)!important}
+.cr-note{margin:8px 0 0;font-size:13px;line-height:1.5;color:var(--dust);max-width:60ch}
+.cr-status{margin:0;padding:6px max(14px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));font:600 11px/1.2 var(--ui);letter-spacing:.12em;text-transform:uppercase;color:#7d7568}
+@media(min-width:1100px) and (min-height:600px){.cr-tiles{--tile:104px}.cr-tile span{font-size:13px}.cr-swatch{width:44px;height:44px}.cr-panel{padding:18px 22px 34px;gap:24px}.cr-panel-head h2{font-size:26px}.cr-row h3 b{font-size:16px}}
+@media(max-width:860px) and (orientation:landscape){.cr-title{display:none}}
+/* Phones and tablets held upright: the picture and its controls side by side, every tab in one row, small tiles. */
+@media(orientation:portrait){
+ .cr-bar{gap:8px;padding-bottom:7px}.cr-title{display:none}.cr-back span{display:none}.cr-back{padding:0 4px}
+ .cr-kind{margin-left:0;flex:1;min-width:0}.cr-kind button{flex:1;min-width:0;padding:0 4px;font-size:12px;letter-spacing:.12em}.cr-done{padding:0 16px}
+ .cr-main{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr);gap:10px;padding-top:13px}
+ .cr-stage{grid-template-columns:minmax(0,46%) minmax(0,1fr);grid-template-rows:auto;gap:10px}
+ .cr-frame{height:clamp(156px,25vh,300px)}.cr-hint{display:none}.cr-facing{top:12px;left:13px;font-size:10px}.cr-corner{inset:5px}
+ .cr-side{display:flex;flex-direction:column;justify-content:space-between;gap:6px}
+ .cr-name{flex-direction:column;align-items:stretch}.cr-name span{padding:5px 8px;border-right:0;border-bottom:1px solid var(--plate-edge);font-size:9px}.cr-name input{height:32px;font-size:15px}
+ .cr-poses button,.cr-turn,.cr-btn{min-height:32px}.cr-poses button,.cr-btn{font-size:12px;letter-spacing:.06em}
+ .cr-turns{justify-content:space-between}.cr-turns span{display:block;font:600 11px/1 var(--ui);letter-spacing:.18em;text-transform:uppercase;color:var(--dust)}.cr-turn{flex:none;width:44px}
+ .cr-rail{flex-direction:row;overflow:visible;gap:2px}.cr-rail button{flex:1 1 0;min-width:0;gap:3px;padding:6px 0 6px;font-size:10.5px;letter-spacing:.04em}.cr-rail svg{width:20px;height:20px}
+ .cr-rail button[aria-pressed=true]{background:var(--grit),linear-gradient(#2e2721,#1d1a17);box-shadow:inset 0 -3px 0 var(--ember)}
+ .cr-panel{gap:16px;padding:11px 12px 30px}.cr-panel-head{padding-bottom:7px}.cr-panel-head h2{font-size:18px}
+ .cr-tiles{--tile:62px;gap:5px}.cr-tile span{padding:3px 2px 4px;font-size:10.5px}.cr-swatches{gap:7px}.cr-swatch{width:35px;height:35px}
+ .cr-status{padding-top:5px;font-size:10px}}
+@media(orientation:portrait) and (min-width:600px){.cr-tiles{--tile:84px}.cr-tile span{font-size:12px}.cr-frame{height:clamp(200px,28vh,340px)}}
+/* Phones on their side: a short header, the stage and the tabs down the left, the choices taking the rest. */
+@media(orientation:landscape) and (max-height:560px){
+ .cr-bar{padding-top:max(5px,env(safe-area-inset-top));padding-bottom:5px}.cr-back,.cr-done{min-height:34px}.cr-kind button{min-height:32px;font-size:12px}
+ .cr-main{grid-template-columns:minmax(0,29%) 60px minmax(0,1fr);gap:8px;padding-top:11px}
+ .cr-stage{gap:6px}.cr-hint{display:none}.cr-facing{top:11px;left:12px;font-size:10px}.cr-corner{inset:5px}
+ .cr-side{gap:5px}.cr-name input{height:28px;font-size:14px}.cr-poses button,.cr-turn,.cr-btn{min-height:30px;font-size:11px}.cr-turn{width:32px}
+ .cr-rail{gap:1px}.cr-rail button{flex:1 0 34px;justify-content:center;gap:2px;padding:2px;font-size:10px}.cr-rail svg{width:18px;height:18px}
+ .cr-panel{gap:12px;padding:9px 12px 26px}.cr-panel-head h2{font-size:17px}.cr-tiles{--tile:68px;gap:5px}.cr-tile span{font-size:10.5px;padding:3px 2px}.cr-swatch{width:34px;height:34px}
+ .cr-status{padding-top:3px;font-size:10px}}
+@media(prefers-reduced-motion:reduce){.creator *{transition:none!important;animation:none!important}}
+.first-survivor #closeInspect,.first-survivor #kindSwitch{display:none}.first-survivor .cr-title{display:flex}.first-survivor .cr-kicker{display:none}.first-survivor .cr-done{margin-left:auto}
 .zombie .ammo,.zombie #throwGrenade,.zombie #aimZone{display:none!important}
-.cr-stage{grid-template-rows:auto minmax(0,1fr) auto}
-.cr-kind{display:flex;gap:0;border:1px solid var(--edge);background:var(--panel)}.cr-kind button{flex:1;min-height:34px;padding:0 8px;border:0;border-radius:0;background:transparent;color:var(--dust);font:600 13px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase}
-.cr-kind button+button{border-left:1px solid var(--edge)}.cr-kind button[aria-pressed=true]{color:var(--ember-ink);background:var(--ember)}.cr-kind button[data-kind=zombie][aria-pressed=true]{color:#141a08;background:#9fc23a}
-@media(orientation:landscape) and (max-height:560px){.cr-kind button{min-height:30px;font-size:12px}.cr-stage{gap:6px}}
-@media(orientation:portrait){.cr-stage{grid-template-rows:auto minmax(0,1fr)}.cr-kind{grid-column:1/-1}}
-@media(orientation:portrait){.cr-main{grid-template-rows:minmax(220px,38%) auto minmax(0,1fr)}.cr-stage-controls .cr-turn,.cr-poses button{min-height:34px}.cr-stage-controls{gap:5px}.cr-poses{gap:5px}}
 
 /* Firelight Camp (v0.18). Talk replaces the shooting controls; prompts float over the person or thing in reach. */
 .camp #aimZone,.camp #throwGrenade,.camp .ammo,.camp #equipment{display:none!important}
@@ -138,9 +188,6 @@ dialog.creator[open]{display:grid;grid-template-rows:auto minmax(0,1fr) auto}dia
 #cookAgain{min-height:42px;padding:0 14px;font:700 14px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;background:#141311;border-color:var(--edge-hi);border-radius:3px}
 @media(orientation:portrait){#vitals{top:calc(var(--vy) + max(96px,calc(env(safe-area-inset-top) + 84px)))}.fishing #vitals{display:none}#fishStatus{font-size:19px}#fishPanel{top:calc(var(--vy) + max(100px,calc(env(safe-area-inset-top) + 88px)))}}
 @media(orientation:landscape) and (max-height:560px){#vitals{top:calc(var(--vy) + 66px)}#fishPanel{top:calc(var(--vy) + 54px);padding:6px 12px 8px;width:min(380px,calc(100% - 360px))}#fishStatus{font-size:18px;margin:3px 0 2px}#fishHint{font-size:12px}.hooked .fp-bars{margin-top:5px;gap:4px 8px}#fishCatch{margin-top:5px;padding-top:5px}#fishCatch canvas{width:72px;height:36px}#cookPanel{padding:9px 12px 10px;max-height:calc(var(--vh) - 70px)}.cook-note{margin:5px 0 7px;font-size:13px}}
-/* v0.20: companion pages in the creator. */
-.cr-pet-only{display:none}.cr-pet .cr-poses .cr-pet-only{display:block}
-.cr-kind button{letter-spacing:.08em}.cr-kind button[data-kind=companion][aria-pressed=true]{color:var(--ember-ink);background:var(--ember-hi)}
 /* v0.22 HUD: one look for every control. Dark plates with an ink edge, ember for what is live or yours, stencil numbers.
    Phones: the left thumb only moves; everything else is a fan around the right thumb's fire stick. */
 :root{--hud:#161513e6;--hud-edge:#3a352e;--hud-hi:#ffffff14;--sl:max(14px,env(safe-area-inset-left));--sr:max(14px,env(safe-area-inset-right));--sb:max(14px,env(safe-area-inset-bottom));--st:max(10px,env(safe-area-inset-top))}
@@ -489,8 +536,6 @@ body.touch:not(.pad) #runToggle.on{background:radial-gradient(circle at 50% 30%,
 .shop .shop-items li.owned{opacity:1;background:linear-gradient(#1f241a,#161812)}
 .shop .shop-items li.owned button{color:var(--ok);box-shadow:inset 0 0 0 1px #9fd65a66}
 @media(max-width:480px){.shop .shop-items li{grid-template-columns:40px minmax(0,1fr)}.shop .shop-items li::before{width:40px;height:40px;background-size:28px,auto}.shop .shop-items li button{grid-column:2;justify-self:start}}
-/* The creator keeps its own layout and picks up the screws. */
-.cr-panel{background:var(--screws),var(--grit),var(--panel)}
 @media(orientation:landscape) and (max-height:560px){dialog:not(.creator) h1{font-size:24px}.dialog-head{padding:11px 18px 12px}.pause-grid button{min-height:44px}.identity>b{font-size:18px}#loading{font-size:28px}}
 @media(prefers-reduced-motion:reduce){#prompt::after,#act::after,#loading::before,#loading::after{animation:none}}
 /* Travel gets its own row; in the Training Grounds so does Return to the start, so every row is full. Touch hides key hints. */
@@ -652,7 +697,6 @@ html body.deck .topbar #menu::after{background-image:var(--gore-wipe);background
    Everything that belongs to playing steps aside while it runs; the creator that follows has no way back to the room. */
 #watch{position:fixed;z-index:5;left:var(--vx);top:var(--vy);width:var(--vw);height:var(--gh);image-rendering:pixelated;pointer-events:none}
 .watching #deck,.watching #weaponHud,.watching #marks,.watching #drillHud,.watching #banner,.watching #toast,.watching #aimZone,.watching #gunChip,.watching #goalChip,.watching #bagBtn,.watching #hitFlash,.watching #reticle{visibility:hidden}
-.first-survivor #closeInspect,.first-survivor #kindSwitch{display:none}
 /* The inventory: the pack and what you have equipped on the left, the bag grid on the right. Cells are buttons; items sit over them. */
 kbd:empty{display:none}.touch .bag kbd{display:none}
 dialog.bag{width:min(940px,calc(100% - 24px));--cell:min(50px,calc((min(100vw,940px) - 72px) / var(--cols,6)))}

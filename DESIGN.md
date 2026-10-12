@@ -544,6 +544,20 @@ Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack),
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
 
+## v0.71.0 — The character creator, redone: the intake station at night
+
+The creator now looks like it belongs to the game, and on a phone it shows far more choices at once. Part one of the creator rework; more companion choices follow in v0.72.0.
+
+**The look.** It is a survivor intake station after dark: a charcoal header with a hazard stripe, the character standing against a lineup wall with height marks in feet and a pool of warm light at their feet, the name on a strip of stencilled tape, and the choices on a riveted iron plate. Section names carry an ember diamond, and the chosen tile gets an ember label and a corner notch instead of a bright outline. The art itself is unchanged; only the frame around it is new (`study/style.css`, the v0.71 creator block; `study/app.js` `lineup`).
+
+**More choices on a phone.** On a portrait phone the character takes the left half of a shorter stage, with the name, the poses, Turn and Random, Undo and Reset stacked beside it, and the eight sections sit in one row of tabs. The choice list went from 352 to 468 pixels tall on a 390 × 844 phone, and the tiles come five to a row. Wider screens get bigger tiles. Headwear is called Hats so every tab fits.
+
+**It is obvious there is more below.** While a list continues past the bottom of the plate, the bottom fades out and a "More below" tab sits over it; tapping it scrolls most of a screen down. The tab goes away at the bottom of the list. Changing section starts the new list at the top.
+
+**Players don't make zombies.** The creator players get is everything except Zombie: the kind switch shows Survivor and Companion only, and a saved zombie look opens as the survivor. The full creator, with Zombie, is ours: open the game with `#dev` on the end of its link (or `?dev` when it is served on its own) and it stays on for that browser; `#player` turns it back off (`study/app.js` `DEV`, the `dev` option of `createCreator`). We will trim the player's version further as the game grows.
+
+**Fixed:** in survivor mode the kind switch lit Companion as well as Survivor.
+
 ## v0.70.1 — The tap that starts the title no longer opens Survivor
 
 **Fixed:** on a phone, tapping "Tap to start" could open the character creator. The tap brings the menu up 60 ms later, before the finger has left the glass, so lifting it landed a click on whichever button was now under it, usually Survivor in the middle of the screen (reproduced with a tap held a quarter of a second). A menu or panel button now only acts on a click whose press began on that same button, or on one from the keys or a controller (`title/title.js` `list`, `downOn`). Touch, mouse, keys and the controller still choose as before.

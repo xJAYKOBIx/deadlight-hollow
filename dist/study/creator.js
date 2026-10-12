@@ -35,7 +35,8 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const painter=c=>({r:(x,y,w,h,col)=>{c.fillStyle=col;c.fillRect(x,y,w,h);},p:(pts,col)=>{c.fillStyle=col;c.beginPath();pts.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.fill();}});
 const make=(w,h)=>{if(typeof OffscreenCanvas!=='undefined')return new OffscreenCanvas(w,h);const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
 
-export function createCreator({$,storage,kicker=()=>null,look,setLook,loadout,setLoadout,companion=()=>null,setCompanion=()=>{}}){
+// dev(): the full creator, zombies and all, for making the game's own people (the ?dev or #dev link); players get the rest (v0.71).
+export function createCreator({$,storage,kicker=()=>null,look,setLook,loadout,setLoadout,companion=()=>null,setCompanion=()=>{},dev=()=>false}){
  let section='body',history=[],name='',mode='person',petSection='pkind',petHistory=[];
  try{name=storage?.getItem(NAME_KEY)||'';}catch{}
  const cache=new Map();
@@ -75,19 +76,23 @@ export function createCreator({$,storage,kicker=()=>null,look,setLook,loadout,se
  function renderPet(){const c=companion(),list=PET_SECTIONS;if(!list.some(x=>x.id===petSection))petSection='pkind';const s=list.find(x=>x.id===petSection),panel=$('creatorPanel');
   panel.innerHTML=`<div class="cr-panel-head"><h2>${s.name}</h2><span>${list.indexOf(s)+1} / ${list.length}</span></div>`+s.rows.map(r=>petRowHtml(r,c)).join('');
   for(const b of $('categoryRail').querySelectorAll?.('[data-section]')||[]){b.setAttribute('aria-pressed',String(b.dataset.section===petSection));b.hidden=!list.some(x=>x.id===b.dataset.section);}
-  for(const b of $('kindSwitch').querySelectorAll?.('[data-kind]')||[])b.setAttribute('aria-pressed',String(b.dataset.kind==='companion'));
   $('creatorKicker')&&($('creatorKicker').textContent=(c.species?'Cat':'Dog')+' · Companion file');
   for(const cv of panel.querySelectorAll?.('canvas[data-petthumb]')||[]){const [key,v]=cv.dataset.petthumb.split(':');petThumb(cv,petVariant(c,key,Number(v)));}
-  const field=$('survivorName');field.placeholder=c.species?'Name your cat':'Name your dog';$('undoLook').disabled=!petHistory.length;}
+  const field=$('survivorName');field.placeholder=c.species?'Name your cat':'Name your dog';$('undoLook').disabled=!petHistory.length;kinds('companion');more();}
  function render(){document.body.classList?.toggle?.('cr-pet',mode==='pet');if(mode==='pet'){renderPet();return;}const l=look(),list=sectionsFor(l);$('survivorName').placeholder='Survivor 01';if(!list.some(x=>x.id===section))section=section==='gear'?'infect':section==='infect'?'gear':'body';const s=list.find(x=>x.id===section),panel=$('creatorPanel');
   panel.innerHTML=`<div class="cr-panel-head"><h2>${s.name}</h2><span>${list.indexOf(s)+1} / ${list.length}</span></div>`+s.rows.map(r=>rowHtml(r,l)).join('');
   for(const b of $('categoryRail').querySelectorAll?.('[data-section]')||[]){b.setAttribute('aria-pressed',String(b.dataset.section===section));b.hidden=!list.some(x=>x.id===b.dataset.section);}
-  for(const b of $('kindSwitch').querySelectorAll?.('[data-kind]')||[])b.setAttribute('aria-pressed',String((b.dataset.kind==='zombie')===!!l.zombie));
   $('creatorKicker')&&($('creatorKicker').textContent=kicker()||(l.zombie?'Infected specimen · File 01':'Survivor intake · File 01'));
   for(const c of panel.querySelectorAll?.('canvas[data-thumb]')||[]){const [key,v,crop]=c.dataset.thumb.split(':');thumb(c,{...l,[key]:Number(v)},crop);}
   for(const c of panel.querySelectorAll?.('canvas[data-uniformthumb]')||[])thumb(c,{...l,...UNIFORMS[Number(c.dataset.uniformthumb)].look},'full');
   for(const c of panel.querySelectorAll?.('canvas[data-gearthumb]')||[]){const [kind,id]=c.dataset.gearthumb.split(':');gearThumb(c,kind,id);}
-  $('undoLook').disabled=!history.length;}
+  $('undoLook').disabled=!history.length;kinds(l.zombie?'zombie':'survivor');more();}
+ // Who you are making, lit; Zombie only shows in the full creator.
+ function kinds(on){for(const b of $('kindSwitch').querySelectorAll?.('[data-kind]')||[]){b.setAttribute('aria-pressed',String(b.dataset.kind===on));if(b.dataset.kind==='zombie')b.hidden=!dev()&&on!=='zombie';}}
+ // The More below tab and the fade over the bottom of the choices, while there is more to scroll to; the tab scrolls most of a screen.
+ function more(){const p=$('creatorPanel'),w=p?.parentElement;if(!w?.classList||p.scrollHeight===undefined)return;w.classList.toggle('more',p.scrollHeight-p.scrollTop-p.clientHeight>12);}
+ $('creatorPanel').addEventListener('scroll',more,{passive:true});globalThis.addEventListener?.('resize',more);
+ $('creatorMore')?.addEventListener('click',()=>{const p=$('creatorPanel');p.scrollBy?.({top:p.clientHeight*.7,behavior:'smooth'});});
  function change(next){history.push(look());if(history.length>40)history.shift();setLook(next);}
  function changePet(next){petHistory.push(companion());if(petHistory.length>40)petHistory.shift();setCompanion(next);}
  function pickPet(t){const key=t.dataset.pet,v=Number(t.dataset.value),c=companion();if(key==='species'){if(c.species!==v){changePet({...c,species:v});}return;}if(petLook(c)[key]!==v)changePet(withLook(c,{...petLook(c),[key]:v}));}
@@ -102,11 +107,13 @@ export function createCreator({$,storage,kicker=()=>null,look,setLook,loadout,se
  // The third choice opens the companion's pages; the survivor or zombie stays as it was.
  function setKind(kind){if(kind==='companion'){if(mode!=='pet'){mode='pet';field.value=companion().name;render();}return;}
   const wasPet=mode==='pet';if(wasPet){mode='person';field.value=name;}
+  if(kind==='zombie'&&!dev()){if(wasPet)render();return;}
   if((kind==='zombie')===!!look().zombie){if(wasPet)render();return;}history=[];setLook(readAppearance(storage,kind));}
  $('kindSwitch').addEventListener('click',e=>{const t=e.target?.closest?e.target.closest('[data-kind]'):e.target;if(t?.dataset?.kind)setKind(t.dataset.kind);});
  $('undoLook').onclick=()=>{if(mode==='pet'){if(petHistory.length)setCompanion(petHistory.pop());return;}if(!history.length)return;setLook(history.pop());};
  field.value=name;
  field.addEventListener('input',()=>{if(mode==='pet'){const n=cleanName(field.value);setCompanion({...companion(),name:n.trim()},{name:true});return;}name=field.value.replace(/\s+/g,' ').trimStart().slice(0,18);try{storage?.setItem(NAME_KEY,name.trim());}catch{}});
- function show(id){if(PET_SECTIONS.some(s=>s.id===id)){petSection=id;mode='pet';field.value=companion().name;}else if(SECTIONS.some(s=>s.id===id)){section=id;if(mode==='pet'){mode='person';field.value=name;}}render();}
+ function show(id){const was=mode==='pet'?petSection:section;if(PET_SECTIONS.some(s=>s.id===id)){petSection=id;mode='pet';field.value=companion().name;}else if(SECTIONS.some(s=>s.id===id)){section=id;if(mode==='pet'){mode='person';field.value=name;}}
+  if(was!==id&&$('creatorPanel'))$('creatorPanel').scrollTop=0;render();}
  return {show,refresh:render,setKind,name:()=>name.trim(),section:()=>section,mode:()=>mode};
 }
