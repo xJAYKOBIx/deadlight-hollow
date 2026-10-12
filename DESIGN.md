@@ -544,6 +544,18 @@ Supplies (Master Creator c4286c8, `gear/items.js`): shotgun shells (24 a stack),
 
 Weight counts the bag and both equipped guns. Over the limit you move more slowly (down to 70% at half again over) and running drains stamina 1.5 times as fast; the Bag button shows an orange dot. Changing to a smaller pack in the creator keeps what fits where it was, places the rest again, and sets aside what still will not fit ("Doesn't fit in this pack"); set-aside things weigh nothing and come back when you tap one and then a free cell, or Sort.
 
+## v0.72.0 — Many more ways to make your companion
+
+Part two of the creator rework: the companion creator gets a lot more to choose from. Every new choice is added at the end of its list, so saved companions keep their looks, and every look that existed before paints exactly as it did (all 1,470 combinations checked, every facing and frame). The art lives in the Master Creator (`assets/animals/look.js`, `pet.js`) and is copied into the game as before.
+
+**Breeds.** Dogs: Pit bull (a deep, wide chest and a broad head), Collie (a long narrow muzzle, a ruff and a long low brush tail), Beagle (short, long drop ears, the tail up like a flag), Corgi (a long body on very short legs, big ears, hardly any tail) and Doberman (tall and lean, upright ears, a docked tail). Cats: Maine Coon (big and shaggy, lynx tips on the ears, a huge plume), Siamese (slender, big ears, a long thin tail), Bobtail (a pompom of a tail) and Fold (small ears folded flat). That makes nine dogs and six cats.
+
+**Coats:** White, Red, Silver, Blue and Fawn, twelve in all. **Markings,** ten for each: dogs add Tan points (black and tan, with tan brows, cheeks, chest marks and lower legs, so a Tan Doberman is the classic one), Brindle, Spotted, Socks and Blaze (a white stripe up the face, white chest, paws and tail tip). Cats add Calico (ginger and black patches over white underneath; best on a White coat), Points (a colorpoint: the face, ears, paws and tail in a deep shade of the coat, so Cream makes a Siamese), Socks, Spotted and Tortie. **Eyes:** Hazel, Copper, Ice and Odd eyes (one blue, one brown; its swatch shows both). **Collars:** a spiked collar, a bell collar, blue and olive bandanas, and pink, purple and yellow collars, fourteen in all.
+
+**Gear, a new page.** No gear, a red harness (a girth strap, a strap down the spine, a neck strap and a ring for a lead), olive saddlebags, a medic vest (olive, with a white cross on a green square), a tactical vest (coyote brown, with pouches and a grab handle) and a hi-vis vest with reflective bands. Gear follows every pose and facing, and shows on your companion out in the world too. It is only looks for now; what a companion actually does for you is still to be worked out.
+
+**Tiles and the stage.** Collar tiles show a close view of the head and neck, so a bell or the studs can be seen. Cat tiles are framed a little wider so a Maine Coon fits, and the companion stage frames cats a little wider, so a long tail in a walk or a sit is no longer cut off at the edges.
+
 ## v0.71.0 — The character creator, redone: the intake station at night
 
 The creator now looks like it belongs to the game, and on a phone it shows far more choices at once. Part one of the creator rework; more companion choices follow in v0.72.0.

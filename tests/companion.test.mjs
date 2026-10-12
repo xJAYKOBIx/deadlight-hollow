@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
-import {COMPANION_KEY,SPECIES,BREEDS,MARKINGS,COATS,EYES,COLLARS,DEFAULT_PET,PET_OPTIONS,normalizeCompanion,cleanName,petLook,withLook,readCompanion,saveCompanion,randomPet,displayName} from '../dist/companion/look.js';
+import {COMPANION_KEY,SPECIES,BREEDS,MARKINGS,COATS,EYES,COLLARS,GEAR,DEFAULT_PET,PET_OPTIONS,normalizeCompanion,cleanName,petLook,withLook,readCompanion,saveCompanion,randomPet,displayName} from '../dist/companion/look.js';
 import {PET_FRAME,PET_ANIM,PET_FRAME_COUNT,paintPetSheet} from '../dist/companion/pet.js';
 import {Follower,FOLLOW} from '../dist/companion/follow.js';
 const seeded=(seed=7)=>()=>(seed=(seed*16807)%2147483647)/2147483647;
@@ -8,15 +8,24 @@ const memory=()=>{const store=new Map();return {store,getItem:k=>store.get(k)??n
 function sheet(look){let out;const ctx={createImageData:(w,h)=>({width:w,height:h,data:new Uint8ClampedArray(w*h*4)}),putImageData:img=>{out=img;}};paintPetSheet(ctx,look);return out;}
 function cell(img,d,f){const {w,h}=PET_FRAME;let n=0,minX=w,maxX=-1,minY=h,maxY=-1;for(let y=0;y<h;y++)for(let x=0;x<w;x++){const a=img.data[((f*h+y)*img.width+d*w+x)*4+3];if(a){n++;minX=Math.min(minX,x);maxX=Math.max(maxX,x);minY=Math.min(minY,y);maxY=Math.max(maxY,y);}}return {n,minX,maxX,minY,maxY};}
 test('a companion is a dog or a cat with its own saved look and a short name',()=>{
- assert.deepEqual(SPECIES,['Dog','Cat']);assert.equal(BREEDS[0].length,4);assert.equal(BREEDS[1].length,2);
+ assert.deepEqual(SPECIES,['Dog','Cat']);assert.equal(BREEDS[0].length,9);assert.equal(BREEDS[1].length,6);
  const c=normalizeCompanion();assert.equal(c.species,0);assert.deepEqual(c.dog,DEFAULT_PET.dog);assert.deepEqual(c.cat,DEFAULT_PET.cat);assert.equal(c.name,'');assert.equal(displayName(c),'Your dog');assert.equal(displayName({...c,species:1}),'Your cat');
- for(const s of [0,1]){const o=PET_OPTIONS(s);assert.equal(o.breed,BREEDS[s]);assert.equal(o.marking,MARKINGS[s]);assert.equal(o.coat.length,COATS.length);assert.equal(o.eyes.length,EYES.length);assert.equal(o.collar.length,COLLARS.length);
+ for(const s of [0,1]){const o=PET_OPTIONS(s);assert.equal(o.breed,BREEDS[s]);assert.equal(o.marking,MARKINGS[s]);assert.equal(o.coat.length,COATS.length);assert.equal(o.eyes.length,EYES.length);assert.equal(o.collar.length,COLLARS.length);assert.equal(o.gear.length,GEAR.length);
   const rand=seeded(s+3);for(let i=0;i<200;i++){const r=randomPet(s,rand);for(const [k,list] of Object.entries(o))assert.ok(r[k]>=0&&r[k]<list.length,`${k} ${r[k]}`);}}
  assert.equal(cleanName('  Mochi\n the   very good dog'),'Mochi the very g');assert.equal(cleanName(null),'');
  const bad=normalizeCompanion({species:7,dog:{breed:9,coat:-1,marking:1.5,eyes:3,collar:6},cat:'x',name:'  Biscuit  '});
  assert.equal(bad.species,0);assert.deepEqual(bad.dog,{...DEFAULT_PET.dog,eyes:3,collar:6});assert.deepEqual(bad.cat,DEFAULT_PET.cat);assert.equal(bad.name,'Biscuit');});
+// Saves hold these choices by index, so the choices that were there before keep their places and new ones only go on the end.
+test('companion choices only ever grow at the end, and a save from before gear opens with none',()=>{
+ assert.deepEqual(BREEDS[0].slice(0,4),['Shepherd','Lab','Terrier','Husky']);assert.deepEqual(BREEDS[1].slice(0,2),['Shorthair','Longhair']);
+ assert.deepEqual(MARKINGS[0].slice(0,5),['Solid','White chest','Saddle','Patches','Mask']);assert.deepEqual(MARKINGS[1].slice(0,5),['Solid','Tabby','White chest','Tuxedo','Patches']);
+ assert.deepEqual(COATS.slice(0,7).map(c=>c.name),['Black','Chocolate','Tan','Golden','Ginger','Gray','Cream']);assert.deepEqual(EYES.slice(0,4).map(e=>e.name),['Brown','Amber','Green','Blue']);
+ assert.deepEqual(COLLARS.slice(0,7).map(c=>c.name),['Red collar','Blue collar','Green collar','Ember collar','Leather collar','Bandana','No collar']);assert.equal(GEAR[0].name,'No gear');
+ assert.ok(MARKINGS[0].length===10&&MARKINGS[1].length===10&&COATS.length===12&&EYES.length===8&&COLLARS.length===14&&GEAR.length===6);
+ const old=normalizeCompanion({species:1,dog:{breed:3,coat:5,marking:4,eyes:3,collar:4},cat:{breed:1,coat:6,marking:3,eyes:1,collar:5},name:'Pip'});
+ assert.equal(old.dog.gear,0);assert.equal(old.cat.gear,0);assert.deepEqual(petLook(old),{species:1,breed:1,coat:6,marking:3,eyes:1,collar:5,gear:0});});
 test('switching between dog and cat keeps each look, and the choice survives a reload',()=>{
- let c=normalizeCompanion({name:'Mochi'});c=withLook(c,{...petLook(c),breed:3,coat:5});assert.deepEqual(petLook(c),{species:0,breed:3,coat:5,marking:DEFAULT_PET.dog.marking,eyes:0,collar:0});
+ let c=normalizeCompanion({name:'Mochi'});c=withLook(c,{...petLook(c),breed:3,coat:5});assert.deepEqual(petLook(c),{species:0,breed:3,coat:5,marking:DEFAULT_PET.dog.marking,eyes:0,collar:0,gear:0});
  c={...c,species:1};assert.deepEqual(petLook(c),{species:1,...DEFAULT_PET.cat});c=withLook(c,{...petLook(c),breed:1});c={...c,species:0};assert.equal(petLook(c).breed,3,'the dog is still a husky');assert.equal(c.cat.breed,1,'and the cat is still a longhair');
  const s=memory();assert.equal(saveCompanion(s,c),true);assert.deepEqual(readCompanion(s),c);s.store.set(COMPANION_KEY,'{nope');assert.deepEqual(readCompanion(s),normalizeCompanion());assert.deepEqual(readCompanion(null),normalizeCompanion());
  assert.equal(saveCompanion({setItem(){throw new Error('full');}},c),false);});
@@ -29,7 +38,15 @@ test('every breed paints every facing and frame inside its cell',()=>{
    assert.ok(b.maxY>=PET_FRAME.footY*2,`${name} reaches the ground (${b.maxY})`);}}});
 test('coat, markings, eyes and collar each change the picture',()=>{
  const base={species:0,...DEFAULT_PET.dog},key=look=>Buffer.from(sheet(look).data).toString('base64'),plain=key(base);
- for(const k of ['coat','marking','eyes','collar'])assert.notEqual(key({...base,[k]:(base[k]+1)%PET_OPTIONS(0)[k].length}),plain,k);});
+ for(const k of ['coat','marking','eyes','collar','gear'])assert.notEqual(key({...base,[k]:(base[k]+1)%PET_OPTIONS(0)[k].length}),plain,k);});
+// Every new choice paints its own picture, and the biggest dog and cat still fit their cells in every piece of gear.
+test('each new breed, coat, marking, eye color, collar and piece of gear looks different, and gear stays in the cell',()=>{
+ const one=look=>{let out;paintPetSheet({createImageData:(w,h)=>({width:w,height:h,data:new Uint8ClampedArray(w*h*4)}),putImageData:img=>{out=img;}},look);return out;};
+ for(const species of [0,1]){const base={species,...DEFAULT_PET[species?'cat':'dog']},o=PET_OPTIONS(species),seen=new Map();
+  for(const k of ['breed','coat','marking','eyes','collar','gear'])for(let v=0;v<o[k].length;v++){if(v===base[k])continue;const img=one({...base,[k]:v}),f=Buffer.from(img.data.subarray(0,PET_FRAME.w*PET_FRAME.h*8*4)).toString('base64');
+   const name=`${SPECIES[species]} ${k} ${o[k][v]}`;assert.ok(!seen.has(f),`${name} looks the same as ${seen.get(f)}`);seen.set(f,name);}
+  for(const breed of species?[2,3]:[5,8])for(let gear=1;gear<GEAR.length;gear++){const img=one({...base,breed,gear});for(const f of [0,5,11,16,18,21])for(let d=0;d<8;d++){const b=cell(img,d,f);
+   assert.ok(b.minX>0&&b.minY>0&&b.maxX<PET_FRAME.w-1&&b.maxY<PET_FRAME.h-1,`${BREEDS[species][breed]} in ${GEAR[gear].name} facing ${d} frame ${f} is not cut off`);}}}});
 // Walks you for a while; returns the follower and the owner.
 const run=(p,you,secs,each=()=>{})=>{for(let i=0;i<secs*60;i++){each(i);p.update(1/60,you);}};
 test('the companion walks at your side, then sits and stays put while you walk around it',()=>{

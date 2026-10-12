@@ -2,7 +2,7 @@
 // Every part is a sphere, a limb or a flat shape in the animal's own space (f forward, s to its right, u up),
 // projected for each of the eight facings and painted back to front with the character ink outline.
 import {painter,smoothOn} from '../core/paint.js';
-import {COATS,EYES,COLLARS} from './look.js';
+import {COATS,EYES,COLLARS,GEAR} from './look.js';
 export const PET_FRAME={w:160,h:160,displayW:80,displayH:80,footX:40,footY:58};
 // Frames: 0-3 idle (breathing, tail wag), 4-9 walk, 10-15 run, 16-17 sit, 18 lie down, 19-20 sniff (nose to the floor or the bowl),
 // 21-22 stretch (a dog's play bow, a cat's long reach forward). New poses are only ever added at the end.
@@ -18,10 +18,28 @@ const PLANS=[[
  {S:23,L:11.5,rc:8.4,rh:7.2,w:4.4,rH:5.6,sn:5.6,snR:.52,leg:3.9,ears:'prick',earH:6.5,tail:'brush',tailL:15,tailR:2.4,fluff:0,scale:1.08},
  {S:22,L:11.5,rc:9,rh:8.2,w:4.8,rH:6,sn:4.8,snR:.62,leg:4.1,ears:'drop',earH:5,tail:'otter',tailL:13,tailR:2.4,fluff:0,scale:1.08},
  {S:14.5,L:8,rc:6.2,rh:5.6,w:3.4,rH:5.2,sn:3.2,snR:.7,leg:3.2,ears:'fold',earH:3.4,tail:'stub',tailL:6,tailR:1.7,fluff:.4,scale:1.12},
- {S:22,L:11.5,rc:8.8,rh:7.4,w:4.6,rH:5.8,sn:4.8,snR:.58,leg:4,ears:'prick',earH:5,tail:'curl',tailL:14,tailR:2.7,fluff:.8,scale:1.08}
+ {S:22,L:11.5,rc:8.8,rh:7.4,w:4.6,rH:5.8,sn:4.8,snR:.58,leg:4,ears:'prick',earH:5,tail:'curl',tailL:14,tailR:2.7,fluff:.8,scale:1.08},
+ // Pit bull: a deep, wide chest, a broad head and short muzzle, small folded ears and a thin, low tail.
+ {S:19,L:10,rc:8.8,rh:7,w:5,rH:6.4,sn:3.6,snR:.86,leg:4.2,ears:'fold',earH:3,tail:'otter',tailL:11,tailR:1.7,fluff:0,scale:1.08},
+ // Collie: a long, narrow muzzle, a full ruff and a long brush tail carried low.
+ {S:21,L:11,rc:8,rh:7,w:4.4,rH:5.4,sn:6.4,snR:.44,leg:3.7,ears:'prick',earH:4.4,tail:'brush',tailL:14.5,tailR:2.7,fluff:1,scale:1.08},
+ // Beagle: short and solid, with long drop ears and a tail held up like a flag.
+ {S:15.5,L:9.5,rc:7.2,rh:6.6,w:4,rH:5.6,sn:4.4,snR:.72,leg:3.6,ears:'drop',earH:6.6,tail:'flag',tailL:10,tailR:1.6,fluff:0,scale:1.1},
+ // Corgi: a long body on very short legs, big upright ears and hardly any tail.
+ {S:11.5,L:10.5,rc:7.4,rh:7,w:4.6,rH:5.8,sn:4.4,snR:.56,leg:3.7,ears:'prick',earH:6.4,tail:'stub',tailL:4,tailR:2,fluff:.3,scale:1.1},
+ // Doberman: tall and lean, with a long muzzle, tall upright ears and a docked tail.
+ {S:25,L:11.5,rc:7.8,rh:6.4,w:4.2,rH:5.4,sn:6,snR:.5,leg:3.6,ears:'prick',earH:6.4,earW:1.6,tail:'stub',tailL:5,tailR:1.6,fluff:0,scale:1.06}
 ],[
  {S:12,L:7.5,rc:5,rh:5,w:2.8,rH:5,sn:.6,snR:.7,leg:2.5,ears:'cat',earH:3.8,tail:'cat',tailL:15,tailR:1.25,fluff:0,scale:1.3},
- {S:12.5,L:7.5,rc:5.8,rh:5.6,w:3.2,rH:5.4,sn:.5,snR:.7,leg:2.6,ears:'cat',earH:3.6,tail:'plume',tailL:14,tailR:2.2,fluff:1,scale:1.3}
+ {S:12.5,L:7.5,rc:5.8,rh:5.6,w:3.2,rH:5.4,sn:.5,snR:.7,leg:2.6,ears:'cat',earH:3.6,tail:'plume',tailL:14,tailR:2.2,fluff:1,scale:1.3},
+ // Maine Coon: big and shaggy, with tufted ears and a huge plume of a tail.
+ {S:14,L:8.6,rc:6.4,rh:6.2,w:3.6,rH:5.8,sn:.7,snR:.72,leg:2.9,ears:'cat',earH:4.6,tufts:1,tail:'plume',tailL:16,tailR:2.7,fluff:1.3,scale:1.3},
+ // Siamese: slender, with a wedge of a head, big ears and a long, thin tail.
+ {S:12.5,L:7.8,rc:4.6,rh:4.6,w:2.6,rH:4.7,sn:.9,snR:.62,leg:2.3,ears:'cat',earH:4.7,tail:'cat',tailL:16,tailR:1.05,fluff:0,scale:1.3},
+ // Bobtail: a sturdy cat with a short pompom of a tail.
+ {S:12,L:7.2,rc:5.4,rh:5.6,w:3,rH:5.2,sn:.6,snR:.7,leg:2.6,ears:'cat',earH:3.8,tail:'stub',tailL:4.2,tailR:2,fluff:.3,scale:1.3},
+ // Fold: a round face with small ears folded forward flat to the head.
+ {S:12,L:7.4,rc:5.2,rh:5.2,w:2.9,rH:5.6,sn:.5,snR:.72,leg:2.5,ears:'fold',earH:2.4,tail:'cat',tailL:14,tailR:1.4,fluff:.2,scale:1.3}
 ]];
 // Convex hull of projected points, for ears seen from any side.
 function hull(pts){pts=[...pts].sort((a,b)=>a.x-b.x||a.y-b.y);const cross=(o,a,b)=>(a.x-o.x)*(b.y-o.y)-(a.y-o.y)*(b.x-o.x),lo=[],hi=[];
@@ -57,16 +75,21 @@ function tailPath(P,sk){const n=8,L=P.tailL,out=[],up=sk.tailLift;
   if(P.tail==='brush'){f=-k*L*.85;u=-k*L*.55+Math.sin(k*Math.PI)*2+k*k*3+up*k*4;}
   else if(P.tail==='otter'){f=-k*L*.9;u=-k*L*.3+k*2+up*k*4;}
   else if(P.tail==='stub'){f=-k*L*.4;u=k*L*.9;}
+  else if(P.tail==='flag'){f=-k*L*.42+k*k*L*.18;u=k*L*.86+up*k*2;}
   else if(P.tail==='curl'){const a=k*Math.PI*1.25;f=-Math.sin(a)*L*.42-k*2;u=(1-Math.cos(a))*L*.42;}
   else{f=-k*L*.55;u=-k*L*.15+Math.sin(k*Math.PI*.9)*L*.55*(1+up*.6)+(sk.kind==='sit'||sk.kind==='lie'?-k*L*.5:0);}
   out.push([f,u,k]);}
  return out;}
 export function pet(c,direction=2,frame=0,look={}){
  const dir=((direction%8)+8)%8,a=dir*Math.PI/4,ca=Math.cos(a),sa=Math.sin(a),cat=look.species===1,P=petPlan(look),pose=petPose(frame),sk=skeleton(P,pose,cat);
- const coat=(COATS[look.coat]||COATS[2]).ramp,eye=(EYES[look.eyes]||EYES[0]).col,collar=COLLARS[look.collar]||COLLARS[0];
- const marking=[['solid','chest','saddle','patches','mask'],['solid','tabby','chest','tuxedo','patches']][cat?1:0][look.marking]||'solid';
+ const coat=(COATS[look.coat]||COATS[2]).ramp,eyeOf=EYES[look.eyes]||EYES[0],eye=eyeOf.col,collar=COLLARS[look.collar]||COLLARS[0],gear=look.gear>0&&GEAR[look.gear]||null;
+ const marking=[['solid','chest','saddle','patches','mask','points','brindle','spotted','socks','blaze'],['solid','tabby','chest','tuxedo','patches','calico','points','socks','spotted','tortie']][cat?1:0][look.marking]||'solid';
  // Saddles and masks have their own colors whatever the coat: a black back and a pale face.
  const dark=look.coat===0?COATS[5].ramp:BLACK,pale=look.coat===6?WHITE:WHITE;
+ // Points: a black and tan dog is black all over with the coat color on its muzzle, brows, chest and lower legs;
+ // a colorpoint cat is the reverse, its coat on the body and a deep shade of it on the face, ears, paws and tail.
+ const ptC=marking==='points'?(cat?coat.map((v,i)=>mix(v,'#1e1410',i<3?.58:.5)):coat):null;
+ const fur=ptC&&!cat?dark:coat,earC=cat&&ptC||fur,tailC=cat&&ptC||fur;
  // Animal space to the frame: screen x, screen y, and depth toward the camera.
  const Z=P.scale||1,V=(f,s,u)=>{const gx=(f*ca-s*sa)*Z,gy=(f*sa+s*ca)*Z;return {x:gx,y:gy*K-u*Z,d:gy};};
  // Which way a surface faces, so markings and eyes on the far side stay hidden.
@@ -83,29 +106,76 @@ export function pet(c,direction=2,frame=0,look={}){
  // A deep chest and a tucked waist: the middle of the chain is slimmer and sits a little higher, so the underline rises toward the hips.
  const bodyAt=k=>{const w=Math.sin(Math.PI*k)**2*(cat?.1:.22),r=(P.rh+(P.rc-P.rh)*k*k+P.fluff*.6)*(1-w);const front=sk.chestF-P.rc*.3;return {f:sk.hipF+(front-sk.hipF)*k,u:sk.hU+(sk.cU-sk.hU)*k+r*w*1.1,r};};
  for(const pass of [0,1,2])for(let i=0;i<=n;i++){const b=bodyAt(i/n),p=V(b.f,0,b.u);
-  if(pass===0)body.push(ball(p,b.r,coat[1],{sil:1}));else if(pass===1)body.push(ball({x:p.x,y:p.y-.5},b.r-.8,coat[2]));else body.push(ball({x:p.x,y:p.y-b.r*.5},b.r*.45,coat[3]));}
+  if(pass===0)body.push(ball(p,b.r,fur[1],{sil:1}));else if(pass===1)body.push(ball({x:p.x,y:p.y-.5},b.r-.8,fur[2]));else body.push(ball({x:p.x,y:p.y-b.r*.5},b.r*.45,fur[3]));}
  // Markings on the body.
  const bodyMark=[];
  if(marking==='saddle')for(let i=1;i<n;i++){const b=bodyAt(i/n),p=V(b.f,0,b.u+b.r*.35);bodyMark.push(ball(p,b.r*.72,dark[1]),ball({x:p.x,y:p.y-b.r*.3},b.r*.35,dark[2]));}
  if(marking==='tabby'){for(let i=1;i<n;i++){const b=bodyAt(i/n);for(const s of [-1,1]){if(facing(0,s*.6,.8)<0)continue;const a1=V(b.f,s*b.r*.15,b.u+b.r*.95),a2=V(b.f-.6,s*b.r*.8,b.u+b.r*.4);bodyMark.push(limb(a1,a2,.9,coat[0]));}}}
  if(marking==='patches'){for(const [k,s,du,r] of [[.3,.7,.5,.5],[.75,-.6,.6,.45],[.55,.1,.95,.4]]){if(facing(0,s,du)<-.1)continue;const b=bodyAt(k),p=V(b.f,s*b.r*.8,b.u+du*b.r*.6);bodyMark.push(ball(p,b.r*r,cat?coat[0]:pale[2]));}}
- const belly=marking==='mask'||marking==='tuxedo'||marking==='chest';
+ // Brindle: thin dark streaks down the sides, close together and a little uneven.
+ if(marking==='brindle'){const st=mix(coat[0],'#000000',.25);for(let i=0;i<11;i++){const k=.1+i*.08,b=bodyAt(k),j=((i*37)%7)/7-.5;for(const s of [-1,1]){if(facing(0,s*.7,.6)<0)continue;
+  const a1=V(b.f+j*.4,s*b.r*.4,b.u+b.r*.88),a2=V(b.f-.5+j*.6,s*b.r*.95,b.u-b.r*.15);bodyMark.push(limb(a1,a2,.6,st));}}}
+ // Spots on the body, tail and head, at fixed places so every frame agrees; dark on a light coat, pale on a black one.
+ const spotC=look.coat===0?pale[2]:cat?coat[0]:dark[1],SPOTS=[[.12,.9,.5],[.2,-.5,.42],[.3,.2,.48],[.38,-1.2,.4],[.46,1.3,.46],[.55,-.2,.5],[.62,.7,.38],[.7,-.8,.46],[.78,1.6,.4],[.86,.1,.42],[.25,1.9,.36],[.66,-1.7,.36],[.5,2.4,.32],[.9,-1.1,.36]];
+ if(marking==='spotted')for(const [k,a,r] of SPOTS){const b=bodyAt(k),ns=Math.sin(a),nu=Math.cos(a);if(facing(0,ns,nu)<.05)continue;bodyMark.push(ball(V(b.f,ns*b.r*.9,b.u+nu*b.r*.9),r*(cat?1.2:1.6),spotC));}
+ // Calico and tortie: patches of ginger and black. A calico is white underneath; a tortie is mottled all over.
+ // A patch runs along the body from k0 to k1 around one side (a, from the spine), swelling in the middle and wandering a little.
+ const GINGER=COATS[4].ramp,patch=(k0,k1,a,size,col)=>{for(let k=k0;k<=k1+1e-6;k+=.05){const b=bodyAt(k),t=(k-k0)/Math.max(.01,k1-k0),aa=a+Math.sin(k*23+a*5)*.22,ns=Math.sin(aa),nu=Math.cos(aa);
+  if(facing(0,ns,nu)<.15)continue;bodyMark.push(ball(V(b.f,ns*b.r*.55,b.u+nu*b.r*.55),b.r*size*(.55+.45*Math.sin(Math.PI*t)),col));}};
+ if(marking==='calico')for(const [k0,k1,a,z,c] of [[.04,.38,.5,.55,GINGER[2]],[.44,.7,-.55,.5,BLACK[2]],[.74,.96,.9,.45,GINGER[2]],[.18,.34,-1.4,.4,BLACK[2]],[.5,.66,1.5,.38,GINGER[2]]])patch(k0,k1,a,z,c);
+ if(marking==='tortie')for(const [k0,k1,a,z,c] of [[.05,.22,.4,.4,GINGER[1]],[.26,.4,-.6,.38,GINGER[2]],[.44,.58,.9,.36,GINGER[1]],[.62,.78,-.2,.38,GINGER[2]],[.8,.95,.7,.34,GINGER[1]],[.15,.3,1.5,.32,GINGER[2]],[.5,.66,-1.5,.32,GINGER[1]],[.34,.46,0,.3,BLACK[1]],[.7,.84,1.4,.3,BLACK[1]]])patch(k0,k1,a,z,c);
+ // A black and tan dog's chest: two tan marks either side of the breastbone.
+ if(ptC&&!cat&&facing(.7,0,-.3)>-.2){const b=bodyAt(1);for(const s of [-1,1])bodyMark.push(ball(V(b.f+b.r*.5,s*b.r*.32,b.u-b.r*.15),b.r*.26,coat[2]));}
+ const belly=marking==='mask'||marking==='tuxedo'||marking==='chest'||marking==='blaze'||marking==='calico';
  if(belly&&facing(.7,0,-.3)>-.3){const b=bodyAt(1),p=V(b.f+b.r*.45,0,b.u-b.r*.25);bodyMark.push(ball(p,b.r*.62,pale[2]),ball({x:p.x,y:p.y-.6},b.r*.4,pale[3]));}
  if(marking==='mask'||marking==='tuxedo')for(let i=1;i<n;i++){const b=bodyAt(i/n),p=V(b.f,0,b.u-b.r*.7);if(facing(0,0,-1)>-.6)bodyMark.push(ball(p,b.r*.45,pale[2]));}
+ // Gear over the body. Vests wrap the back half of the chest and shoulders; a harness is straps and a ring; saddlebags hang a pouch either side.
+ const gearFar=[],GR=gear?.ramp,gid=look.gear|0;
+ // A strap round the body at k: the half of the ring that faces the camera, a dark edge under the band.
+ const strap=(k,w,col,edge,out=.4)=>{const b=bodyAt(k),R=b.r+out,N=24,seg=[];let prev=null;for(let i=0;i<=N;i++){const q=i/N*Math.PI*2,ns=Math.cos(q),nu=Math.sin(q),p=V(b.f,ns*R,b.u+nu*R);
+  if(facing(0,ns,nu)>-.02){if(prev)seg.push([prev,p]);prev=p;}else prev=null;}for(const [a,c] of seg)bodyMark.push(limb(a,c,w+.9,edge));for(const [a,c] of seg)bodyMark.push(limb({x:a.x,y:a.y-.2},{x:c.x,y:c.y-.2},w,col));};
+ // A box hung on one side of the body at k (a pouch or a saddlebag): its outline, its face and a flap over the top.
+ const box=(k,s,hf,hu,du,thick,cols,into,flap=true)=>{const b=bodyAt(k),z=b.r/7,s0=b.r*.75,s1=b.r+thick,u=b.u+du*b.r,corner=(sf,ss,su)=>V(b.f+sf*hf*z,s*ss,u+su*hu*z);
+  const all=[];for(const sf of [-1,1])for(const su of [-1,1])for(const ss of [s0,s1])all.push(corner(sf,ss,su));into.push(poly(hull(all),cols[1],{sil:1}));
+  if(facing(0,s,0)>.12){const face=[corner(-.82,s1,-.82),corner(.82,s1,-.82),corner(.82,s1,.82),corner(-.82,s1,.82)];into.push(poly(face,cols[2]));
+   if(flap)into.push(poly([corner(-.9,s1+.05,.9),corner(.9,s1+.05,.9),corner(.9,s1+.05,.3),corner(-.9,s1+.05,.3)],cols[3]),ball(corner(0,s1+.1,.3),.55,'#c9a646'));}};
+ if(gear&&gid>=3){const k0=.3,k1=.98,st=(k1-k0)/6;
+  for(const pass of [0,1,2])for(let i=0;i<=6;i++){const b=bodyAt(k0+i*st),p=V(b.f,0,b.u);
+   if(pass===0)bodyMark.push(ball(p,b.r+.55,GR[1],{sil:1}));else if(pass===1)bodyMark.push(ball({x:p.x,y:p.y-.5},b.r-.25,GR[2]));else bodyMark.push(ball({x:p.x,y:p.y-b.r*.55},b.r*.38,GR[3]));}
+  // Hems at the back and front edge, so the vest reads as something worn, not a change of coat.
+  strap(k0,.7,GR[1],GR[0],.6);strap(k1,.7,GR[1],GR[0],.6);
+  if(gid===3)for(const s of [-1,1]){if(facing(0,s,.25)<.2)continue;const b=bodyAt(.62),z=b.r/7,u=b.u+b.r*.12,at=(df,du)=>V(b.f+df*z,s*(b.r+.65),u+du*z);
+   // Medic: a first-aid square, a white cross on green, edged in white.
+   bodyMark.push(poly([at(-2.6,-2.6),at(2.6,-2.6),at(2.6,2.6),at(-2.6,2.6)],'#e9ece6'),poly([at(-2,-2),at(2,-2),at(2,2),at(-2,2)],'#2f8a4a'),limb(at(-1.3,0),at(1.3,0),.9,'#f4f6f1'),limb(at(0,-1.3),at(0,1.3),.9,'#f4f6f1'));}
+  if(gid===4){// Tactical: a pouch either side and a grab handle on top.
+   for(const s of [-1,1])for(const k of [.48,.8])box(k,s,2.2,1.9,-.15,1.5,GR,facing(0,s,0)>-.3?bodyMark:gearFar,true);
+   const a=bodyAt(.52),c=bodyAt(.78),h=[V(a.f,0,a.u+a.r+.4),V(a.f+.4,0,a.u+a.r+2.2),V(c.f-.4,0,c.u+c.r+2.2),V(c.f,0,c.u+c.r+.4)];
+   for(let i=1;i<4;i++)bodyMark.push(limb(h[i-1],h[i],1.5,GR[0],{sil:1}));}
+  if(gid===5){// Hi-vis: two reflective bands.
+   strap(.48,1.3,'#d6dbdf','#7d858c',.6);strap(.8,1.3,'#d6dbdf','#7d858c',.6);}}
+ if(gear&&gid===1){// Harness: a girth strap behind the front legs, a strap down the spine and a ring to clip a lead to.
+  const sp=[];for(let i=0;i<=4;i++){const b=bodyAt(.56+i*.09);sp.push(V(b.f,0,b.u+b.r+.35));}for(let i=1;i<sp.length;i++)bodyMark.push(limb(sp[i-1],sp[i],2.2,GR[0]));for(let i=1;i<sp.length;i++)bodyMark.push(limb({x:sp[i-1].x,y:sp[i-1].y-.2},{x:sp[i].x,y:sp[i].y-.2},1.3,GR[2]));
+  strap(.8,1.5,GR[2],GR[0],.4);const top=bodyAt(.8),r=V(top.f,0,top.u+top.r+.9);bodyMark.push({k:'e',x:r.x,y:r.y,rx:1.25,ry:.95,col:'#5c636c',sil:1},{k:'e',x:r.x,y:r.y,rx:.6,ry:.4,col:GR[0]});}
+ if(gear&&gid===2){// Saddlebags: a strap over the back and a bag hanging either side.
+  strap(.56,1.1,GR[2],GR[0],.35);for(const s of [-1,1])box(.5,s,4.6,3.2,-.08,2.5,GR,facing(0,s,0)>-.3?bodyMark:gearFar,true);}
  // Neck and collar.
  const head=V(sk.headF,0,sk.headU),neckA=V(sk.chestF+P.rc*.1,0,sk.cU+P.rc*.3),neckB=V(sk.headF-P.rH*.4,0,sk.headU-P.rH*.5);
- const neckR=P.rH*.72+P.fluff*.5,neck=[limb(neckA,neckB,neckR*2,coat[1],{sil:1}),limb({x:neckA.x,y:neckA.y-.5},{x:neckB.x,y:neckB.y-.5},neckR*2-1.6,coat[2])];
- if(P.fluff>.6)neck.push(ball({x:(neckA.x+neckB.x)/2,y:(neckA.y+neckB.y)/2+.5},neckR*1.15,coat[1],{sil:1}),ball({x:(neckA.x+neckB.x)/2,y:(neckA.y+neckB.y)/2},neckR,coat[2]));
+ const neckR=P.rH*.72+P.fluff*.5,neck=[limb(neckA,neckB,neckR*2,fur[1],{sil:1}),limb({x:neckA.x,y:neckA.y-.5},{x:neckB.x,y:neckB.y-.5},neckR*2-1.6,fur[2])];
+ if(P.fluff>.6)neck.push(ball({x:(neckA.x+neckB.x)/2,y:(neckA.y+neckB.y)/2+.5},neckR*1.15,fur[1],{sil:1}),ball({x:(neckA.x+neckB.x)/2,y:(neckA.y+neckB.y)/2},neckR,fur[2]));
  if(belly&&facing(.6,0,-.2)>-.2)neck.push(ball({x:(neckA.x*.4+neckB.x*.6),y:(neckA.y*.4+neckB.y*.6)+neckR*.35},neckR*.7,pale[2]));
  if(collar.col){const cf=sk.headF-P.rH*.85,cu=sk.headU-P.rH*.9,ring=[];for(let i=0;i<16;i++){const q=i/16*Math.PI*2;ring.push(V(cf,Math.cos(q)*(neckR+.5),cu+Math.sin(q)*(neckR+.5)));}
   const lo=mix(collar.col,'#000000',.35),pts=ring.map(q=>[q.x,q.y]);neck.push({k:'p',pts,col:lo,sil:1},{k:'p',pts:pts.map(([x,y])=>[x,y-.6]),col:collar.col});
   const front=V(cf+neckR*.6,0,cu-neckR*.75);if(facing(1,0,-.3)>0){if(collar.bandana){neck.push(poly([V(cf+neckR*.3,-neckR,cu-neckR*.2),V(cf+neckR*.3,neckR,cu-neckR*.2),V(cf+neckR*1.1,0,cu-neckR*1.9)],collar.col,{sil:1}),poly([V(cf+neckR*.4,-neckR*.5,cu-neckR*.45),V(cf+neckR*.4,neckR*.2,cu-neckR*.45),V(cf+neckR*.8,-.2,cu-neckR*1.2)],mix(collar.col,'#ffffff',.25)));}
-   else neck.push(ball(front,.9,'#d9b24a'));}}
+   else if(collar.bell){const q=V(cf+neckR*.75,0,cu-neckR*1.05);neck.push(ball(q,1.5,'#a8812c',{sil:1}),ball({x:q.x-.2,y:q.y-.3},1.05,'#e2bd52'),{k:'e',x:q.x,y:q.y+.7,rx:.7,ry:.3,col:'#3a2a10'});}
+   else if(!collar.spikes)neck.push(ball(front,.9,'#d9b24a'));}
+  if(collar.spikes)for(let i=0;i<10;i++){const q=i/10*Math.PI*2,ns=Math.cos(q),nu=Math.sin(q);if(facing(.2,ns,nu)<.1)continue;const a=V(cf,ns*(neckR+.9),cu+nu*(neckR+.9));neck.push(ball(a,.75,'#8d939b',{sil:1}),ball({x:a.x,y:a.y-.25},.4,'#e3e6ea'));}}
+ if(gear&&gid===1){const nf=sk.chestF+P.rc*.05,nu=sk.cU+P.rc*.35,R=neckR+.9,seg=[];let prev=null;for(let i=0;i<=20;i++){const q=i/20*Math.PI*2,ns=Math.cos(q),uu=Math.sin(q),p=V(nf+uu*.8,ns*R,nu+uu*R);
+  if(facing(.3,ns,uu)>-.02){if(prev)seg.push([prev,p]);prev=p;}else prev=null;}for(const [a,c] of seg)neck.push(limb(a,c,2.4,GR[0]));for(const [a,c] of seg)neck.push(limb({x:a.x,y:a.y-.2},{x:c.x,y:c.y-.2},1.5,GR[2]));}
  // Legs. Far legs are a shade darker; each limb is its own group so the near legs draw over the body with an outline.
- const pawCol=(marking==='tuxedo'||(marking==='mask'&&!cat))?pale:null;
+ const pawCol=(marking==='tuxedo'||(marking==='mask'&&!cat)||marking==='socks'||marking==='blaze'||marking==='calico')?pale:ptC;
  // Thigh and shoulder masses join the body without a seam: far ones go under it, near ones over it.
  const farMass=[],nearMass=[];
- for(const L of sk.legs){const near=facing(0,L.side,0)>0,col=near?coat:[coat[0],coat[0],coat[1],coat[2]];const sh=[];
+ for(const L of sk.legs){const near=facing(0,L.side,0)>0,col=near?fur:[fur[0],fur[0],fur[1],fur[2]];const sh=[];
   if(L.sit){// A folded hind leg: the haunch with the paw tucked in front of it.
    const hf=sk.hipF+P.rh*.2,hs=L.side*(P.w*.8+P.rh*.2),hp=V(hf,hs,P.rh*.85),paw=V(hf+P.rh*1.25,L.side*(P.w*.9),.6),hr=P.rh*.64;
    sh.push(ball(hp,hr,col[1],{sil:1}),ball({x:hp.x,y:hp.y-.6},hr-.9,col[2]),limb(hp,paw,P.leg,col[1],{sil:1}),limb({x:hp.x,y:hp.y-.4},{x:paw.x,y:paw.y-.4},P.leg-1.3,col[2]));
@@ -125,39 +195,52 @@ export function pet(c,direction=2,frame=0,look={}){
  // A curled tail also leans to one side, as a husky's does, so from behind it reads as a curl rather than a pole.
  const lean=P.tail==='curl'?P.tailL*.28:0,tp=tailPath(P,sk).map(([f,u,k])=>V(sk.hipF-P.rh*.6+f,sk.wag*k*k*P.tailL*.45+lean*Math.sin(k*Math.PI*.6),sk.hU+P.rh*.25+u)),tail=[];
  const tr=k=>P.tail==='brush'||P.tail==='plume'?P.tailR*(1+Math.sin(k*Math.PI)*.45)*(1-k*.3):P.tail==='curl'?P.tailR*(1.1-k*.2):P.tailR*(1-k*.55);
- const tk=i=>i/(tp.length-1);for(let i=1;i<tp.length;i++)tail.push(limb(tp[i-1],tp[i],tr(tk(i))*2,coat[1],{sil:1}));tail.push(ball(tp.at(-1),tr(1),coat[1],{sil:1}));
+ const tk=i=>i/(tp.length-1);for(let i=1;i<tp.length;i++)tail.push(limb(tp[i-1],tp[i],tr(tk(i))*2,tailC[1],{sil:1}));tail.push(ball(tp.at(-1),tr(1),tailC[1],{sil:1}));
  // A saddle-backed dog has a dark stripe down the top of its tail, which also keeps the tail from reading as a leg from behind.
- const tailTop=marking==='saddle'?dark[1]:coat[2];for(let i=1;i<tp.length;i++)tail.push(limb({x:tp[i-1].x,y:tp[i-1].y-.4},{x:tp[i].x,y:tp[i].y-.4},Math.max(.6,tr(tk(i))*2-1.4),tailTop));
+ const tailTop=marking==='saddle'?dark[1]:tailC[2];for(let i=1;i<tp.length;i++)tail.push(limb({x:tp[i-1].x,y:tp[i-1].y-.4},{x:tp[i].x,y:tp[i].y-.4},Math.max(.6,tr(tk(i))*2-1.4),tailTop));
  if(marking==='tabby')tp.forEach((q,i)=>{if(i%3===2&&i<tp.length-1)tail.push(limb(tp[i],tp[i+1],tr(tk(i))*1.9,coat[0]));});
- if((marking==='mask'||marking==='tuxedo')&&P.tail!=='stub')tail.push(ball(tp.at(-1),tr(1)*.9,pale[2]));
+ if((marking==='mask'||marking==='tuxedo'||marking==='blaze')&&P.tail!=='stub')tail.push(ball(tp.at(-1),tr(1)*.9,pale[2]));
+ if(marking==='spotted'&&!cat)for(const i of [2,5])tail.push(ball(tp[i],tr(tk(i))*.8,spotC));
+ if(marking==='calico'||marking==='tortie')for(const i of [1,4,6])tail.push(ball(tp[i],tr(tk(i))*.85,i===4&&marking==='calico'?BLACK[2]:GINGER[i===1?2:1]));
  group(tp[2].d-.4,tail);
  // Head: skull, cheeks, snout, nose, eyes and ears, ordered by how they face the camera.
  const H=[],rH=P.rH+P.fluff*.3,sf=P.sn,hs=head;
- H.push(ball(hs,rH,coat[1],{sil:1}));if(P.fluff>.6)H.push(ball(V(sk.headF-.5,0,sk.headU-rH*.55),rH*.95,coat[1],{sil:1}));
+ H.push(ball(hs,rH,fur[1],{sil:1}));if(P.fluff>.6)H.push(ball(V(sk.headF-.5,0,sk.headU-rH*.55),rH*.95,fur[1],{sil:1}));
  // Cats get round cheeks either side of a short muzzle, which is most of what makes the face read as a cat.
- const cheeks=cat?[-1,1].map(s=>V(sk.headF+rH*.28,s*rH*.42,sk.headU-rH*.3)):[];for(const q of cheeks)H.push(ball(q,rH*.52,coat[1],{sil:1}));
- H.push(ball({x:hs.x,y:hs.y-.5},rH-.8,coat[2]));for(const q of cheeks)H.push(ball({x:q.x,y:q.y-.5},rH*.52-.8,coat[2]));H.push(ball({x:hs.x,y:hs.y-rH*.45},rH*.45,coat[3]));
+ const cheeks=cat?[-1,1].map(s=>V(sk.headF+rH*.28,s*rH*.42,sk.headU-rH*.3)):[];for(const q of cheeks)H.push(ball(q,rH*.52,fur[1],{sil:1}));
+ H.push(ball({x:hs.x,y:hs.y-.5},rH-.8,fur[2]));for(const q of cheeks)H.push(ball({x:q.x,y:q.y-.5},rH*.52-.8,fur[2]));H.push(ball({x:hs.x,y:hs.y-rH*.45},rH*.45,fur[3]));
  const faceW=(marking==='mask')?pale:null;
  if(faceW&&facing(1,0,.1)>-.3){H.push(ball(V(sk.headF+rH*.45,-rH*.35,sk.headU-rH*.2),rH*.42,pale[2]),ball(V(sk.headF+rH*.45,rH*.35,sk.headU-rH*.2),rH*.42,pale[2]));
   for(const s of [-1,1])if(facing(.8,s*.4,.4)>0)H.push(ball(V(sk.headF+rH*.7,s*rH*.38,sk.headU+rH*.42),.75,pale[3]));}
+ // A colorpoint cat's dark mask, over the eyes and down to the muzzle.
+ if(ptC&&cat&&facing(1,0,0)>-.3){H.push(ball(V(sk.headF+rH*.5,0,sk.headU-rH*.12),rH*.56,ptC[2]));for(const q of cheeks)H.push(ball({x:q.x+(V(1,0,0).x)*.4,y:q.y-.2},rH*.36,ptC[2]));}
+ // Black and tan: tan brows over the eyes and tan cheeks either side of the muzzle.
+ if(ptC&&!cat){for(const s of [-1,1]){if(facing(.8,s*.45,.4)>0)H.push(ball(V(sk.headF+rH*.72,s*rH*.4,sk.headU+rH*.45),.85,coat[3]));if(facing(.6,s*.8,-.2)>0)H.push(ball(V(sk.headF+rH*.55,s*rH*.55,sk.headU-rH*.35),rH*.3,coat[2]));}}
+ // Blaze: a white stripe up the middle of the face.
+ if(marking==='blaze'&&facing(.8,0,.6)>0)H.push(limb(V(sk.headF+rH*.82,0,sk.headU-rH*.05),V(sk.headF+rH*.42,0,sk.headU+rH*.82),rH*.32,pale[2]));
+ // Spots, calico and tortie patches on the head.
+ if(marking==='spotted')for(const [df,ds,du,r] of [[.1,.6,.7,.5],[-.3,-.7,.5,.45],[.5,.2,.9,.35]]){if(facing(df,ds,du)<.1)continue;H.push(ball(V(sk.headF+rH*df*.9,rH*ds*.9,sk.headU+rH*du*.9),r*(cat?1.1:1.4),spotC));}
+ if(marking==='calico'||marking==='tortie')for(const [ds,col] of [[1,GINGER],[-1,marking==='calico'?BLACK:GINGER]]){if(facing(0,ds*.8,.6)<0)continue;H.push(ball(V(sk.headF-rH*.15,ds*rH*.5,sk.headU+rH*.45),rH*(marking==='tortie'?.32:.46),col[2]));}
  if(marking==='tabby'&&facing(.4,0,1)>0){const m=V(sk.headF+rH*.25,0,sk.headU+rH*.85);H.push(limb({x:m.x-1.2,y:m.y},{x:m.x-1.2,y:m.y-1.6},.6,coat[0]),limb({x:m.x,y:m.y+.2},{x:m.x,y:m.y-1.8},.6,coat[0]),limb({x:m.x+1.2,y:m.y},{x:m.x+1.2,y:m.y-1.6},.6,coat[0]));}
  // Snout: a tapered muzzle from a broad base at the stop to the nose, so it reads as a wedge from the side and a short, wide muzzle from the front.
  const f0=sk.headF+rH*(cat?.45:.35),u0=sk.headU-rH*(cat?.3:.3),r0=rH*(cat?.4:.52),f1=sk.headF+rH*(cat?.62:.55)+sf,u1=sk.headU-rH*(cat?.36:.4),r1=rH*P.snR*(cat?.43:.72);
- const muzzle=(marking==='chest'||marking==='tuxedo'||marking==='mask')?pale:coat,snout=[],chain=[];
+ const muzzle=(marking==='chest'||marking==='tuxedo'||marking==='mask'||marking==='blaze')?pale:ptC||coat,snout=[],chain=[];
  for(let i=0;i<5;i++){const t=i/4,r=r0+(r1-r0)*Math.pow(t,.8);chain.push({p:V(f0+(f1-f0)*t,0,u0+(u1-u0)*t),r,t});}
  for(const k of chain)snout.push(ball(k.p,k.r,muzzle[1],{sil:1}));
  for(const k of chain)snout.push(ball({x:k.p.x,y:k.p.y-.5},Math.max(.5,k.r-.8),muzzle[2]));
  if(!cat)for(const k of chain)if(k.t>.1&&k.t<.9)snout.push(ball({x:k.p.x,y:k.p.y-k.r*.5},k.r*.3,muzzle[3]));
  const noseP=V(f1+r1*.55,0,u1+r1*.35);
  const eyes=[];for(const s of [-1,1]){const nf=.78,ns=s*.5,nu=.28,vis=facing(nf,ns,nu);if(vis<.05)continue;const q=V(sk.headF+rH*nf*.95,rH*ns*.95,sk.headU+rH*nu*.8),big=cat?1.35:1.05;
-  eyes.push({k:'e',x:q.x,y:q.y,rx:big*(.55+.45*Math.min(1,vis)),ry:big,col:INK},{k:'e',x:q.x,y:q.y,rx:big*.55*(.6+.4*Math.min(1,vis)),ry:big*.7,col:eye},{k:'c',x:q.x+.25,y:q.y-.4,r:.32,col:'#f2efe6'});}
+  eyes.push({k:'e',x:q.x,y:q.y,rx:big*(.55+.45*Math.min(1,vis)),ry:big,col:INK},{k:'e',x:q.x,y:q.y,rx:big*.55*(.6+.4*Math.min(1,vis)),ry:big*.7,col:s>0&&eyeOf.col2||eye},{k:'c',x:q.x+.25,y:q.y-.4,r:.32,col:'#f2efe6'});}
  // Ears.
  const ears=[];for(const s of [-1,1]){const base=[sk.headF-rH*.2,s*rH*.55,sk.headU+rH*.7],vis=facing(.3,s*.8,.6);
-  const at=(df,ds,du)=>V(base[0]+df,base[1]+ds,base[2]+du),earCol=coat;
-  if(P.ears==='prick'||P.ears==='cat'){const h=P.earH,w=cat?1.9:2.1,tip=at(-.4,s*(cat?.9:.7),h);
-   const ring=[];for(let i=0;i<10;i++){const q=i/10*Math.PI*2;ring.push(at(Math.cos(q)*w*1.05-.3,Math.sin(q)*w*.9,-.6));}const outer=hull([...ring,tip]);ears.push({side:s,d:tip.d,shapes:[poly(outer,earCol[1],{sil:1}),poly([at(.1,-w*.55,-.2),at(.1,w*.55,-.2),at(-.3,s*(cat?.7:.55),h*.75)],facing(1,0,.2)>.2?PINK:earCol[2])]});}
-  else if(P.ears==='drop'){const top=at(-.1,s*.9,-.2),tip=at(-.3,s*(rH*.42+.6),-P.earH);ears.push({side:s,d:top.d+(vis>0?1:-1),shapes:[limb(top,tip,3.4,coat[0],{sil:1}),limb({x:top.x,y:top.y-.3},{x:tip.x,y:tip.y-.3},2.2,coat[1]),{k:'e',x:tip.x,y:tip.y,rx:1.7,ry:1.3,col:coat[1],sil:1}]});}
-  else{const b0=at(0,-.9,-.3),b1=at(0,.9,-.3),tip=at(1.6,s*1.2,P.earH*.35);ears.push({side:s,d:tip.d,shapes:[poly([b0,b1,at(-.8,0,P.earH*.6),tip],coat[1],{sil:1}),poly([at(.1,-.5,0),at(.1,.5,0),at(.6,s*.6,P.earH*.4)],coat[0])]});}}
+  const at=(df,ds,du)=>V(base[0]+df,base[1]+ds,base[2]+du),earCol=earC;
+  if(P.ears==='prick'||P.ears==='cat'){const h=P.earH,w=P.earW||(cat?1.9:2.1),tip=at(-.4,s*(cat?.9:.7),h);
+   const ring=[];for(let i=0;i<10;i++){const q=i/10*Math.PI*2;ring.push(at(Math.cos(q)*w*1.05-.3,Math.sin(q)*w*.9,-.6));}const outer=hull([...ring,tip]);ears.push({side:s,d:tip.d,shapes:[poly(outer,earCol[1],{sil:1}),poly([at(.1,-w*.55,-.2),at(.1,w*.55,-.2),at(-.3,s*(cat?.7:.55),h*.75)],facing(1,0,.2)>.2?PINK:earCol[2])]});
+   // Lynx tips: a wisp of dark fur off the point of each ear.
+   if(P.tufts)ears.at(-1).shapes.push(limb(tip,at(-.7,s*1.25,h+1.6),.55,earCol[0]));}
+  else if(P.ears==='drop'){const top=at(-.1,s*.9,-.2),tip=at(-.3,s*(rH*.42+.6),-P.earH);ears.push({side:s,d:top.d+(vis>0?1:-1),shapes:[limb(top,tip,3.4,earC[0],{sil:1}),limb({x:top.x,y:top.y-.3},{x:tip.x,y:tip.y-.3},2.2,earC[1]),{k:'e',x:tip.x,y:tip.y,rx:1.7,ry:1.3,col:earC[1],sil:1}]});}
+  else{const b0=at(0,-.9,-.3),b1=at(0,.9,-.3),tip=at(1.6,s*1.2,P.earH*.35);ears.push({side:s,d:tip.d,shapes:[poly([b0,b1,at(-.8,0,P.earH*.6),tip],earC[1],{sil:1}),poly([at(.1,-.5,0),at(.1,.5,0),at(.6,s*.6,P.earH*.4)],earC[0])]});}}
  // Whiskers and the tongue are tiny, but they say "cat" and "happy dog" from across the camp.
  const mouth=[];if(facing(1,0,0)>-.2){
   // The tongue hangs under the nose, so it goes down first.
@@ -172,7 +255,7 @@ export function pet(c,direction=2,frame=0,look={}){
  const headGroup=[];for(const e of farEars)group(hs.d-.01,e.shapes);
  group(headFront?hs.d+.5:Math.max(hs.d-.5,neckA.d*.6-.15),headFront?[...headShapes,...snout,...eyes,...mouth]:[...snout,...mouth,...headShapes,...eyes]);
  for(const e of nearEars)group(headFront?hs.d+.6:Math.max(hs.d-.4,neckA.d*.6-.1),e.shapes);
- const neckDepth=neckA.d*.6+(headFront?.2:-.2);group(0,[...farMass,...body,...nearMass,...bodyMark]);group(neckDepth,neck);
+ const neckDepth=neckA.d*.6+(headFront?.2:-.2);group(0,[...gearFar,...farMass,...body,...nearMass,...bodyMark]);group(neckDepth,neck);
  groups.sort((a,b)=>a.depth-b.depth);for(const G of groups)for(const sh of G.shapes)if(sh.k==='e'){sh.rx*=Z;sh.ry*=Z;}
  for(const G of groups){
   for(const s of G.shapes)if(s.sil){if(s.k==='p'){for(const [ox,oy] of [[-1,0],[1,0],[0,-1],[0,1],[-.5,-.5],[.5,-.5],[-.5,.5],[.5,.5]])draw(g,s,INK,ox,oy);}else draw(g,s,INK,0,0,1);}

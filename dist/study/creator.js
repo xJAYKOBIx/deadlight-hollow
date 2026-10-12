@@ -26,9 +26,11 @@ export const SECTIONS=[
 export const PET_SECTIONS=[
  {id:'pkind',name:'Companion',rows:[{pet:'species'},{pet:'breed'}]},
  {id:'pcoat',name:'Coat',rows:[{pet:'coat'},{pet:'marking'}]},
- {id:'pdetail',name:'Eyes and collar',rows:[{pet:'eyes'},{pet:'collar'}]}];
-const PET_LABEL={species:'Dog or cat',breed:'Breed',coat:'Coat',marking:'Markings',eyes:'Eyes',collar:'Collar'};
-const PET_SWATCH={coat:COATS.map(c=>c.ramp[2]),eyes:EYES.map(e=>e.col)};
+ {id:'pdetail',name:'Eyes and collar',rows:[{pet:'eyes'},{pet:'collar'}]},
+ {id:'pgear',name:'Gear',rows:[{pet:'gear'}]}];
+const PET_LABEL={species:'Dog or cat',breed:'Breed',coat:'Coat',marking:'Markings',eyes:'Eyes',collar:'Collar',gear:'Gear'};
+// Odd eyes show both colors, split down the middle.
+const PET_SWATCH={coat:COATS.map(c=>c.ramp[2]),eyes:EYES.map(e=>e.col2?`linear-gradient(90deg,${e.col} 50%,${e.col2} 50%)`:e.col)};
 // Survivors carry gear; zombies swap that tab for their infection.
 const sectionsFor=l=>SECTIONS.filter(s=>l.zombie?!s.survivor:!s.zombie);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -57,7 +59,11 @@ export function createCreator({$,storage,kicker=()=>null,look,setLook,loadout,se
  const petCache=new Map();
  function petFrame(l,dir,frame){const key=dir+':'+frame+JSON.stringify(l);if(petCache.has(key))return petCache.get(key);if(petCache.size>120)petCache.clear();
   const c=make(PET_FRAME.w,PET_FRAME.h),g=c.getContext('2d');g.scale(2,2);pet(g,dir,frame,l);petCache.set(key,c);return c;}
- function petThumb(canvas,l){const g=canvas.getContext('2d'),[x,y,s]=l.species?[40,50,80]:[22,16,116];g.clearRect(0,0,canvas.width,canvas.height);g.imageSmoothingEnabled=false;g.drawImage(petFrame(l,1,0),x,y,s,s,0,0,canvas.width,canvas.height);}
+ // Collars are small, so their tiles look closer: a square at the top right of the animal, where its head and neck are when it faces front right.
+ function petThumb(canvas,l,close){const g=canvas.getContext('2d'),fr=petFrame(l,1,0);let [x,y,s]=l.species?[34,38,98]:[22,16,116];
+  if(close){const d=fr.getContext('2d').getImageData(0,0,fr.width,fr.height).data;let x1=0,y0=fr.height,x0=fr.width;for(let i=3;i<d.length;i+=4)if(d[i]>8){const px=(i>>2)%fr.width,py=(i>>2)/fr.width|0;if(px>x1)x1=px;if(px<x0)x0=px;if(py<y0)y0=py;}
+   s=Math.round(Math.max(44,(x1-x0)*.7));x=x1-s+2;y=y0+Math.round(s*.24);}
+  g.clearRect(0,0,canvas.width,canvas.height);g.imageSmoothingEnabled=false;g.drawImage(fr,x,y,s,s,0,0,canvas.width,canvas.height);}
  function petRowHtml(row,c){const l=petLook(c),key=row.pet,opts=key==='species'?SPECIES:PET_OPTIONS(c.species)[key],cur=key==='species'?c.species:l[key],title=PET_LABEL[key];
   if(PET_SWATCH[key])return `<div class="cr-row"><h3>${title}<b>${esc(opts[cur])}</b></h3><div class="cr-swatches">${opts.map((n,i)=>`<button class="cr-swatch" data-pet="${key}" data-value="${i}" aria-pressed="${i===cur}" aria-label="${esc(n)}" title="${esc(n)}" style="--c:${PET_SWATCH[key][i]}"></button>`).join('')}</div></div>`;
   return `<div class="cr-row"><h3>${title}<b>${esc(opts[cur])}</b></h3><div class="cr-tiles">${opts.map((n,i)=>`<button class="cr-tile" data-pet="${key}" data-value="${i}" aria-pressed="${i===cur}" aria-label="${esc(n)}"><canvas width="96" height="96" data-petthumb="${key}:${i}"></canvas><span>${esc(n)}</span></button>`).join('')}</div></div>`;}
@@ -77,7 +83,7 @@ export function createCreator({$,storage,kicker=()=>null,look,setLook,loadout,se
   panel.innerHTML=`<div class="cr-panel-head"><h2>${s.name}</h2><span>${list.indexOf(s)+1} / ${list.length}</span></div>`+s.rows.map(r=>petRowHtml(r,c)).join('');
   for(const b of $('categoryRail').querySelectorAll?.('[data-section]')||[]){b.setAttribute('aria-pressed',String(b.dataset.section===petSection));b.hidden=!list.some(x=>x.id===b.dataset.section);}
   $('creatorKicker')&&($('creatorKicker').textContent=(c.species?'Cat':'Dog')+' · Companion file');
-  for(const cv of panel.querySelectorAll?.('canvas[data-petthumb]')||[]){const [key,v]=cv.dataset.petthumb.split(':');petThumb(cv,petVariant(c,key,Number(v)));}
+  for(const cv of panel.querySelectorAll?.('canvas[data-petthumb]')||[]){const [key,v]=cv.dataset.petthumb.split(':');petThumb(cv,petVariant(c,key,Number(v)),key==='collar');}
   const field=$('survivorName');field.placeholder=c.species?'Name your cat':'Name your dog';$('undoLook').disabled=!petHistory.length;kinds('companion');more();}
  function render(){document.body.classList?.toggle?.('cr-pet',mode==='pet');if(mode==='pet'){renderPet();return;}const l=look(),list=sectionsFor(l);$('survivorName').placeholder='Survivor 01';if(!list.some(x=>x.id===section))section=section==='gear'?'infect':section==='infect'?'gear':'body';const s=list.find(x=>x.id===section),panel=$('creatorPanel');
   panel.innerHTML=`<div class="cr-panel-head"><h2>${s.name}</h2><span>${list.indexOf(s)+1} / ${list.length}</span></div>`+s.rows.map(r=>rowHtml(r,l)).join('');
